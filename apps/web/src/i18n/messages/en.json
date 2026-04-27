@@ -268,6 +268,99 @@
     "loginSuccess": "Login successful, welcome back",
     "registerSuccess": "Registration successful, welcome"
   },
+  "explore": {
+    "title": "Explore",
+    "subtitle": "Discover thousands of subjectivities and find your resonance",
+    "searchPlaceholder": "Search lists, topics…",
+    "searchResults": "Search Results",
+    "allLists": "All Lists",
+    "listCount": "{count} lists",
+    "categoryLabel": "Categories",
+    "allCategories": "All",
+    "hotSearches": "Trending",
+    "recentSearches": "Recent",
+    "clearSearch": "Clear",
+    "sortLabel": "Sort",
+    "sortDiversity": "Diversity",
+    "sortConsensus": "Consensus",
+    "sortNewest": "Newest",
+    "topicAggregation": "Topic Aggregation",
+    "mergedCount": "{count} similar lists",
+    "viewAll": "View All",
+    "collapse": "Collapse",
+    "emptyTitle": "Searched everywhere, not found",
+    "emptyDesc": "Try different keywords, perhaps in deeper waters",
+    "errorTitle": "Clouded, unreachable",
+    "errorDesc": "Path not found, try again later",
+    "items": "items",
+    "views": "views",
+    "noMore": "— No more —"
+  },
+  "comment": {
+    "title": "Comments",
+    "placeholder": "Share your thoughts…",
+    "submit": "Post",
+    "reply": "Reply",
+    "replyPlaceholder": "Write a reply…",
+    "cancel": "Cancel",
+    "loadMore": "Load more",
+    "empty": "No echoes yet in the mountains",
+    "sentimentFilter": "Sentiment filter"
+  },
+  "profile": {
+    "listsSection": "Lists",
+    "badgesSection": "Badges",
+    "listCount": "{count} lists",
+    "rapportCount": "{count} allies",
+    "bookmarkedCount": "{count} bookmarks",
+    "emptyLists": "No lists yet",
+    "emptyListsDesc": "Create your first list",
+    "errorTitle": "Load failed",
+    "errorDesc": "Please try again later",
+    "badgeLocked": "Locked",
+    "loadingTitle": "Loading…"
+  },
+  "settings": {
+    "title": "Settings",
+    "nicknameLabel": "Nickname",
+    "nicknamePlaceholder": "Your name",
+    "bioLabel": "Bio",
+    "bioPlaceholder": "Tell us about yourself…",
+    "avatarChange": "Change avatar",
+    "avatarHint": "JPG, PNG, up to 2MB",
+    "languageDesc": "Interface language",
+    "notificationTitle": "Notifications",
+    "saveBtn": "Save"
+  },
+  "scoring": {
+    "guide": "Measure with your heart",
+    "dimensionHint": "Score each dimension for this item",
+    "submit": "Submit Score",
+    "submitted": "Score Submitted",
+    "flow": {
+      "finish": "Finish",
+      "nextItem": "Next",
+      "prevItem": "Previous",
+      "skipHint": "Skip"
+    },
+    "complete": {
+      "title": "Scoring Complete",
+      "backToList": "Back to List",
+      "consensus": "Consensus",
+      "duration": "Duration",
+      "seconds": "seconds",
+      "penaltyWarning": "Short scoring time may affect consensus"
+    },
+    "dimensionChoice": {
+      "title": "Choose Dimensions",
+      "guide": "Select dimensions to score",
+      "standardDims": "Standard Dimensions",
+      "standardDimsDesc": "Use the list author's dimensions",
+      "authorDims": "Author Dimensions",
+      "authorDimsDesc": "Use custom dimensions",
+      "start": "Start Scoring"
+    }
+  },
   "footer": {
     "copyright": "Weiwuweixin © 2024",
     "poweredBy": "Powered by Hermes Agent"

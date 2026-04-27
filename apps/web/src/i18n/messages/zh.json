@@ -268,6 +268,99 @@
     "loginSuccess": "登录成功，欢迎回来",
     "registerSuccess": "注册成功，欢迎加入"
   },
+  "explore": {
+    "title": "发现",
+    "subtitle": "探索万千主观，发现你的共鸣",
+    "searchPlaceholder": "搜索榜单、话题…",
+    "searchResults": "搜索结果",
+    "allLists": "全部榜单",
+    "listCount": "{count} 个榜单",
+    "categoryLabel": "分类",
+    "allCategories": "全部",
+    "hotSearches": "热门搜索",
+    "recentSearches": "最近搜索",
+    "clearSearch": "清除",
+    "sortLabel": "排序",
+    "sortDiversity": "多样性",
+    "sortConsensus": "高共识",
+    "sortNewest": "最新",
+    "topicAggregation": "话题聚合",
+    "mergedCount": "{count} 个同类榜单",
+    "viewAll": "查看全部",
+    "collapse": "收起",
+    "emptyTitle": "寻遍诸山，未见此物",
+    "emptyDesc": "换个词试试，或许在云深不知处",
+    "errorTitle": "云迷雾锁，暂不可达",
+    "errorDesc": "路径暂不可寻，请稍后再试",
+    "items": "项",
+    "views": "次浏览",
+    "noMore": "— 已无更多 —"
+  },
+  "comment": {
+    "title": "评论",
+    "placeholder": "留下你的看法…",
+    "submit": "发表",
+    "reply": "回复",
+    "replyPlaceholder": "写下你的回复…",
+    "cancel": "取消",
+    "loadMore": "加载更多",
+    "empty": "山间尚无回响",
+    "sentimentFilter": "情绪筛选"
+  },
+  "profile": {
+    "listsSection": "榜单",
+    "badgesSection": "徽章",
+    "listCount": "{count} 个榜单",
+    "rapportCount": "{count} 位同好",
+    "bookmarkedCount": "{count} 个收藏",
+    "emptyLists": "还没有创建榜单",
+    "emptyListsDesc": "创建你的第一个榜单吧",
+    "errorTitle": "加载失败",
+    "errorDesc": "请稍后重试",
+    "badgeLocked": "未解锁",
+    "loadingTitle": "加载中…"
+  },
+  "settings": {
+    "title": "设置",
+    "nicknameLabel": "昵称",
+    "nicknamePlaceholder": "你的称呼",
+    "bioLabel": "个人简介",
+    "bioPlaceholder": "介绍一下自己…",
+    "avatarChange": "更换头像",
+    "avatarHint": "支持 JPG、PNG，大小不超过 2MB",
+    "languageDesc": "界面语言",
+    "notificationTitle": "通知设置",
+    "saveBtn": "保存"
+  },
+  "scoring": {
+    "guide": "以心度之，为每一项打分",
+    "dimensionHint": "按照每个维度为该条目评分",
+    "submit": "提交评分",
+    "submitted": "评分已提交",
+    "flow": {
+      "finish": "完成",
+      "nextItem": "下一项",
+      "prevItem": "上一项",
+      "skipHint": "跳过"
+    },
+    "complete": {
+      "title": "评分完成",
+      "backToList": "返回榜单",
+      "consensus": "共识度",
+      "duration": "用时",
+      "seconds": "秒",
+      "penaltyWarning": "评分时间较短，可能影响共识度"
+    },
+    "dimensionChoice": {
+      "title": "选择维度",
+      "guide": "选择你想用哪些维度来评分",
+      "standardDims": "标准维度",
+      "standardDimsDesc": "使用榜单作者设置的维度",
+      "authorDims": "作者维度",
+      "authorDimsDesc": "使用自定义维度",
+      "start": "开始评分"
+    }
+  },
   "footer": {
     "copyright": "围物为心 © 2024",
     "poweredBy": "由 Hermes Agent 驱动"

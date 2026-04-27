@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { Link } from '@/i18n/navigation';
 import { Card, ConfidenceSeal } from '@weiwuweixin/ui';
 
 /* ============================================================
@@ -94,38 +95,39 @@ function TopicCard({ aggregation }: { aggregation: TopicAggregation }) {
         <div className="flex flex-col gap-sm">
           <AnimatePresence>
             {displayItems.map((item, i) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ type: 'spring', stiffness: 200, damping: 20, delay: i * 0.05 }}
-                className="flex items-center gap-sm p-sm rounded-[var(--radius-md)] bg-rice/60 hover:bg-rice transition-colors"
-              >
-                {/* 置信度印章 */}
-                <div className="flex-shrink-0">
-                  <ConfidenceSeal confidence={item.confidence} size="sm" spinning={false} />
-                </div>
+              <Link key={item.id} href={`/list/${item.id}`}>
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 20, delay: i * 0.05 }}
+                  className="flex items-center gap-sm p-sm rounded-[var(--radius-md)] bg-rice/60 hover:bg-rice transition-colors"
+                >
+                  {/* 置信度印章 */}
+                  <div className="flex-shrink-0">
+                    <ConfidenceSeal confidence={item.confidence} size="sm" spinning={false} />
+                  </div>
 
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-ink-900 truncate">{item.title}</p>
-                  <p className="text-xs text-ink-500">
-                    {item.authorName} · {item.itemCount} {t('items')}
-                  </p>
-                </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-ink-900 truncate">{item.title}</p>
+                    <p className="text-xs text-ink-500">
+                      {item.authorName} · {item.itemCount} {t('items')}
+                    </p>
+                  </div>
 
-                {/* 标签 */}
-                <div className="flex gap-3xs overflow-hidden">
-                  {item.tags.slice(0, 2).map((tag) => (
-                    <span
-                      key={tag}
-                      className="inline-block px-xs py-3xs text-xs rounded-[var(--radius-sm)] bg-rice text-ink-500 border border-ink-100 whitespace-nowrap"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </motion.div>
+                  {/* 标签 */}
+                  <div className="flex gap-3xs overflow-hidden">
+                    {item.tags.slice(0, 2).map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-block px-xs py-3xs text-xs rounded-[var(--radius-sm)] bg-rice text-ink-500 border border-ink-100 whitespace-nowrap"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </motion.div>
+              </Link>
             ))}
           </AnimatePresence>
         </div>

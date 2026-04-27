@@ -296,7 +296,7 @@ export default function HomePage() {
           <SlideReveal direction="up" delay={0} distance={30}>
             <div className="flex items-center gap-md mb-2xl">
               <div className="w-16 h-[1px] bg-ink-300" />
-              <p className="font-body text-xs tracking-[0.3em] uppercase text-ink-300">
+              <p className="font-body text-xs tracking-[0.25em] text-ink-300">
                 {t('recentListsLabel')}
               </p>
             </div>
@@ -479,7 +479,7 @@ function HeroSection() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1.2, ease: monopoEase, delay: 2.0 }}
       >
-        <span className="font-body text-xs tracking-[0.3em] uppercase text-ink-500">
+        <span className="font-body text-xs tracking-[0.25em] text-ink-500">
           {t('scrollDown')}
         </span>
         {/* 滚动线条动画 */}
@@ -544,12 +544,12 @@ function ListCard({ list, index }: { list: FeedList; index: number }) {
 
         {/* 卡片内容区 */}
         <div className="p-2xl flex flex-col min-h-[280px] relative z-20">
-          {/* 标签行 — Monopo 风格大写小字 + 分隔 */}
+          {/* 标签行 — 分隔符风格标签 */}
           <div className="flex items-center gap-sm mb-lg">
             {list.tags.slice(0, 3).map((tag: string, i: number) => (
               <motion.span
                 key={tag}
-                className="font-body text-xs tracking-[0.2em] uppercase text-ink-300"
+                className="font-body text-xs tracking-[0.15em] text-ink-300"
                 initial={{ opacity: 0, y: 8 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: colDelay + i * 0.05, duration: 0.6, ease: monopoEase }}
@@ -681,7 +681,7 @@ function PhilosophySection() {
                 >
                   <AnimatedCounter target={item.value} suffix={item.suffix} delay={0.4 + i * 0.15} />
                 </motion.div>
-                <div className="font-body text-xs tracking-[0.2em] uppercase text-ink-400">
+                <div className="font-body text-xs tracking-[0.15em] text-ink-400">
                   {item.label}
                 </div>
               </div>

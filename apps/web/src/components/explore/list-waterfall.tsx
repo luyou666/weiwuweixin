@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
+import { Link } from '@/i18n/navigation';
 import { Card, ConfidenceSeal, SkeletonInk, EmptyState } from '@weiwuweixin/ui';
 import type { FeedList } from '@/lib/mock-data';
 
@@ -135,51 +136,53 @@ function StickerCard({
         delay: Math.min(index * 0.04, 0.3),
       }}
     >
-      <Card interactive size="md" className="h-full">
-        <div className="flex gap-md">
-          {/* 置信度印章 */}
-          <div className="flex-shrink-0 pt-xs">
-            <ConfidenceSeal
-              confidence={list.confidence}
-              size="sm"
-              spinning={false}
-            />
-          </div>
+      <Link href={`/list/${list.id}`}>
+        <Card interactive size="md" className="h-full">
+          <div className="flex gap-md">
+            {/* 置信度印章 */}
+            <div className="flex-shrink-0 pt-xs">
+              <ConfidenceSeal
+                confidence={list.confidence}
+                size="sm"
+                spinning={false}
+              />
+            </div>
 
-          {/* 内容区 */}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-[var(--font-heading)] text-lg text-ink-900 truncate">
-              {list.title}
-            </h3>
-            <p className="text-sm text-ink-500 mt-3xs line-clamp-2">
-              {list.subtitle}
-            </p>
+            {/* 内容区 */}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-[var(--font-heading)] text-lg text-ink-900 truncate">
+                {list.title}
+              </h3>
+              <p className="text-sm text-ink-500 mt-3xs line-clamp-2">
+                {list.subtitle}
+              </p>
 
-            {/* 标签 */}
-            <div className="flex flex-wrap gap-3xs mt-sm">
-              {list.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-block px-sm py-3xs text-xs rounded-[var(--radius-md)] bg-rice text-ink-500 border border-ink-100"
-                >
-                  {tag}
+              {/* 标签 */}
+              <div className="flex flex-wrap gap-3xs mt-sm">
+                {list.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-block px-sm py-3xs text-xs rounded-[var(--radius-md)] bg-rice text-ink-500 border border-ink-100"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              {/* 元信息行 */}
+              <div className="flex items-center justify-between mt-sm text-xs text-ink-300">
+                <span>
+                  {list.author.nickname} · {list.itemCount} {t('items')} ·{' '}
+                  {list.viewCount} {t('views')}
                 </span>
-              ))}
-            </div>
-
-            {/* 元信息行 */}
-            <div className="flex items-center justify-between mt-sm text-xs text-ink-300">
-              <span>
-                {list.author.nickname} · {list.itemCount} {t('items')} ·{' '}
-                {list.viewCount} {t('views')}
-              </span>
-              <span>
-                {new Date(list.createdAt).toLocaleDateString()}
-              </span>
+                <span>
+                  {new Date(list.createdAt).toLocaleDateString()}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </Link>
     </motion.div>
   );
 }
