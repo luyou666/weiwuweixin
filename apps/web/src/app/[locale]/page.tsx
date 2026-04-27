@@ -37,6 +37,7 @@ const HERO_EN_MAP: Record<string, string> = {
   '以物观心': 'your heart',
   '守护': 'Guard',
   '你的主观性': 'your subjectivity',
+  '让评分不再是冷冰冰的数字': 'Scores need not be cold numbers',
 };
 
 /* ── 滚动方向上下文 ── */
@@ -139,12 +140,10 @@ function CharReveal({
   const enLabel = enText || '';
 
   return (
-    <div ref={ref} className={`flex flex-wrap justify-center ${className || ''}`} aria-label={text}>
+    <div ref={ref} data-lens-en={enLabel} className={`flex flex-wrap justify-center ${className || ''}`} aria-label={text}>
       {chars.map((char, i) => (
         <motion.span
           key={`${char}-${i}`}
-          data-lens-en={i === chars.length - 1 ? enLabel : ''}
-          data-lens-char={char}
           initial={{ y: enterY, opacity: 0, rotateX: enterRotateX }}
           animate={isInView ? { y: '0%', opacity: 1, rotateX: 0 } : {}}
           transition={{
@@ -495,8 +494,8 @@ function HeroSection() {
         />
       </motion.div>
 
-      {/* ── 镜片光标 ── 玻璃透镜效果，内部显示放大内容 */}
-      <LensCursor mousePx={mousePx} />
+      {/* ── 镜片光标 ── 悬浮大字时显示英文翻译 */}
+      <LensCursor mousePx={mousePx} sectionRef={sectionRef} />
 
       {/* 网格纹理层 */}
       <div
@@ -532,14 +531,17 @@ function HeroSection() {
           staggerDelay={0.04}
         />
 
-        {/* 第三行: 品牌声明 — RevealText */}
-        <RevealText className="font-body text-lg md:text-xl text-ink-300 max-w-xl mx-auto leading-relaxed mb-2xl" delay={1.2}>
-          <><strong className="text-paper font-semibold">{t('heroLine3Bold')}</strong>{t('heroLine3')}</>
-        </RevealText>
+        {/* 第三行: 品牌声明 — RevealText + 镜片英文映射 */}
+        <div data-lens-en={`${HERO_EN_MAP[t('heroLine3Bold')]} ${HERO_EN_MAP[t('heroLine3')]}`}>
+          <RevealText className="font-body text-lg md:text-xl text-ink-300 max-w-xl mx-auto leading-relaxed mb-2xl" delay={1.2}>
+            <><strong className="text-paper font-semibold" data-lens-en={HERO_EN_MAP[t('heroLine3Bold')]}>{t('heroLine3Bold')}</strong><span data-lens-en={HERO_EN_MAP[t('heroLine3')]}>{t('heroLine3')}</span></>
+          </RevealText>
+        </div>
 
-        {/* 副标题 — 缓慢淡入 */}
+        {/* 副标题 — 缓慢淡入 + 镜片英文映射 */}
         <motion.p
           className="font-body text-sm text-ink-500 max-w-md mx-auto leading-relaxed mb-2xl"
+          data-lens-en={HERO_EN_MAP[t('heroLine4')] || ''}
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, ease: monopoEase, delay: 1.5 }}
@@ -929,16 +931,49 @@ function SlideReveal({
 }
 
 /* ─────────────────────────────────────────
-   LensCursor — 镜片效果光标 (Monopo 风格)
-   白色圆圈 + 竖排文字 + 向下箭头手柄
-   参考 monopo.london 的圆形信息光标设计
+   LensCursor — 镜片效果光标
+   圆形透镜，当悬浮在中文大字上时显示对应英文翻译，
+   其他位置只显示玻璃镜片效果（brighten/saturate）
+   跟手度极高（stiffness:800, damping:35, mass:0.2）
    ───────────────────────────────────────── */
 function LensCursor({
   mousePx,
+  sectionRef,
 }: {
   mousePx: { x: number; y: number };
+  sectionRef: React.RefObject<HTMLElement | null>;
 }) {
-  const SIZE = 120;
+  const [lensText, setLensText] = useState('');
+  const LENS_SIZE = 160;
+
+  /* 检测鼠标下方的元素，读取 data-lens-en 属性 */
+  useEffect(() => {
+    if (!sectionRef.current) return;
+    const section = sectionRef.current;
+
+    const handleMove = (e: MouseEvent) => {
+      const targets = section.querySelectorAll('[data-lens-en]');
+      let found = '';
+      for (const el of targets) {
+        const rect = el.getBoundingClientRect();
+        if (
+          e.clientX >= rect.left && e.clientX <= rect.right &&
+          e.clientY >= rect.top && e.clientY <= rect.bottom
+        ) {
+          const en = el.getAttribute('data-lens-en');
+          if (en) {
+            found = en;
+            break;
+          }
+        }
+      }
+      setLensText(found);
+    };
+
+    section.addEventListener('mousemove', handleMove);
+    return () => section.removeEventListener('mousemove', handleMove);
+  }, [sectionRef]);
+
   return (
     <motion.div
       className="absolute pointer-events-none z-20"
@@ -946,43 +981,74 @@ function LensCursor({
         left: mousePx.x,
         top: mousePx.y,
       }}
-      transition={{ type: 'spring', stiffness: 250, damping: 18, mass: 0.5 }}
+      transition={{ type: 'spring', stiffness: 800, damping: 35, mass: 0.2 }}
       style={{ width: 0, height: 0 }}
     >
-      {/* 圆形镜片 — Monopo 风格白色圆圈 */}
+      {/* 镜片主体 — backdrop-filter 实现玻璃镜片效果 */}
       <div
         style={{
           position: 'absolute',
-          width: SIZE,
-          height: SIZE,
-          left: -SIZE / 2,
-          top: -SIZE / 2,
+          width: LENS_SIZE,
+          height: LENS_SIZE,
+          left: -LENS_SIZE / 2,
+          top: -LENS_SIZE / 2,
           borderRadius: '50%',
-          background: 'rgba(255, 255, 255, 0.92)',
-          backdropFilter: 'blur(2px)',
-          WebkitBackdropFilter: 'blur(2px)',
-          color: '#1a1a1a',
+          backdropFilter: 'brightness(1.8) saturate(1.4) contrast(1.1)',
+          WebkitBackdropFilter: 'brightness(1.8) saturate(1.4) contrast(1.1)',
+          background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 70%, transparent 100%)',
+          border: '2px solid rgba(255,255,255,0.35)',
+          boxShadow: `
+            0 0 0 1px rgba(255,255,255,0.1),
+            0 8px 40px rgba(0,0,0,0.5),
+            0 0 60px rgba(226,85,63,0.15),
+            inset 0 0 30px rgba(255,255,255,0.08)
+          `,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          border: '1px solid rgba(255, 255, 255, 0.4)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 60px rgba(226,85,63,0.12)',
+          flexDirection: 'column',
         }}
       >
-        {/* 圆内竖排文字 — 和 monopo 一样 */}
-        <span
+        {/* 镜片内英文文字 — 悬浮在大字上时显示 */}
+        <AnimatePresence mode="wait">
+          {lensText && (
+            <motion.span
+              key={lensText}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.25, ease: [0.165, 0.84, 0.44, 1] }}
+              className="font-body text-sm text-paper text-center leading-tight px-2 select-none"
+              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
+            >
+              {lensText}
+            </motion.span>
+          )}
+        </AnimatePresence>
+
+        {/* 镜片高光 — 左上角椭圆形反光 */}
+        <div
           style={{
-            writingMode: 'vertical-rl',
-            fontSize: '13px',
-            fontWeight: 500,
-            letterSpacing: '0.15em',
-            lineHeight: 1,
-            color: '#1a1a1a',
-            fontFamily: 'var(--font-body)',
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '50%',
+            background: `
+              radial-gradient(ellipse 55% 35% at 35% 30%, rgba(255,255,255,0.18) 0%, transparent 70%),
+              radial-gradient(ellipse 35% 25% at 70% 75%, rgba(255,255,255,0.05) 0%, transparent 60%)
+            `,
+            pointerEvents: 'none',
           }}
-        >
-          探索 ↓
-        </span>
+        />
+        {/* 镜片边缘渐暗 — 凸透镜色散暗角 */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '50%',
+            boxShadow: 'inset 0 0 35px 12px rgba(0,0,0,0.35)',
+            pointerEvents: 'none',
+          }}
+        />
       </div>
     </motion.div>
   );
