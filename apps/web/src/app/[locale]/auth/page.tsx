@@ -75,8 +75,8 @@ function Toast({ message, type }: { message: string; type: 'success' | 'error' }
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-xl shadow-xl ${
         type === 'success'
-          ? 'bg-cinnabar/90 text-paper border border-cinnabar-light/30'
-          : 'bg-ink-900/95 text-cinnabar border border-cinnabar/30'
+          ? 'bg-vermilion/90 text-paper border border-vermilion-light/30'
+          : 'bg-ink-900/95 text-vermilion border border-vermilion/30'
       } backdrop-blur-xl text-sm font-medium`}
     >
       {type === 'success' && (
@@ -134,10 +134,10 @@ function AuthInput({
             w-full px-4 py-3 rounded-xl
             bg-white/5 border
             text-white placeholder:text-white/60
-            focus:outline-none focus:ring-2 focus:ring-cinnabar/40 focus:border-cinnabar/60
+            focus:outline-none focus:ring-2 focus:ring-vermilion/40 focus:border-vermilion/60
             transition-all duration-200
             ${showPasswordToggle ? 'pr-10' : ''}
-            ${error ? 'border-cinnabar' : 'border-white/10'}
+            ${error ? 'border-vermilion' : 'border-white/10'}
           `}
         />
         {showPasswordToggle && (
@@ -155,7 +155,7 @@ function AuthInput({
         <motion.p
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-cinnabar text-xs mt-1"
+          className="text-vermilion text-xs mt-1"
         >
           {error}
         </motion.p>
@@ -343,8 +343,8 @@ export default function AuthPage() {
           transition={{ delay: 0.2, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
           <Link href="/">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full border-2 border-cinnabar/40 mb-4 cursor-pointer hover:border-cinnabar/70 hover:scale-105 transition-all duration-300">
-              <span className="text-cinnabar text-2xl font-heading font-bold">围</span>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full border-2 border-vermilion/40 mb-4 cursor-pointer hover:border-vermilion/70 hover:scale-105 transition-all duration-300">
+              <span className="text-vermilion text-2xl font-heading font-bold">围</span>
             </div>
           </Link>
         </motion.div>
@@ -372,7 +372,7 @@ export default function AuthPage() {
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-cinnabar/10 border border-cinnabar/30 rounded-lg px-4 py-3 mb-4 text-cinnabar text-sm text-center"
+                  className="bg-vermilion/10 border border-vermilion/30 rounded-lg px-4 py-3 mb-4 text-vermilion text-sm text-center"
                 >
                   {serverError}
                 </motion.div>
@@ -432,7 +432,7 @@ export default function AuthPage() {
                   <div className="text-right mb-4">
                     <button
                       type="button"
-                      className="text-cinnabar/70 text-xs hover:text-cinnabar transition-colors"
+                      className="text-vermilion/70 text-xs hover:text-vermilion transition-colors"
                     >
                       {t('forgotPassword')}
                     </button>
@@ -445,7 +445,7 @@ export default function AuthPage() {
                   disabled={loading}
                   className="
                     w-full py-3 rounded-pill text-white font-medium
-                    bg-cinnabar hover:bg-cinnabar-light
+                    bg-vermilion hover:bg-vermilion-light
                     disabled:opacity-50 disabled:cursor-not-allowed
                     transition-all duration-200
                     mt-2
@@ -504,7 +504,7 @@ export default function AuthPage() {
                 <button
                   type="button"
                   onClick={switchMode}
-                  className="text-cinnabar hover:text-cinnabar-light transition-colors font-medium"
+                  className="text-vermilion hover:text-vermilion-light transition-colors font-medium"
                 >
                   {mode === 'login' ? t('goRegister') : t('goLogin')}
                 </button>
