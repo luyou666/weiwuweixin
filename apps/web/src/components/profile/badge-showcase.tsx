@@ -5,10 +5,8 @@ import { useTranslations } from 'next-intl';
 import type { BadgeInfo } from '@weiwuweixin/shared';
 
 /* ============================================================
-   BadgeShowcase — 徽章展示
-   4种圆形SVG印章图案
-   已获得：金色光晕 + 微闪光动画
-   未获得：灰色半透明 + "待解锁"
+   BadgeShowcase — 围物为心徽章展示
+   4种圆形SVG印章图案 + 解锁进度条 + hover展开详情
    ============================================================ */
 
 interface BadgeShowcaseProps {
@@ -16,58 +14,80 @@ interface BadgeShowcaseProps {
 }
 
 export function BadgeShowcase({ badges }: BadgeShowcaseProps) {
+  const t = useTranslations('profile');
+  const earnedCount = badges.filter(b => b.earned).length;
+
   return (
-    <div className="flex gap-lg overflow-x-auto pb-sm snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
-      {badges.map((badge, i) => (
-        <BadgeItem key={badge.type} badge={badge} index={i} />
-      ))}
+    <div>
+      {/* ─── 进度条 ─── */}
+      <div className="flex items-center gap-sm mb-lg">
+        <div className="flex-1 h-1.5 bg-ink-100 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full rounded-full"
+            style={{ background: 'var(--vermilion)' }}
+            initial={{ width: 0 }}
+            animate={{ width: `${(earnedCount / Math.max(badges.length, 1)) * 100}%` }}
+            transition={{ duration: 1, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          />
+        </div>
+        <span className="text-xs text-ink-400 tabular-nums" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+          {t('badgeProgress', { earned: earnedCount, total: badges.length })}
+        </span>
+      </div>
+
+      {/* ─── 徽章网格 ─── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-lg">
+        {badges.map((badge, i) => (
+          <BadgeItem key={badge.type} badge={badge} index={i} />
+        ))}
+      </div>
     </div>
   );
 }
 
 /* ─── 单个徽章 ─── */
+const badgeNameKeys: Record<string, string> = {
+  'first-list': 'badgeFirstList',
+  'echo-eight': 'badgeEchoEight',
+  'chorus-100': 'badgeChorus100',
+  pioneer: 'badgePioneer',
+};
+
+const badgeDescKeys: Record<string, string> = {
+  'first-list': 'badgeFirstListDesc',
+  'echo-eight': 'badgeEchoEightDesc',
+  'chorus-100': 'badgeChorus100Desc',
+  pioneer: 'badgePioneerDesc',
+};
+
 function BadgeItem({ badge, index }: { badge: BadgeInfo; index: number }) {
   const t = useTranslations('profile');
 
-  const badgeNameKey: Record<string, string> = {
-    'first-list': 'badgeFirstList',
-    'echo-eight': 'badgeEchoEight',
-    'chorus-100': 'badgeChorus100',
-    pioneer: 'badgePioneer',
-  };
-
-  const badgeDescKey: Record<string, string> = {
-    'first-list': 'badgeFirstListDesc',
-    'echo-eight': 'badgeEchoEightDesc',
-    'chorus-100': 'badgeChorus100Desc',
-    pioneer: 'badgePioneerDesc',
-  };
-
-  const name = t(badgeNameKey[badge.type] as Parameters<typeof t>[0]);
-  const desc = t(badgeDescKey[badge.type] as Parameters<typeof t>[0]);
+  const name = t(badgeNameKeys[badge.type] as Parameters<typeof t>[0]);
+  const desc = t(badgeDescKeys[badge.type] as Parameters<typeof t>[0]);
 
   return (
     <motion.div
-      className="flex flex-col items-center snap-start flex-shrink-0"
-      style={{ minWidth: '120px' }}
-      initial={{ opacity: 0, scale: 0.8 }}
+      className="flex flex-col items-center p-lg rounded-2xl transition-colors group
+        hover:bg-ink-50/50 cursor-default"
+      initial={{ opacity: 0, scale: 0.85 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{
         type: 'spring',
         stiffness: 260,
         damping: 20,
-        delay: index * 0.1,
+        delay: index * 0.08,
       }}
     >
       {/* 徽章圆形容器 */}
-      <div className="relative">
+      <div className="relative mb-sm">
         {badge.earned ? (
           <motion.div
             className="relative"
             animate={{
               boxShadow: [
                 '0 0 0px rgba(244, 184, 96, 0)',
-                '0 0 12px rgba(244, 184, 96, 0.4)',
+                '0 0 12px rgba(244, 184, 96, 0.35)',
                 '0 0 0px rgba(244, 184, 96, 0)',
               ],
             }}
@@ -81,7 +101,7 @@ function BadgeItem({ badge, index }: { badge: BadgeInfo; index: number }) {
               className="w-20 h-20 rounded-full flex items-center justify-center"
               style={{
                 background: 'radial-gradient(circle, var(--apricot-light) 0%, var(--apricot) 60%, var(--apricot-dark) 100%)',
-                boxShadow: '0 0 16px rgba(244, 184, 96, 0.3), var(--shadow-sticker)',
+                boxShadow: '0 0 16px rgba(244, 184, 96, 0.25), var(--shadow-sticker)',
               }}
             >
               <BadgeSVG type={badge.type} earned />
@@ -89,7 +109,7 @@ function BadgeItem({ badge, index }: { badge: BadgeInfo; index: number }) {
           </motion.div>
         ) : (
           <div
-            className="w-20 h-20 rounded-full flex items-center justify-center opacity-40"
+            className="w-20 h-20 rounded-full flex items-center justify-center opacity-35 group-hover:opacity-50 transition-opacity"
             style={{
               background: 'var(--ink-100)',
               boxShadow: 'var(--shadow-sm)',
@@ -100,28 +120,20 @@ function BadgeItem({ badge, index }: { badge: BadgeInfo; index: number }) {
         )}
       </div>
 
-      <motion.p
-        className={`mt-sm text-xs font-medium text-center ${badge.earned ? 'text-ink-900' : 'text-ink-300'}`}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: index * 0.1 + 0.15 }}
-      >
+      {/* 徽章名 */}
+      <p className={`text-sm font-medium text-center ${badge.earned ? 'text-ink-900' : 'text-ink-400'}`}>
         {name}
-      </motion.p>
+      </p>
 
-      <motion.p
-        className="text-xs text-center mt-1"
+      {/* 徽章描述 / 未解锁 */}
+      <p
+        className="text-xs text-center mt-1 max-w-[100px] leading-snug"
         style={{
           color: badge.earned ? 'var(--ink-500)' : 'var(--ink-300)',
-          fontSize: 'var(--text-xs)',
-          maxWidth: '100px',
         }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: index * 0.1 + 0.2 }}
       >
         {badge.earned ? desc : t('badgeLocked')}
-      </motion.p>
+      </p>
     </motion.div>
   );
 }
@@ -206,39 +218,16 @@ function ChorusHundredSeal({ ink, bgOp }: { ink: string; bgOp: number }) {
   return (
     <svg viewBox="0 0 80 80" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="40" cy="40" r="36" stroke={ink} strokeWidth="1.5" opacity={0.6} />
-      {/* 凤凰主体 */}
       <path
         d="M40 18 C44 24, 48 28, 46 34 C44 30, 42 28, 40 30 C38 28, 36 30, 34 34 C32 28, 36 24, 40 18Z"
-        fill={ink}
-        fillOpacity={bgOp * 2}
-        stroke={ink}
-        strokeWidth="1"
-        opacity={0.7}
+        fill={ink} fillOpacity={bgOp * 2} stroke={ink} strokeWidth="1" opacity={0.7}
       />
-      {/* 凤凰尾羽 */}
       <path
         d="M40 34 C42 38, 46 44, 44 52 C42 48, 40 46, 40 46 C40 46, 38 48, 36 52 C34 44, 38 38, 40 34Z"
-        fill={ink}
-        fillOpacity={bgOp}
-        stroke={ink}
-        strokeWidth="1"
-        opacity={0.6}
+        fill={ink} fillOpacity={bgOp} stroke={ink} strokeWidth="1" opacity={0.6}
       />
-      <path
-        d="M34 52 C32 48, 30 50, 28 54"
-        stroke={ink}
-        strokeWidth="1"
-        strokeLinecap="round"
-        opacity={0.3}
-      />
-      <path
-        d="M46 52 C48 48, 50 50, 52 54"
-        stroke={ink}
-        strokeWidth="1"
-        strokeLinecap="round"
-        opacity={0.3}
-      />
-      {/* 散落鸟点（代表众声） */}
+      <path d="M34 52 C32 48, 30 50, 28 54" stroke={ink} strokeWidth="1" strokeLinecap="round" opacity={0.3} />
+      <path d="M46 52 C48 48, 50 50, 52 54" stroke={ink} strokeWidth="1" strokeLinecap="round" opacity={0.3} />
       <circle cx="22" cy="32" r="1.5" fill={ink} opacity={0.35} />
       <circle cx="58" cy="28" r="1.5" fill={ink} opacity={0.3} />
       <circle cx="54" cy="50" r="1.2" fill={ink} opacity={0.25} />
@@ -247,7 +236,6 @@ function ChorusHundredSeal({ ink, bgOp }: { ink: string; bgOp: number }) {
       <circle cx="62" cy="40" r="1" fill={ink} opacity={0.2} />
       <circle cx="48" cy="60" r="1" fill={ink} opacity={0.2} />
       <circle cx="32" cy="62" r="1" fill={ink} opacity={0.2} />
-      {/* 中心点 */}
       <circle cx="40" cy="32" r="2" fill={ink} opacity={0.5} />
     </svg>
   );
@@ -258,41 +246,24 @@ function PioneerSeal({ ink, bgOp }: { ink: string; bgOp: number }) {
   return (
     <svg viewBox="0 0 80 80" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="40" cy="40" r="36" stroke={ink} strokeWidth="1.5" opacity={0.6} />
-      {/* 远山 */}
       <path
         d="M10 56 L24 30 L34 42 L44 24 L54 38 L64 28 L74 44 L74 56Z"
-        fill={ink}
-        fillOpacity={bgOp}
-        stroke={ink}
-        strokeWidth="1.2"
-        strokeLinejoin="round"
-        opacity={0.5}
+        fill={ink} fillOpacity={bgOp} stroke={ink} strokeWidth="1.2" strokeLinejoin="round" opacity={0.5}
       />
-      {/* 近山 */}
       <path
         d="M6 60 L18 38 L30 48 L40 34 L52 46 L62 36 L76 50 L76 60Z"
-        fill={ink}
-        fillOpacity={bgOp * 1.5}
-        stroke={ink}
-        strokeWidth="1"
-        opacity={0.4}
+        fill={ink} fillOpacity={bgOp * 1.5} stroke={ink} strokeWidth="1" opacity={0.4}
       />
-      {/* 探险者小人 */}
       <circle cx="40" cy="26" r="2.5" fill={ink} opacity={0.6} />
       <line x1="40" y1="28" x2="40" y2="36" stroke={ink} strokeWidth="1.5" opacity={0.6} />
       <line x1="40" y1="36" x2="37" y2="40" stroke={ink} strokeWidth="1" opacity={0.5} />
       <line x1="40" y1="36" x2="43" y2="40" stroke={ink} strokeWidth="1" opacity={0.5} />
       <line x1="40" y1="31" x2="36" y2="29" stroke={ink} strokeWidth="1" opacity={0.5} strokeLinecap="round" />
       <line x1="40" y1="31" x2="44" y2="29" stroke={ink} strokeWidth="1" opacity={0.5} strokeLinecap="round" />
-      {/* 旗帜 */}
       <line x1="44" y1="29" x2="44" y2="22" stroke={ink} strokeWidth="1" opacity={0.5} />
       <path
         d="M44 22 L49 24 L44 26Z"
-        fill={ink}
-        fillOpacity={0.3}
-        stroke={ink}
-        strokeWidth="0.8"
-        opacity={0.5}
+        fill={ink} fillOpacity={0.3} stroke={ink} strokeWidth="0.8" opacity={0.5}
       />
     </svg>
   );
