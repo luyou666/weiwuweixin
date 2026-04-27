@@ -667,4 +667,86 @@
     background-size: 200% 100%;
     animation: scroll-shimmer 3s ease-in-out infinite;
   }
+
+  /* ═══════════════════════════════════════════
+     高设2版 — Monopo 风格动态增强 CSS
+     ═══════════════════════════════════════════ */
+
+  /* Monopo 风格按钮 hover 涟漪 — 白色圆形扩展覆盖 */
+  .monopo-btn-primary {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0;
+  }
+  .monopo-btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #fff;
+    transform: translate(-150%, 50%) translateZ(0);
+    transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+  }
+  .monopo-btn-primary:hover::before {
+    transform: translate(-50%, -50%) scale(8) translateZ(0);
+    transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+  }
+
+  /* Monopo 风格链接箭头圆圈 */
+  .monopo-arrow-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    opacity: 0.4;
+    transition: opacity 0.6s cubic-bezier(0.165, 0.84, 0.44, 1),
+                transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1),
+                background 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+  }
+  .monopo-arrow-circle:hover {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+
+  /* 卡片 hover 时标题倾斜微动 */
+  .monopo-card-hover-title {
+    transition: transform 0.5s cubic-bezier(0.165, 0.84, 0.44, 1),
+                color 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+  }
+  .group:hover .monopo-card-hover-title {
+    transform: translateX(4px);
+  }
+
+  /* Monopo 风格滚动线条指示器 */
+  .scroll-line-indicator {
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--ink-300), transparent);
+  }
+  .scroll-line-indicator .scroll-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--vermilion);
+    animation: scroll-dot-pulse 2s ease-in-out infinite;
+  }
+  @keyframes scroll-dot-pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+
+  /* 粒子漂浮效果 */
+  @keyframes float-particle {
+    0% { transform: translateY(0) rotate(0deg); opacity: 0.2; }
+    50% { opacity: 0.5; }
+    100% { transform: translateY(-100vh) rotate(180deg); opacity: 0; }
+  }
+  .float-particle {
+    animation: float-particle 20s linear infinite;
+  }
 }
