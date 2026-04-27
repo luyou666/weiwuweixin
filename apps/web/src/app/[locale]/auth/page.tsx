@@ -133,7 +133,7 @@ function AuthInput({
           className={`
             w-full px-4 py-3 rounded-xl
             bg-white/5 border
-            text-white placeholder:text-white/40
+            text-white placeholder:text-white/60
             focus:outline-none focus:ring-2 focus:ring-cinnabar/40 focus:border-cinnabar/60
             transition-all duration-200
             ${showPasswordToggle ? 'pr-10' : ''}
