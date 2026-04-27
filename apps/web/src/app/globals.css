@@ -12,6 +12,7 @@
 /* ── Design Tokens（与 @weiwuweixin/ui 同步） ── */
 :root {
   /* 墨色 Ink — 文字与深色基底 */
+  --ink-950: #0A0A14;
   --ink-900: #1A1A24;
   --ink-700: #3A3A4F;
   --ink-500: #5E5E72;
@@ -158,6 +159,7 @@
 .dark,
 [data-theme='dark'] {
   /* 墨色反转 — 浅墨为字，深墨为底 */
+  --ink-950: #F5F0E8;
   --ink-900: #E8E0D4;
   --ink-700: #C8C4BC;
   --ink-500: #A0A098;
@@ -219,6 +221,7 @@
 /* ── 系统偏好暗色模式（无 .dark class 时作为回退） ── */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
+    --ink-950: #F5F0E8;
     --ink-900: #E8E0D4;
     --ink-700: #C8C4BC;
     --ink-500: #A0A098;

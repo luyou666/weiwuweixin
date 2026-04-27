@@ -121,7 +121,7 @@ function AuthInput({
       animate="visible"
       custom={custom}
     >
-      <label className="block text-ink-300 text-sm font-medium mb-1.5 tracking-wide">
+      <label className="block text-white/70 text-sm font-medium mb-1.5 tracking-wide">
         {label}
       </label>
       <div className="relative">
@@ -132,19 +132,19 @@ function AuthInput({
           onChange={(e) => onChange(e.target.value)}
           className={`
             w-full px-4 py-3 rounded-xl
-            bg-ink-900/60 border
-            text-paper placeholder:text-ink-500
+            bg-white/5 border
+            text-white placeholder:text-white/40
             focus:outline-none focus:ring-2 focus:ring-cinnabar/40 focus:border-cinnabar/60
             transition-all duration-200
             ${showPasswordToggle ? 'pr-10' : ''}
-            ${error ? 'border-cinnabar' : 'border-ink-700/50'}
+            ${error ? 'border-cinnabar' : 'border-white/10'}
           `}
         />
         {showPasswordToggle && (
           <button
             type="button"
             onClick={onTogglePassword}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-paper transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors"
             tabIndex={-1}
           >
             <EyeIcon visible={passwordVisible} />
@@ -170,9 +170,9 @@ function AuthInput({
 function Divider({ text }: { text: string }) {
   return (
     <div className="flex items-center gap-3 my-6">
-      <div className="flex-1 h-px bg-ink-700/40" />
-      <span className="text-ink-500 text-xs tracking-wider">{text}</span>
-      <div className="flex-1 h-px bg-ink-700/40" />
+      <div className="flex-1 h-px bg-white/10" />
+      <span className="text-white/40 text-xs tracking-wider">{text}</span>
+      <div className="flex-1 h-px bg-white/10" />
     </div>
   );
 }
@@ -277,7 +277,7 @@ export default function AuthPage() {
       </AnimatePresence>
 
       {/* ── 背景层 ── */}
-      <div className="absolute inset-0 bg-ink-950">
+      <div className="absolute inset-0 bg-[#0A0A14]">
         {/* 朱砂光晕 */}
         <motion.div
           className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full"
@@ -349,7 +349,7 @@ export default function AuthPage() {
           </Link>
         </motion.div>
 
-        <div className="bg-ink-900/80 backdrop-blur-xl border border-ink-700/30 rounded-2xl p-8 shadow-2xl shadow-ink-950/50">
+        <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl shadow-black/50">
           <AnimatePresence mode="wait">
             <motion.div
               key={mode}
@@ -360,10 +360,10 @@ export default function AuthPage() {
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             >
               {/* 标题 */}
-              <h1 className="text-2xl font-heading font-semibold text-paper text-center mb-1">
+              <h1 className="text-2xl font-heading font-semibold text-white text-center mb-1">
                 {mode === 'login' ? t('loginTitle') : t('registerTitle')}
               </h1>
-              <p className="text-ink-400 text-sm text-center mb-6">
+              <p className="text-white/50 text-sm text-center mb-6">
                 {mode === 'login' ? t('loginDesc') : t('registerDesc')}
               </p>
 
@@ -444,7 +444,7 @@ export default function AuthPage() {
                   type="submit"
                   disabled={loading}
                   className="
-                    w-full py-3 rounded-pill text-paper font-medium
+                    w-full py-3 rounded-pill text-white font-medium
                     bg-cinnabar hover:bg-cinnabar-light
                     disabled:opacity-50 disabled:cursor-not-allowed
                     transition-all duration-200
@@ -456,7 +456,7 @@ export default function AuthPage() {
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
                       <motion.span
-                        className="inline-block w-4 h-4 border-2 border-paper/30 border-t-paper rounded-full"
+                        className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
                         animate={{ rotate: 360 }}
                         transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
                       />
@@ -476,7 +476,7 @@ export default function AuthPage() {
                 <button
                   type="button"
                   disabled
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-ink-700/40 text-ink-400 text-sm hover:border-ink-600/60 hover:text-ink-300 transition-all duration-200 opacity-60 cursor-not-allowed"
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 hover:text-white/60 transition-all duration-200 opacity-60 cursor-not-allowed"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
@@ -489,7 +489,7 @@ export default function AuthPage() {
                 <button
                   type="button"
                   disabled
-                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-ink-700/40 text-ink-400 text-sm hover:border-ink-600/60 hover:text-ink-300 transition-all duration-200 opacity-60 cursor-not-allowed"
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 hover:text-white/60 transition-all duration-200 opacity-60 cursor-not-allowed"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M8.69 2.18a10.08 10.08 0 0 0-5.33 4.65l3.2 2.48A6.04 6.04 0 0 1 8.69 2.18zM2.18 8.69a10.08 10.08 0 0 0 .01 6.62l3.2-2.48a6.04 6.04 0 0 1-3.21-4.14zM5.36 17.17a10.08 10.08 0 0 0 5.33 4.65l-2.15-3.72a6.04 6.04 0 0 1-3.18-0.93zM12.65 21.82a10.08 10.08 0 0 0 5.65-3.17l-3.2-2.48a6.04 6.04 0 0 1-2.45 5.65zM21.82 15.31a10.08 10.08 0 0 0 0-6.62l-3.2 2.48a6.04 6.04 0 0 1 3.2 4.14zM18.64 6.83A10.08 10.08 0 0 0 12.65 2.18l2.15 3.72a6.04 6.04 0 0 1 3.84 0.93z" />
@@ -499,7 +499,7 @@ export default function AuthPage() {
               </div>
 
               {/* 切换模式 */}
-              <div className="text-center mt-6 text-sm text-ink-400">
+              <div className="text-center mt-6 text-sm text-white/50">
                 {mode === 'login' ? t('noAccount') : t('hasAccount')}{' '}
                 <button
                   type="button"
@@ -522,7 +522,7 @@ export default function AuthPage() {
         >
           <button
             onClick={() => router.push('/')}
-            className="text-ink-500 text-sm hover:text-ink-300 transition-colors"
+            className="text-white/40 text-sm hover:text-white/70 transition-colors"
           >
             {t('orContinueAsGuest')} →
           </button>

@@ -33,7 +33,7 @@ export async function buildApp() {
 
   // ── CORS ──────────────────────────────────────────────
   await app.register(cors, {
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    origin: true,
     credentials: true,
     allowedHeaders: ['Content-Type', 'X-Device-Id', 'Authorization', 'X-Request-Id'],
   });

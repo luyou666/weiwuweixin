@@ -12,6 +12,7 @@ const config: Config = {
       /* ── 水墨色板 ── */
       colors: {
         ink: {
+          950: 'var(--ink-950)',
           900: 'var(--ink-900)',
           700: 'var(--ink-700)',
           500: 'var(--ink-500)',
