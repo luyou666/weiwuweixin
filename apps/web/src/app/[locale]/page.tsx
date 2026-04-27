@@ -931,10 +931,14 @@ function SlideReveal({
 }
 
 /* ─────────────────────────────────────────
-   LensCursor — 镜片效果光标
-   圆形透镜，当悬浮在中文大字上时显示对应英文翻译，
-   其他位置只显示玻璃镜片效果（brighten/saturate）
-   跟手度极高（stiffness:800, damping:35, mass:0.2）
+   LensCursor — 真实镜片替换效果光标
+   
+   悬浮中文大字时：
+   - 中文变透明（被"替换"掉）
+   - 镜片内显示对应英文翻译
+   - 镜片有真实玻璃质感：折射、色散、高光、金属框
+   
+   非文字区域：纯玻璃透镜效果（brightness/saturate 增强）
    ───────────────────────────────────────── */
 function LensCursor({
   mousePx,
@@ -944,9 +948,12 @@ function LensCursor({
   sectionRef: React.RefObject<HTMLElement | null>;
 }) {
   const [lensText, setLensText] = useState('');
-  const LENS_SIZE = 160;
+  const [lensTargetRect, setLensTargetRect] = useState<DOMRect | null>(null);
+  const [lensTargetStyle, setLensTargetStyle] = useState<React.CSSProperties>({});
+  const [lensTargetEl, setLensTargetEl] = useState<HTMLElement | null>(null);
+  const LENS_SIZE = 180;
 
-  /* 检测鼠标下方的元素，读取 data-lens-en 属性 */
+  /* 检测鼠标下方的元素，读取 data-lens-en 属性 + 目标元素位置/样式 */
   useEffect(() => {
     if (!sectionRef.current) return;
     const section = sectionRef.current;
@@ -954,6 +961,9 @@ function LensCursor({
     const handleMove = (e: MouseEvent) => {
       const targets = section.querySelectorAll('[data-lens-en]');
       let found = '';
+      let foundRect: DOMRect | null = null;
+      let foundStyle: React.CSSProperties = {};
+      let foundEl: HTMLElement | null = null;
       for (const el of targets) {
         const rect = el.getBoundingClientRect();
         if (
@@ -963,28 +973,96 @@ function LensCursor({
           const en = el.getAttribute('data-lens-en');
           if (en) {
             found = en;
+            foundRect = rect;
+            foundEl = el as HTMLElement;
+            const cs = window.getComputedStyle(el);
+            foundStyle = {
+              fontSize: cs.fontSize,
+              fontWeight: cs.fontWeight,
+              fontFamily: cs.fontFamily,
+              letterSpacing: cs.letterSpacing,
+              lineHeight: cs.lineHeight,
+            };
             break;
           }
         }
       }
       setLensText(found);
+      setLensTargetRect(foundRect);
+      setLensTargetStyle(foundStyle);
+      setLensTargetEl(foundEl);
     };
 
     section.addEventListener('mousemove', handleMove);
     return () => section.removeEventListener('mousemove', handleMove);
   }, [sectionRef]);
 
+  /* 当鼠标悬浮在中文文字上时，让原文变成透明（被镜片"替换"） */
+  useEffect(() => {
+    if (lensTargetEl && lensText) {
+      lensTargetEl.style.opacity = '0';
+      lensTargetEl.style.transition = 'opacity 0.2s ease';
+      return () => {
+        lensTargetEl.style.opacity = '';
+        lensTargetEl.style.transition = '';
+      };
+    }
+  }, [lensTargetEl, lensText]);
+
+  /* 鼠标离开 Hero 区域时恢复所有文字透明度 */
+  useEffect(() => {
+    if (!sectionRef.current) return;
+    const section = sectionRef.current;
+    const handleLeave = () => {
+      section.querySelectorAll('[data-lens-en]').forEach(el => {
+        (el as HTMLElement).style.opacity = '';
+        (el as HTMLElement).style.transition = '';
+      });
+    };
+    section.addEventListener('mouseleave', handleLeave);
+    return () => section.removeEventListener('mouseleave', handleLeave);
+  }, [sectionRef]);
+
+  const isActive = lensText.length > 0;
+
+  /* 活跃时镜片中心对准文字中心，非活跃时跟随鼠标 */
+  const centerX = lensTargetRect
+    ? (lensTargetRect.left + lensTargetRect.width / 2)
+    : mousePx.x;
+  const centerY = lensTargetRect
+    ? (lensTargetRect.top + lensTargetRect.height / 2)
+    : mousePx.y;
+
   return (
     <motion.div
       className="absolute pointer-events-none z-20"
       animate={{
-        left: mousePx.x,
-        top: mousePx.y,
+        left: isActive ? centerX : mousePx.x,
+        top: isActive ? centerY : mousePx.y,
+        scale: isActive ? 1.1 : 1,
       }}
-      transition={{ type: 'spring', stiffness: 800, damping: 35, mass: 0.2 }}
+      transition={{ type: 'spring', stiffness: 600, damping: 30, mass: 0.12 }}
       style={{ width: 0, height: 0 }}
     >
-      {/* 镜片主体 — backdrop-filter 实现玻璃镜片效果 */}
+      {/* 外层光晕 — 呼吸效果 */}
+      <motion.div
+        style={{
+          position: 'absolute',
+          width: LENS_SIZE * 2.2,
+          height: LENS_SIZE * 2.2,
+          left: -LENS_SIZE * 1.1,
+          top: -LENS_SIZE * 1.1,
+          borderRadius: '50%',
+          background: isActive
+            ? 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, rgba(226,85,63,0.04) 30%, transparent 60%)'
+            : 'radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 55%)',
+          pointerEvents: 'none',
+        }}
+        animate={{ scale: [1, 1.08, 1], opacity: [0.5, 1, 0.5] }}
+        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      {/* 镜片主体 — 真实凸透镜 */}
       <div
         style={{
           position: 'absolute',
@@ -993,60 +1071,106 @@ function LensCursor({
           left: -LENS_SIZE / 2,
           top: -LENS_SIZE / 2,
           borderRadius: '50%',
-          backdropFilter: 'brightness(1.8) saturate(1.4) contrast(1.1)',
-          WebkitBackdropFilter: 'brightness(1.8) saturate(1.4) contrast(1.1)',
-          background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 70%, transparent 100%)',
-          border: '2px solid rgba(255,255,255,0.35)',
+          overflow: 'hidden',
+          /* 无文字: 玻璃折射 brighten；有文字: 透明看清替换内容 */
+          backdropFilter: isActive
+            ? 'brightness(1.05)'
+            : 'brightness(1.8) saturate(1.4)',
+          WebkitBackdropFilter: isActive
+            ? 'brightness(1.05)'
+            : 'brightness(1.8) saturate(1.4)',
+          background: isActive
+            ? 'transparent'
+            : 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 70%, transparent 100%)',
+          border: isActive
+            ? '2.5px solid rgba(255,255,255,0.22)'
+            : '1.5px solid rgba(255,255,255,0.3)',
           boxShadow: `
-            0 0 0 1px rgba(255,255,255,0.1),
-            0 8px 40px rgba(0,0,0,0.5),
-            0 0 60px rgba(226,85,63,0.15),
-            inset 0 0 30px rgba(255,255,255,0.08)
+            0 0 0 1px rgba(255,255,255,0.06),
+            0 10px 40px rgba(0,0,0,0.45),
+            0 0 0 4px rgba(255,255,255,0.02),
+            inset 0 0 ${isActive ? '30' : '40'}px rgba(255,255,255,0.04)
           `,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'column',
+          transition: 'all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)',
         }}
       >
-        {/* 镜片内英文文字 — 悬浮在大字上时显示 */}
+        {/* ── 英文"替换"文字 ── 悬浮中文时，镜片内显示英文 ── */}
         <AnimatePresence mode="wait">
-          {lensText && (
-            <motion.span
+          {isActive && (
+            <motion.div
               key={lensText}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.25, ease: [0.165, 0.84, 0.44, 1] }}
-              className="font-body text-sm text-paper text-center leading-tight px-2 select-none"
-              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
+              initial={{ opacity: 0, filter: 'blur(12px)', scale: 0.8 }}
+              animate={{ opacity: 1, filter: 'blur(0px)', scale: 1 }}
+              exit={{ opacity: 0, filter: 'blur(8px)', scale: 1.1 }}
+              transition={{ duration: 0.35, ease: [0.165, 0.84, 0.44, 1] }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'column',
+                padding: '0 24px',
+                zIndex: 2,
+              }}
             >
-              {lensText}
-            </motion.span>
+              <span
+                className="font-heading text-center leading-snug select-none"
+                style={{
+                  fontSize: lensTargetStyle.fontSize
+                    ? `calc(${lensTargetStyle.fontSize} * 0.65)`
+                    : 'clamp(14px, 2.5vw, 22px)',
+                  color: '#f5f0eb',
+                  fontWeight: 300,
+                  letterSpacing: '0.06em',
+                  textShadow: '0 0 24px rgba(226,85,63,0.12), 0 1px 3px rgba(0,0,0,0.5)',
+                }}
+              >
+                {lensText}
+              </span>
+            </motion.div>
           )}
         </AnimatePresence>
 
-        {/* 镜片高光 — 左上角椭圆形反光 */}
+        {/* 镜片高光层 — 真实玻璃凸面反射 */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
             borderRadius: '50%',
-            background: `
-              radial-gradient(ellipse 55% 35% at 35% 30%, rgba(255,255,255,0.18) 0%, transparent 70%),
-              radial-gradient(ellipse 35% 25% at 70% 75%, rgba(255,255,255,0.05) 0%, transparent 60%)
-            `,
+            background: isActive
+              ? `radial-gradient(ellipse 45% 28% at 32% 25%, rgba(255,255,255,0.15) 0%, transparent 55%),
+                 radial-gradient(ellipse 22% 16% at 70% 72%, rgba(255,255,255,0.04) 0%, transparent 50%)`
+              : `radial-gradient(ellipse 50% 32% at 30% 25%, rgba(255,255,255,0.28) 0%, transparent 60%),
+                 radial-gradient(ellipse 28% 20% at 68% 73%, rgba(255,255,255,0.06) 0%, transparent 50%)`,
             pointerEvents: 'none',
+            transition: 'background 0.4s ease',
+            zIndex: 3,
           }}
         />
-        {/* 镜片边缘渐暗 — 凸透镜色散暗角 */}
+        {/* 边缘色散暗角 — 凸透镜边缘变暗 */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
             borderRadius: '50%',
-            boxShadow: 'inset 0 0 35px 12px rgba(0,0,0,0.35)',
+            boxShadow: isActive
+              ? 'inset 0 0 28px 10px rgba(0,0,0,0.18)'
+              : 'inset 0 0 38px 14px rgba(0,0,0,0.25)',
             pointerEvents: 'none',
+            transition: 'box-shadow 0.4s ease',
+            zIndex: 3,
+          }}
+        />
+        {/* 内侧金属框弧线 — 像真实镜片的内圈高光 */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 4,
+            borderRadius: '50%',
+            border: '1px solid rgba(255,255,255,0.05)',
+            pointerEvents: 'none',
+            zIndex: 3,
           }}
         />
       </div>
