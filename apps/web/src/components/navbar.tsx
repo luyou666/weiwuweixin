@@ -125,20 +125,18 @@ export function Navbar() {
                     </p>
                     <p className="text-white/50 text-xs truncate">{user.email}</p>
                   </div>
-                  <Link
-                    href={`/u/${user.handle}`}
-                    className="block px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-                    onClick={() => setMenuOpen(false)}
+                  <button
+                    className="block w-full text-left px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                    onClick={() => { setMenuOpen(false); window.location.href = `/u/${user.handle}`; }}
                   >
                     我的主页
-                  </Link>
-                  <Link
-                    href="/settings"
-                    className="block px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-                    onClick={() => setMenuOpen(false)}
+                  </button>
+                  <button
+                    className="block w-full text-left px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                    onClick={() => { setMenuOpen(false); window.location.href = '/settings'; }}
                   >
                     设置
-                  </Link>
+                  </button>
                   <div className="border-t border-white/10 mt-1 pt-1">
                     <button
                       onClick={handleLogout}

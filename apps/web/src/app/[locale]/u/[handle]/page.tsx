@@ -78,7 +78,7 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen bg-paper">
-      <ProfileHeader profile={profile} isOwn={isOwn} />
+      <ProfileHeader profile={profile} isOwn={isOwn} onTabChange={setActiveTab} />
 
       <div className="max-w-4xl mx-auto px-lg">
         {/* Tabs */}

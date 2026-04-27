@@ -208,10 +208,14 @@ export default function ListDetailPage() {
         <div className="flex flex-col lg:flex-row gap-lg">
           {/* 左列：排名表格 */}
           <div className="flex-1 min-w-0">
-            <RankingTable
-              items={rankingItems}
-              onItemClick={handleItemClick}
-            />
+                  <RankingTable
+                    items={rankingItems}
+                    onItemClick={handleItemClick}
+                    onVote={(itemId, direction) => {
+                      // 模拟投票 — 在实际项目中调用 API
+                      console.log(`Vote ${direction} on item ${itemId}`);
+                    }}
+                  />
           </div>
 
           {/* 右列：共识度 + 社区评分 + 评论 */}

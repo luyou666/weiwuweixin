@@ -14,6 +14,7 @@ import type { ProfileData } from '@/lib/mock-data';
 interface ProfileHeaderProps {
   profile: ProfileData;
   isOwn?: boolean;
+  onTabChange?: (tab: 'lists' | 'activity' | 'badges') => void;
 }
 
 const containerVariants = {
@@ -31,7 +32,7 @@ const itemVariants = {
   },
 };
 
-export function ProfileHeader({ profile, isOwn = false }: ProfileHeaderProps) {
+export function ProfileHeader({ profile, isOwn = false, onTabChange }: ProfileHeaderProps) {
   const sectionRef = useRef<HTMLElement>(null);
 
   // 鼠标视差 — 头像
@@ -162,13 +163,13 @@ export function ProfileHeader({ profile, isOwn = false }: ProfileHeaderProps) {
 
         {/* ─── 统计数字栏 ─── */}
         <motion.div className="flex items-center gap-xl mt-lg pb-lg border-b border-ink-100" variants={itemVariants}>
-          <StatItem value={profile.stats.listCount} label="榜单" href="#lists" />
-          <StatItem value={profile.stats.rapportCount} label="同好" />
-          <StatItem value={profile.stats.bookmarkedCount} label="收藏" />
+          <StatItem value={profile.stats.listCount} label="榜单" onClick={onTabChange ? () => onTabChange('lists') : undefined} />
+          <StatItem value={profile.stats.rapportCount} label="同好" onClick={onTabChange ? () => onTabChange('activity') : undefined} />
+          <StatItem value={profile.stats.bookmarkedCount} label="收藏" onClick={onTabChange ? () => onTabChange('lists') : undefined} />
           <div className="w-px h-8 bg-ink-100 hidden sm:block" />
           <button
             className="hidden sm:flex items-center gap-xs text-sm text-ink-400 hover:text-ink-600 transition-colors focus:outline-none"
-            onClick={() => document.getElementById('badges')?.scrollIntoView({ behavior: 'smooth' })}
+            onClick={onTabChange ? () => onTabChange('badges') : undefined}
           >
             <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 600, color: 'var(--ink-900)' }}>{earnedBadges}</span>
             <span>/</span>
@@ -182,14 +183,14 @@ export function ProfileHeader({ profile, isOwn = false }: ProfileHeaderProps) {
 }
 
 /* ─── 统计数字 ─── */
-function StatItem({ value, label, href }: { value: number; label: string; href?: string }) {
+function StatItem({ value, label, onClick }: { value: number; label: string; onClick?: () => void }) {
   const el = (
-    <div className="flex flex-col items-center sm:items-start cursor-default hover:opacity-70 transition-opacity">
+    <div className={`flex flex-col items-center sm:items-start ${onClick ? 'cursor-pointer hover:opacity-70 transition-opacity active:scale-[0.97]' : 'cursor-default'}`}>
       <span className="text-2xl text-ink-900" style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700 }}>{value}</span>
       <span className="text-xs text-ink-400 mt-1">{label}</span>
     </div>
   );
-  return href ? <a href={href}>{el}</a> : el;
+  return onClick ? <button onClick={onClick} className="focus:outline-none focus:ring-2 focus:ring-vermilion/30 rounded-lg p-1 -m-1">{el}</button> : el;
 }
 
 /* ─── 关注按钮（状态切换 + Spring 动效） ─── */
