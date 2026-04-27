@@ -5,10 +5,12 @@ import { routing } from '@/i18n/navigation';
 import { QueryProvider } from '@/lib/query-provider';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Navbar } from '@/components/navbar';
+import { PageTransition } from '@/components/page-transition';
+import { SmoothScroll } from '@/components/smooth-scroll';
 import type { Metadata } from 'next';
 
 /* ── next/font/google: 替代 CSS @import，消除 FOIT/FOUT ── */
-import { Noto_Serif_SC, Inter } from 'next/font/google';
+import { Noto_Serif_SC, Inter_Tight } from 'next/font/google';
 
 const notoSerifSC = Noto_Serif_SC({
   subsets: ['latin'],
@@ -17,7 +19,7 @@ const notoSerifSC = Noto_Serif_SC({
   variable: '--font-heading',
 });
 
-const inter = Inter({
+const interTight = Inter_Tight({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
   display: 'swap',
@@ -85,7 +87,7 @@ export default async function LocaleLayout({
     <html
       lang={locale}
       suppressHydrationWarning
-      className={`${notoSerifSC.variable} ${inter.variable}`}
+      className={`${notoSerifSC.variable} ${interTight.variable}`}
     >
       <head>
         {/* KaTeX CSS for algorithm formulas */}
@@ -115,14 +117,17 @@ export default async function LocaleLayout({
         />
       </head>
       <body className="weiwuweixin-root">
-        <NextIntlClientProvider messages={messages}>
-          <QueryProvider>
-            <ThemeProvider>
-              <Navbar />
-              {children}
-            </ThemeProvider>
-          </QueryProvider>
-        </NextIntlClientProvider>
+        <SmoothScroll>
+          <NextIntlClientProvider messages={messages}>
+            <QueryProvider>
+              <ThemeProvider>
+                <PageTransition />
+                <Navbar />
+                {children}
+              </ThemeProvider>
+            </QueryProvider>
+          </NextIntlClientProvider>
+        </SmoothScroll>
       </body>
     </html>
   );

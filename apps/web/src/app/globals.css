@@ -68,10 +68,10 @@
   --color-border: var(--ink-100);
   --color-accent: var(--vermilion);
 
-  /* 字体 Font Families */
-  --font-heading: 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
-  --font-body: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  /* 字体 Font Families — Monopo: Inter Tight + Noto Serif SC */
+  --font-heading: 'Noto Serif SC', 'Source Han Serif SC', serif;
+  --font-body: 'Inter Tight', 'Inter', 'PingFang SC', sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
 
   /* 字号 Scale */
   --text-xs: 0.75rem;
@@ -161,7 +161,7 @@
   --ink-900: #E8E0D4;
   --ink-700: #C8C4BC;
   --ink-500: #A0A098;
-  --ink-300: #706E68;
+  --ink-300: #8A8880;
   --ink-100: #3A3834;
 
   /* 纸色反转 — 原墨色为底，浅墨为面 */
@@ -200,7 +200,7 @@
   /* 语义色映射 — 暗色版 */
   --color-text-primary: #E8E0D4;
   --color-text-secondary: #A0A098;
-  --color-text-muted: #706E68;
+  --color-text-muted: #8A8880;
   --color-text-inverse: #1A1A24;
   --color-bg-primary: #1A1A24;
   --color-bg-secondary: #2A2A34;
@@ -222,7 +222,7 @@
     --ink-900: #E8E0D4;
     --ink-700: #C8C4BC;
     --ink-500: #A0A098;
-    --ink-300: #706E68;
+    --ink-300: #8A8880;
     --ink-100: #3A3834;
 
     --paper: #1A1A24;
@@ -253,7 +253,7 @@
 
     --color-text-primary: #E8E0D4;
     --color-text-secondary: #A0A098;
-    --color-text-muted: #706E68;
+    --color-text-muted: #8A8880;
     --color-text-inverse: #1A1A24;
     --color-bg-primary: #1A1A24;
     --color-bg-secondary: #2A2A34;
@@ -383,15 +383,7 @@
     background: url("data:image/svg+xml,%3Csvg width='4' height='4' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='1' height='1' fill='%23E8E0D4' opacity='0.04'/%3E%3C/svg%3E") repeat;
   }
 
-  /* 宣纸纹理 Hero */
-  .hero-paper {
-    @apply relative overflow-hidden;
-    background-color: var(--paper);
-    background-image:
-      radial-gradient(ellipse at 20% 50%, var(--rice) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 50%, var(--rice) 0%, transparent 50%),
-      url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-  }
+  /* Monopo重构: hero 用纯色底，不用纹理 */
 
   .dark .hero-paper,
   [data-theme='dark'] .hero-paper {
@@ -545,12 +537,30 @@
     line-height: 1.1;
   }
 
-  /* Monopo 大排版标题 */
+  /* Monopo 大排版标题 — 巨字紧字距 */
   .monopo-title {
-    letter-spacing: 0.06em;
-    line-height: 1.05;
+    letter-spacing: -0.04em;
+    line-height: 0.92;
     font-feature-settings: 'kern' 1, 'liga' 1;
   }
+
+  /* Monopo labels — small caps mono 紧凑标签 */
+  .label-mono {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--ink-300);
+  }
+
+  /* 滚动指示线动画 */
+  @keyframes scroll-line {
+    0% { transform: scaleY(0); transform-origin: top; }
+    50% { transform: scaleY(1); transform-origin: top; }
+    50.01% { transform-origin: bottom; }
+    100% { transform: scaleY(0); transform-origin: bottom; }
+  }
+  .scroll-line { animation: scroll-line 2s ease-in-out infinite; }
 
   /* 深色区域链接下划线动画 */
   .dark-link-underline {

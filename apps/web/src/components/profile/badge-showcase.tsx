@@ -131,7 +131,7 @@ function BadgeItem({ badge, index }: { badge: BadgeInfo; index: number }) {
    ============================================================ */
 
 function BadgeSVG({ type, earned }: { type: string; earned: boolean }) {
-  const ink = earned ? '#1A1A24' : '#9090A4';
+  const ink = earned ? '#1A1A24' : '#6E6E88';
   const bgOp = earned ? 0.15 : 0.08;
 
   switch (type) {

@@ -156,7 +156,7 @@ const THEMES: Record<
     bgGradient: 'linear-gradient(180deg, #FFFFFF 0%, #F8F8FA 100%)',
     text: '#1A1A24',
     textSecondary: '#4A4A58',
-    textMuted: '#9090A4',
+    textMuted: '#6E6E88',
     accent: '#E2553F',
     accentLight: '#F07860',
     cardBg: '#FFFFFF',

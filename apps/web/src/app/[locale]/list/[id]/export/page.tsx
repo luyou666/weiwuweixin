@@ -308,7 +308,7 @@ export default function ExportPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: 6,
-                    color: selectedTemplate === 'cyber-neon' ? '#00FFC8' : '#9090A4',
+                    color: selectedTemplate === 'cyber-neon' ? '#00FFC8' : '#6E6E88',
                   }}>
                     QR
                   </div>

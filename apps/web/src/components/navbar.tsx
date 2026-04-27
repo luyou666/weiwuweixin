@@ -47,65 +47,58 @@ export function Navbar() {
 
   return (
     <motion.header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-[6vh] left-[6vw] right-[6vw] z-50 transition-all duration-500 ${
         scrolled
-          ? 'bg-ink-950/80 backdrop-blur-xl border-b border-ink-800/30'
-          : 'bg-transparent'
+          ? 'mix-blend-difference'
+          : 'mix-blend-difference'
       }`}
       initial={{ y: -60, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-        {/* Logo + 导航 */}
-        <div className="flex items-center gap-6">
+      <div className="flex items-center justify-between">
+        {/* Logo — 极小 24px */}
+        <div className="flex items-center gap-2xl">
           <Link
             href="/"
-            className="flex items-center gap-2 text-paper hover:opacity-80 transition-opacity"
+            className="flex items-center gap-sm text-paper hover:opacity-80 transition-opacity"
           >
-            <span className="w-7 h-7 rounded-full border border-cinnabar/60 flex items-center justify-center text-cinnabar text-xs font-bold font-heading">
-              围
-            </span>
-            <span className="font-heading font-semibold text-paper text-sm tracking-wider hidden sm:block">
-              围物为心
-            </span>
+            <span className="text-paper text-2xl font-heading leading-none">围物为心</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-4">
+          {/* 导航 — small caps mono 间距 2xl */}
+          <nav className="hidden md:flex items-center gap-2xl">
             <Link
               href="/explore"
-              className="text-ink-300 hover:text-paper text-sm transition-colors"
+              className="font-mono text-[11px] tracking-[0.25em] text-paper/70 hover:text-paper transition-colors duration-300"
             >
               探索
             </Link>
             <Link
               href="/about"
-              className="text-ink-300 hover:text-paper text-sm transition-colors"
+              className="font-mono text-[11px] tracking-[0.25em] text-paper/70 hover:text-paper transition-colors duration-300"
             >
               关于
+            </Link>
+            <Link
+              href="/list/new"
+              className="font-mono text-[11px] tracking-[0.25em] text-paper/70 hover:text-paper transition-colors duration-300"
+            >
+              新建
             </Link>
           </nav>
         </div>
 
         {/* 右侧：用户区 */}
-        <div className="flex items-center gap-3">
-          {/* 新建榜单 */}
-          <Link
-            href="/list/new"
-            className="hidden sm:flex items-center gap-1.5 text-sm text-ink-300 hover:text-paper transition-colors"
-          >
-            <span>+</span>
-            <span>新建</span>
-          </Link>
-
+        <div className="flex items-center gap-2xl">
           {/* 登录/用户菜单 */}
           {isHydrated && user && user.isAuthenticated ? (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center gap-2 group"
+                className="flex items-center gap-sm group"
               >
-                <div className="w-8 h-8 rounded-full bg-cinnabar/20 border border-cinnabar/40 flex items-center justify-center text-cinnabar text-xs font-bold overflow-hidden">
+                <div className="w-8 h-8 rounded-full border border-paper/30 flex items-center justify-center text-paper text-xs font-bold overflow-hidden">
                   {user.avatarUrl ? (
                     <img
                       src={user.avatarUrl}
@@ -116,7 +109,7 @@ export function Navbar() {
                     (user.nickname?.[0] ?? user.handle[0])
                   )}
                 </div>
-                <span className="text-paper text-sm hidden sm:block group-hover:text-cinnabar transition-colors">
+                <span className="font-mono text-[11px] tracking-[0.2em] text-paper/70 group-hover:text-paper transition-colors hidden sm:block">
                   {user.nickname || user.handle}
                 </span>
               </button>
@@ -128,7 +121,7 @@ export function Navbar() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.95 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 w-52 bg-ink-900/95 backdrop-blur-xl border border-ink-700/40 rounded-xl shadow-xl shadow-ink-950/50 overflow-hidden py-1"
+                    className="absolute right-0 top-full mt-2 w-52 bg-ink-900/95 backdrop-blur-xl border border-ink-700/40 rounded-none shadow-xl shadow-ink-950/50 overflow-hidden py-1"
                   >
                     <div className="px-4 py-3 border-b border-ink-800/40">
                       <p className="text-paper text-sm font-medium truncate">
@@ -151,7 +144,7 @@ export function Navbar() {
                     <div className="border-t border-ink-800/40 mt-1 pt-1">
                       <button
                         onClick={handleLogout}
-                        className="w-full text-left px-4 py-2.5 text-sm text-cinnabar/80 hover:text-cinnabar hover:bg-cinnabar/5 transition-colors"
+                        className="w-full text-left px-4 py-2.5 text-sm text-vermilion/80 hover:text-vermilion hover:bg-vermilion/5 transition-colors"
                       >
                         {t('logout')}
                       </button>
@@ -163,7 +156,7 @@ export function Navbar() {
           ) : (
             <Link
               href="/auth"
-              className="px-5 py-1.5 rounded-pill text-sm font-medium bg-cinnabar/90 hover:bg-cinnabar text-paper transition-all duration-200"
+              className="font-mono text-[11px] tracking-[0.25em] text-paper/70 hover:text-paper border-b border-paper/30 hover:border-paper transition-all duration-300 pb-px"
             >
               {t('login')}
             </Link>

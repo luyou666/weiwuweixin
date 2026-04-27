@@ -15,30 +15,21 @@ import { Link } from '@/i18n/navigation';
 import { ConfidenceSeal, EmptyState, LoadingState, ErrorState } from '@weiwuweixin/ui';
 import { fetchFeedLists } from '@/lib/api';
 import type { FeedList } from '@/lib/mock-data';
+import { Marquee } from '@/components/marquee';
 
 /* ============================================================
-   首页 — 围物为心 · Monopo 风格 v4 "高设3版"
+   首页 — 围物为心 · Monopo London 风格重构 v7
    
-   动态效果增强 v4：
-   1. Hero区: 鼠标跟随光效 + 文字逐字弹入 + 滚动视差
-   2. 榜单区: 卡片交错出现 + 上下划双向入场
-   3. 哲学区: 数字滚动计数器 + 视差装饰
-   4. CTA区: 涟漪按钮 + 入场动画增强
-   5. 全局: 滚动条隐藏 + 上下划双向动画 + 滚动方向感知
+   第一原则：
+   1. 不居中 — 左对齐/不对称网格/满版铺开
+   2. 不靠光效 — 靠字号差/留白/节奏感
+   3. 巨型排版 — 16vw+ 标题
+   4. 幕布式转场 — 黑屏撕开，内容滚入
    ============================================================ */
 
-/* ── 缓动函数 (Monopo cubic-bezier) ── */
+/* ── 缓动函数 ── */
 const monopoEase = [0.165, 0.84, 0.44, 1] as const;
-const monopoEaseOut = [0.22, 1, 0.36, 1] as const;
-
-/* ── 镜片英文映射 — 中文大字对应的英文翻译 ── */
-const HERO_EN_MAP: Record<string, string> = {
-  '以心度物': 'Measure with',
-  '以物观心': 'your heart',
-  '守护': 'Guard',
-  '你的主观性': 'your subjectivity',
-  '让评分不再是冷冰冰的数字': 'Scores need not be cold numbers',
-};
+const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
 /* ── 滚动方向上下文 ── */
 import { createContext, useContext } from 'react';
@@ -47,7 +38,6 @@ function useScrollDirection() {
   return useContext(ScrollDirectionContext);
 }
 
-/* ── 滚动方向监听 Provider ── */
 function ScrollDirectionProvider({ children }: { children: React.ReactNode }) {
   const [direction, setDirection] = useState<'up' | 'down'>('down');
   const lastScrollY = useRef(0);
@@ -56,7 +46,6 @@ function ScrollDirectionProvider({ children }: { children: React.ReactNode }) {
     const handleScroll = () => {
       const currentY = window.scrollY;
       const diff = currentY - lastScrollY.current;
-      // 需要 5px 以上的位移才切换方向，避免微抖
       if (Math.abs(diff) > 5) {
         setDirection(diff > 0 ? 'down' : 'up');
       }
@@ -73,54 +62,14 @@ function ScrollDirectionProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* ── 工具: 文字逐行揭示 (双向版) ── */
-function RevealText({
-  children,
-  className,
-  delay = 0,
-  direction = 'up',
-}: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-  direction?: 'up' | 'down' | 'auto';
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: '-80px' });
-  const scrollDir = useScrollDirection();
-
-  // 自动根据滚动方向决定入场方向
-  const enterFrom = direction === 'auto'
-    ? (scrollDir === 'down' ? 'up' : 'down')
-    : direction;
-
-  return (
-    <div ref={ref} className={`overflow-hidden ${className || ''}`}>
-      <motion.div
-        initial={{ y: enterFrom === 'up' ? '110%' : '-110%', opacity: 0 }}
-        animate={isInView ? { y: '0%', opacity: 1 } : {}}
-        transition={{
-          duration: 1.2,
-          ease: monopoEase,
-          delay,
-        }}
-      >
-        {children}
-      </motion.div>
-    </div>
-  );
-}
-
-/* ── 工具: 交错文字揭示 — 每个字符独立动画（双向版 + 镜片英文映射） ── */
+/* ── 工具: 交错文字揭示 ── */
 function CharReveal({
   text,
-  enText,
   className,
   delay = 0,
   staggerDelay = 0.03,
 }: {
   text: string;
-  enText?: string;
   className?: string;
   delay?: number;
   staggerDelay?: number;
@@ -128,19 +77,12 @@ function CharReveal({
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-50px' });
   const scrollDir = useScrollDirection();
-
-  // 上划时字符从下方弹入，下划时从上方滑入
   const enterY = scrollDir === 'up' ? '-120%' : '120%';
   const enterRotateX = scrollDir === 'up' ? -40 : 40;
-
-  // 将英文翻译映射到每个中文字符
-  // enText 如 "Measure with" → 整段英文对应整段中文
-  // 只在最后一个字符上放完整英文翻译，其他字符放空
   const chars = text.split('');
-  const enLabel = enText || '';
 
   return (
-    <div ref={ref} data-lens-en={enLabel} className={`flex flex-wrap justify-center ${className || ''}`} aria-label={text}>
+    <div ref={ref} className={`flex flex-wrap ${className || ''}`} aria-label={text}>
       {chars.map((char, i) => (
         <motion.span
           key={`${char}-${i}`}
@@ -157,6 +99,38 @@ function CharReveal({
           {char === ' ' ? '\u00A0' : char}
         </motion.span>
       ))}
+    </div>
+  );
+}
+
+/* ── 工具: 文字行揭示 ── */
+function RevealText({
+  children,
+  className,
+  delay = 0,
+  direction = 'up',
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+  direction?: 'up' | 'down' | 'auto';
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: '-80px' });
+  const scrollDir = useScrollDirection();
+  const enterFrom = direction === 'auto'
+    ? (scrollDir === 'down' ? 'up' : 'down')
+    : direction;
+
+  return (
+    <div ref={ref} className={`overflow-hidden ${className || ''}`}>
+      <motion.div
+        initial={{ y: enterFrom === 'up' ? '110%' : '-110%', opacity: 0 }}
+        animate={isInView ? { y: '0%', opacity: 1 } : {}}
+        transition={{ duration: 1.2, ease: monopoEase, delay }}
+      >
+        {children}
+      </motion.div>
     </div>
   );
 }
@@ -214,7 +188,6 @@ function AnimatedCounter({
         return;
       }
       const progress = Math.min(elapsed / (duration * 1000), 1);
-      // Monopo ease-out
       const easedProgress = 1 - Math.pow(1 - progress, 3);
       setCount(Math.round(easedProgress * target));
       if (progress < 1) {
@@ -225,89 +198,76 @@ function AnimatedCounter({
     return () => cancelAnimationFrame(raf);
   }, [isInView, target, duration, delay]);
 
-  return (
-    <span ref={ref}>
-      {count}{suffix}
-    </span>
-  );
+  return <span ref={ref}>{count}{suffix}</span>;
 }
 
-/* ── 工具: 涟漪按钮 ── */
-function RippleButton({
+/* ── 工具: 缩放推进 reveal ── */
+function ScaleReveal({
   children,
   className,
-  href,
-  onClick,
-  variant = 'primary',
+  delay = 0,
+  scaleFrom = 0.88,
 }: {
   children: React.ReactNode;
   className?: string;
-  href?: string;
-  onClick?: () => void;
-  variant?: 'primary' | 'outline';
+  delay?: number;
+  scaleFrom?: number;
 }) {
-  const [ripples, setRipples] = useState<{ x: number; y: number; id: number }[]>([]);
-  const btnRef = useRef<HTMLAnchorElement | HTMLButtonElement>(null);
-
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const id = Date.now();
-    setRipples(prev => [...prev, { x, y, id }]);
-    setTimeout(() => {
-      setRipples(prev => prev.filter(r => r.id !== id));
-    }, 800);
-  }, []);
-
-  const baseClass = variant === 'primary'
-    ? 'bg-vermilion text-paper hover:bg-vermilion-light'
-    : 'border border-ink-100 text-ink-300 hover:border-paper hover:text-paper';
-
-  const inner = (
-    <>
-      {ripples.map(ripple => (
-        <motion.span
-          key={ripple.id}
-          className="absolute rounded-full bg-paper/30 pointer-events-none"
-          style={{ left: ripple.x - 10, top: ripple.y - 10 }}
-          initial={{ width: 0, height: 0, opacity: 0.6 }}
-          animate={{ width: 300, height: 300, opacity: 0, x: -150, y: -150 }}
-          transition={{ duration: 0.8, ease: monopoEase }}
-        />
-      ))}
-      <span className="relative z-10 flex items-center justify-center gap-xs">
-        {children}
-      </span>
-    </>
-  );
-
-  if (href) {
-    return (
-      <Link
-        ref={btnRef as React.Ref<HTMLAnchorElement>}
-        href={href}
-        onClick={handleClick}
-        className={`group relative overflow-hidden inline-flex items-center justify-center px-10 py-4 font-body font-medium text-base transition-all duration-600 tracking-wide rounded-none ${baseClass} ${className || ''}`}
-      >
-        {inner}
-      </Link>
-    );
-  }
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: '-60px' });
+  const scrollDir = useScrollDirection();
+  const yDirection = scrollDir === 'up' ? -30 : 30;
 
   return (
-    <button
-      ref={btnRef as React.Ref<HTMLButtonElement>}
-      onClick={(e) => { handleClick(e); onClick?.(); }}
-      className={`group relative overflow-hidden inline-flex items-center justify-center px-10 py-4 font-body font-medium text-base transition-all duration-600 tracking-wide rounded-none ${baseClass} ${className || ''}`}
+    <motion.div
+      ref={ref}
+      className={className}
+      initial={{ opacity: 0, scale: scaleFrom, y: yDirection }}
+      animate={isInView ? { opacity: 1, scale: 1, y: 0 } : {}}
+      transition={{ duration: 1.1, ease: monopoEase, delay }}
     >
-      {inner}
-    </button>
+      {children}
+    </motion.div>
+  );
+}
+
+/* ── 工具: 滑入揭示 ── */
+function SlideReveal({
+  children,
+  className,
+  direction = 'up',
+  delay = 0,
+  distance = 60,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  direction?: 'up' | 'down' | 'left' | 'right' | 'auto';
+  delay?: number;
+  distance?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: '-60px' });
+  const scrollDir = useScrollDirection();
+  const resolvedDir = direction === 'auto'
+    ? (scrollDir === 'down' ? 'up' : 'down')
+    : direction;
+  const dir = { up: { x: 0, y: distance }, down: { x: 0, y: -distance }, left: { x: distance, y: 0 }, right: { x: -distance, y: 0 } }[resolvedDir];
+
+  return (
+    <motion.div
+      ref={ref}
+      className={className}
+      initial={{ opacity: 0, x: dir.x, y: dir.y }}
+      animate={isInView ? { opacity: 1, x: 0, y: 0 } : {}}
+      transition={{ duration: 1.0, ease: monopoEase, delay }}
+    >
+      {children}
+    </motion.div>
   );
 }
 
 /* ═══════════════════════════════════════════════
-   主页组件 — 高设2版 · 动态增强
+   主页组件 — Monopo London 风格重构
    ═══════════════════════════════════════════════ */
 export default function HomePage() {
   const t = useTranslations('home');
@@ -318,7 +278,7 @@ export default function HomePage() {
     queryFn: fetchFeedLists,
   });
 
-  /* ── 页面载入动画 ── */
+  /* 页面载入状态 */
   const [isLoaded, setIsLoaded] = useState(false);
   useEffect(() => {
     const timer = setTimeout(() => setIsLoaded(true), 100);
@@ -328,18 +288,18 @@ export default function HomePage() {
   return (
     <ScrollDirectionProvider>
     <main className="min-h-screen bg-paper">
-      {/* 页面载入遮罩 */}
+      {/* 页面载入遮罩 — 幕布效果由 PageTransition 组件在 layout 中处理 */}
       <AnimatePresence>
         {!isLoaded && (
           <motion.div
             className="fixed inset-0 z-[100] bg-ink-900 flex items-center justify-center"
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: monopoEase }}
+            transition={{ duration: 0.6, ease: monopoEase }}
           >
             <motion.div
               initial={{ scale: 1 }}
               animate={{ scale: 1.2, opacity: 0 }}
-              transition={{ duration: 0.6, ease: monopoEase, delay: 0.2 }}
+              transition={{ duration: 0.4, ease: monopoEase, delay: 0.2 }}
               className="font-heading text-4xl text-vermilion tracking-[0.2em]"
             >
               围
@@ -348,21 +308,32 @@ export default function HomePage() {
         )}
       </AnimatePresence>
 
-      {/* 1. Hero — 全幅沉浸式 + 鼠标跟随光效 */}
+      {/* 1. Hero — 巨型文字+不对称布局 */}
       <HeroSection />
 
-      {/* 2. 近期榜单 — Sticky 滚动 + 标尺 */}
+      {/* 2. Marquee 跑马灯 — Hero与内容区间过渡 */}
+      <Marquee items={['SUBJECTIVITY', '主观性', 'CONFIDENCE', '置信度', 'RANK', '榜单']} />
+
+      {/* 3. 近期榜单 — 编辑式不对称网格 */}
       <section id="feed" className="py-5xl bg-paper relative">
-        <div className="max-w-6xl mx-auto px-lg">
-          {/* Section Header - Monopo style uppercase label */}
-          <SlideReveal direction="auto" delay={0} distance={30}>
-            <div className="flex items-center gap-md mb-2xl">
-              <div className="w-16 h-[1px] bg-ink-300" />
-              <p className="font-body text-xs tracking-[0.25em] text-ink-300">
-                {t('recentListsLabel')}
-              </p>
+        <div className="max-w-7xl mx-auto px-lg md:px-2xl">
+          {/* 章节编号系统 */}
+          <SlideReveal direction="auto" delay={0}>
+            <div className="flex items-baseline gap-md mb-2xl">
+              <span className="font-mono text-[11px] tracking-[0.3em] text-ink-300">— 02</span>
+              <span className="w-24 h-[1px] bg-ink-200" />
+              <span className="font-mono text-[11px] tracking-[0.25em] text-ink-500">
+                INDEX / RECENT
+              </span>
             </div>
           </SlideReveal>
+
+          {/* Sticky 章节标题 */}
+          <div className="sticky top-[12vh] z-10 mb-3xl mix-blend-difference">
+            <RevealText className="font-heading text-[clamp(48px,8vw,120px)] text-paper leading-none tracking-[-0.04em]" delay={0.1}>
+              <span>Recent </span><span className="italic text-vermilion">Lists</span>
+            </RevealText>
+          </div>
 
           {/* 三态 */}
           {isLoading && (
@@ -397,14 +368,21 @@ export default function HomePage() {
             />
           )}
           {lists && lists.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
-              {lists.map((list, i) => (
-                <ListCard key={list.id} list={list} index={i} />
-              ))}
+            <div className="grid grid-cols-12 gap-x-lg gap-y-3xl">
+              {lists.map((list, i) => {
+                const layouts = [
+                  'col-span-12 md:col-span-7 md:col-start-1',
+                  'col-span-12 md:col-span-4 md:col-start-9 md:mt-[12vh]',
+                  'col-span-12 md:col-span-5 md:col-start-2',
+                  'col-span-12 md:col-span-6 md:col-start-7 md:mt-[-4vh]',
+                ];
+                const cls = layouts[i % layouts.length];
+                return <ListCard key={list.id} list={list} index={i} className={cls} />;
+              })}
             </div>
           )}
 
-          {/* 底部 CTA 链接 — Monopo style arrow */}
+          {/* 底部 CTA 链接 */}
           <SlideReveal className="text-center mt-2xl" direction="auto" delay={0.2}>
             <Link
               href="/explore"
@@ -421,10 +399,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 3. 哲学区 ── 视差 + 计数器 */}
+      {/* 4. 哲学区 — 三色改单色 vermilion */}
       <PhilosophySection />
 
-      {/* 4. CTA ── 涟漪按钮增强 */}
+      {/* 5. CTA — 涟漪按钮 */}
       <CTASection />
     </main>
     </ScrollDirectionProvider>
@@ -432,25 +410,14 @@ export default function HomePage() {
 }
 
 /* ─────────────────────────────────────────
-   1. Hero — 全幅沉浸式 + 鼠标跟随渐变 + 逐字动画
+   1. Hero — 巨型文字 + 不对称布局
+   左上元信息 / 左下大标题 / 右下副信息+滚动 / 左下CTA
    ───────────────────────────────────────── */
 function HeroSection() {
   const t = useTranslations('home');
   const sectionRef = useRef<HTMLElement>(null);
-  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
 
-  /* 鼠标跟随光效 — 使用像素坐标实现更大更亮的跟随圆 */
-  const [mousePx, setMousePx] = useState({ x: 0, y: 0 });
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setMousePos({
-      x: ((e.clientX - rect.left) / rect.width) * 100,
-      y: ((e.clientY - rect.top) / rect.height) * 100,
-    });
-    setMousePx({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-  }, []);
-
-  /* Hero 区域滚动视差 */
+  /* Hero 视差 */
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ['start start', 'end start'],
@@ -461,199 +428,106 @@ function HeroSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full min-h-[100vh] flex flex-col items-center justify-center overflow-hidden bg-ink-900 cursor-none"
-      onMouseMove={handleMouseMove}
+      className="relative w-full h-[100svh] bg-ink-900 overflow-hidden"
     >
-      {/* 鼠标跟随光晕 — Monopo 风格呼吸脉冲 */}
-      <motion.div
-        className="absolute inset-0 pointer-events-none"
-        animate={{
-          background: `
-            radial-gradient(circle 420px at ${mousePx.x}px ${mousePx.y}px, rgba(226,85,63,0.35) 0%, rgba(226,85,63,0.12) 40%, transparent 70%),
-            radial-gradient(circle 280px at ${mousePx.x}px ${mousePx.y}px, rgba(255,220,200,0.18) 0%, transparent 60%),
-            radial-gradient(ellipse 50% 40% at ${100 - mousePos.x}% ${100 - mousePos.y}%, rgba(127,179,163,0.15) 0%, transparent 50%)
-          `,
-        }}
-        transition={{ duration: 0.3 }}
-      >
-        {/* 呼吸光效 — 缓慢脉冲明暗 */}
-        <motion.div
-          className="absolute inset-0"
-          style={{
-            background: `
-              radial-gradient(circle 600px at 50% 50%, rgba(226,85,63,0.06) 0%, transparent 60%),
-              radial-gradient(circle 400px at 30% 70%, rgba(127,179,163,0.05) 0%, transparent 50%)
-            `,
-          }}
-          animate={{ opacity: [0.4, 1, 0.4] }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        />
-      </motion.div>
-
-      {/* ── 镜片光标 ── 悬浮大字时显示英文翻译 */}
-      <LensCursor mousePx={mousePx} sectionRef={sectionRef} />
-
-      {/* 网格纹理层 */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.02]"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), ' +
-            'linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-          backgroundSize: '100px 100px',
-        }}
-      />
-
       {/* 内容层 — 滚动视差 */}
       <motion.div
-        className="relative z-10 text-center px-lg max-w-4xl mx-auto"
+        className="absolute inset-0 z-10"
         style={{ y: heroY, opacity: heroOpacity }}
       >
-        {/* 第一行: 以心度物 — 逐字弹入 + 镜片英文映射 */}
-        <CharReveal
-          text={t('heroLine1')}
-          enText={HERO_EN_MAP[t('heroLine1')]}
-          className="font-heading text-6xl md:text-8xl lg:text-9xl text-paper tracking-[0.08em] leading-[1.1] mb-xs"
-          delay={0.4}
-          staggerDelay={0.05}
-        />
-
-        {/* 第二行: 以物观心 — 逐字弹入（延迟更久） + 镜片英文映射 */}
-        <CharReveal
-          text={t('heroLine2')}
-          enText={HERO_EN_MAP[t('heroLine2')]}
-          className="font-heading text-6xl md:text-8xl lg:text-9xl text-ink-300 tracking-[0.08em] leading-[1.1] mb-2xl"
-          delay={0.8}
-          staggerDelay={0.04}
-        />
-
-        {/* 第三行: 品牌声明 — RevealText + 镜片英文映射 */}
-        <div data-lens-en={`${HERO_EN_MAP[t('heroLine3Bold')]} ${HERO_EN_MAP[t('heroLine3')]}`}>
-          <RevealText className="font-body text-lg md:text-xl text-ink-300 max-w-xl mx-auto leading-relaxed mb-2xl" delay={1.2}>
-            <><strong className="text-paper font-semibold" data-lens-en={HERO_EN_MAP[t('heroLine3Bold')]}>{t('heroLine3Bold')}</strong><span data-lens-en={HERO_EN_MAP[t('heroLine3')]}>{t('heroLine3')}</span></>
-          </RevealText>
+        {/* 左上 — 极小字编号+元信息 */}
+        <div className="absolute top-[12vh] left-[6vw] flex items-center gap-md text-paper/60 z-10">
+          <span className="font-mono text-[11px] tracking-[0.2em]">N°04 — 2026</span>
+          <span className="w-12 h-[1px] bg-paper/30" />
+          <span className="font-mono text-[11px] tracking-[0.2em]">WEIWUWEIXIN</span>
         </div>
 
-        {/* 副标题 — 缓慢淡入 + 镜片英文映射 */}
-        <motion.p
-          className="font-body text-sm text-ink-500 max-w-md mx-auto leading-relaxed mb-2xl"
-          data-lens-en={HERO_EN_MAP[t('heroLine4')] || ''}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, ease: monopoEase, delay: 1.5 }}
-        >
-          {t('heroLine4')}
-        </motion.p>
+        {/* 主标题 — 满版超大字，左对齐 */}
+        <div className="absolute bottom-[18vh] left-[6vw] right-[6vw] z-10">
+          <h1 className="font-heading text-[clamp(80px,16vw,260px)] text-paper leading-[0.92] tracking-[-0.04em] font-normal">
+            <CharReveal text={t('heroLine1')} className="block opacity-90" delay={0.4} staggerDelay={0.05} />
+            <span className="block italic text-vermilion">
+              <CharReveal text={t('heroLine2')} delay={0.7} staggerDelay={0.04} />
+            </span>
+          </h1>
+        </div>
 
-        {/* CTA 按钮 — 涟漪效果 */}
+        {/* 右下角 — 副信息 + 滚动指示 */}
+        <div className="absolute bottom-[6vh] right-[6vw] flex flex-col items-end gap-xs z-10">
+          <motion.p
+            className="font-body text-xs text-paper/50 max-w-[260px] text-right leading-relaxed"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, ease: monopoEase, delay: 1.2 }}
+          >
+            {t('heroLine3Bold')}{t('heroLine3')} / {t('heroLine4')}
+          </motion.p>
+          <motion.div
+            className="mt-md flex items-center gap-xs text-paper/60 text-[11px] tracking-[0.3em] font-mono"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, ease: monopoEase, delay: 1.5 }}
+          >
+            SCROLL
+            <span className="block w-px h-8 bg-paper/30 scroll-line" />
+          </motion.div>
+        </div>
+
+        {/* 左下角 — 主 CTA 单一按钮 + 文字链接 */}
         <motion.div
-          className="flex flex-col sm:flex-row items-center justify-center gap-md"
+          className="absolute bottom-[6vh] left-[6vw] flex items-center gap-2xl z-10"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, ease: monopoEase, delay: 1.7 }}
         >
-          <RippleButton href="/list/new" variant="primary">
-            {t('newList')}
-            <span className="ml-xs group-hover:translate-x-1 transition-transform duration-300">→</span>
-          </RippleButton>
-          <RippleButton href="#feed" variant="outline">
-            {t('browseLists')}
-          </RippleButton>
+          <Link href="/list/new" className="group inline-flex items-center gap-md text-paper">
+            <span className="w-14 h-14 rounded-full border border-paper/40 group-hover:bg-paper group-hover:text-ink-900 transition-all duration-700 flex items-center justify-center text-xl">→</span>
+            <span className="font-body text-sm tracking-wider">Start a List</span>
+          </Link>
+          <Link href="/explore" className="font-body text-sm text-paper/60 hover:text-paper underline-offset-4 hover:underline">
+            Explore
+          </Link>
         </motion.div>
       </motion.div>
 
-      {/* 底部滚动指示 — Monopo style scroll indicator */}
-      <motion.div
-        className="absolute bottom-xl left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-sm"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1.2, ease: monopoEase, delay: 2.0 }}
-      >
-        <span className="font-body text-xs tracking-[0.25em] text-ink-500">
-          {t('scrollDown')}
-        </span>
-        {/* 滚动线条动画 */}
-        <div className="w-[1px] h-12 bg-ink-500/30 relative overflow-hidden">
-          <motion.div
-            className="absolute top-0 left-0 w-full h-1/3 bg-vermilion"
-            animate={{ y: ['0%', '200%'] }}
-            transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          />
-        </div>
-      </motion.div>
-
-      {/* 底部渐变过渡 */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-paper to-transparent pointer-events-none" />
+      {/* 仅保留极淡的底部朱砂光晕 */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-[40vh] pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 120%, rgba(226,85,63,0.12), transparent 70%)' }}
+      />
     </section>
   );
 }
 
 /* ─────────────────────────────────────────
-   2. 榜单卡片 — Monopo 风格大图卡片 + Hover 增强动画
+   2. 榜单卡片 — 编辑式不对称布局 + 大编号
    ───────────────────────────────────────── */
-function ListCard({ list, index }: { list: FeedList; index: number }) {
+function ListCard({ list, index, className }: { list: FeedList; index: number; className?: string }) {
   const t = useTranslations('home');
   const [isHovered, setIsHovered] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setMousePos({
-      x: ((e.clientX - rect.left) / rect.width) * 100,
-      y: ((e.clientY - rect.top) / rect.height) * 100,
-    });
-  }, []);
-
-  const row = Math.floor(index / 2);
-  const col = index % 2;
-  const colDelay = (row * 0.1) + (col * 0.08);
+  const num = String(index + 1).padStart(2, '0');
 
   return (
-    <ScaleReveal delay={colDelay} scaleFrom={0.92}>
+    <ScaleReveal className={className} delay={0.1 + index * 0.08} scaleFrom={0.95}>
       <Link
         href={`/list/${list.id}`}
-        className="group block relative overflow-hidden bg-white border border-ink-100 hover:border-ink-200 transition-all duration-500"
+        className="group block relative overflow-hidden bg-white border border-ink-100 hover:border-vermilion/40 transition-all duration-500"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        onMouseMove={handleMouseMove}
       >
-        {/* 鼠标跟随光效 */}
-        <motion.div
-          className="absolute inset-0 pointer-events-none z-10"
-          animate={{
-            background: isHovered
-              ? `radial-gradient(circle 200px at ${mousePos.x}% ${mousePos.y}%, rgba(226,85,63,0.06) 0%, transparent 100%)`
-              : 'radial-gradient(circle 0px at 50% 50%, transparent 0%, transparent 100%)',
-          }}
-          transition={{ duration: 0.3 }}
-        />
+        {/* 大编号 */}
+        <div className="absolute top-lg left-lg font-heading text-[clamp(48px,6vw,96px)] text-ink-100 leading-none pointer-events-none transition-colors duration-500 group-hover:text-vermilion/20">
+          {num}
+        </div>
 
-        {/* 卡片内容区 */}
-        <div className="p-2xl flex flex-col min-h-[280px] relative z-20">
-          {/* 标签行 — 分隔符风格标签 */}
+        {/* 卡片内容 */}
+        <div className="p-2xl pt-[6rem] flex flex-col min-h-[320px] relative z-10">
+          {/* 标签行 */}
           <div className="flex items-center gap-sm mb-lg">
             {list.tags.slice(0, 3).map((tag: string, i: number) => (
-              <motion.span
-                key={tag}
-                className="font-body text-xs tracking-[0.15em] text-ink-300"
-                initial={{ opacity: 0, y: 8 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: colDelay + i * 0.05, duration: 0.6, ease: monopoEase }}
-                viewport={{ once: true }}
-              >
-                {tag}
-                {i < Math.min(list.tags.length, 3) - 1 && (
-                  <span className="mx-xs text-ink-200"> ‣ </span>
-                )}
-              </motion.span>
+              <span key={tag} className="font-mono text-[11px] tracking-[0.25em] text-ink-300">
+                {tag}{i < Math.min(list.tags.length, 3) - 1 && <span className="mx-xs text-ink-200"> ‣ </span>}
+              </span>
             ))}
           </div>
 
@@ -664,14 +538,10 @@ function ListCard({ list, index }: { list: FeedList; index: number }) {
               whileHover={{ scale: 1.15, rotate: 5 }}
               transition={{ duration: 0.3, ease: monopoEase }}
             >
-              <ConfidenceSeal
-                confidence={list.confidence}
-                size="sm"
-                spinning={isHovered}
-              />
+              <ConfidenceSeal confidence={list.confidence} size="sm" spinning={isHovered} />
             </motion.div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-heading text-xl md:text-2xl text-ink-900 group-hover:text-vermilion transition-colors duration-500 leading-snug mb-sm">
+              <h3 className="font-heading text-2xl md:text-3xl text-ink-900 leading-snug mb-sm group-hover:text-vermilion transition-colors duration-500">
                 {list.title}
               </h3>
               <p className="font-body text-sm text-ink-500 line-clamp-2 transition-all duration-500 group-hover:text-ink-700">
@@ -680,7 +550,7 @@ function ListCard({ list, index }: { list: FeedList; index: number }) {
             </div>
           </div>
 
-          {/* 底部信息 */}
+          {/* 底部信息 — Monopo style subtitle slide-in */}
           <div className="flex items-center justify-between pt-lg mt-auto border-t border-ink-100 text-xs text-ink-300 transition-all duration-500 group-hover:border-ink-200">
             <span className="tracking-wide transition-colors duration-500 group-hover:text-ink-500">
               {list.author.nickname} · {list.itemCount} {t('items')}
@@ -695,7 +565,7 @@ function ListCard({ list, index }: { list: FeedList; index: number }) {
           </div>
         </div>
 
-        {/* Hover 底部线条动画 — Monopo style from-left expand */}
+        {/* Hover 底部线条 — from-left expand */}
         <motion.div
           className="absolute bottom-0 left-0 right-0 h-[2px] bg-vermilion"
           initial={{ scaleX: 0 }}
@@ -703,22 +573,13 @@ function ListCard({ list, index }: { list: FeedList; index: number }) {
           transition={{ duration: 0.5, ease: monopoEase }}
           style={{ transformOrigin: 'left' }}
         />
-
-        {/* Hover 右侧竖线 — Monopo style */}
-        <motion.div
-          className="absolute top-0 right-0 bottom-0 w-[2px] bg-vermilion/30"
-          initial={{ scaleY: 0 }}
-          animate={{ scaleY: isHovered ? 1 : 0 }}
-          transition={{ duration: 0.4, ease: monopoEase, delay: 0.1 }}
-          style={{ transformOrigin: 'top' }}
-        />
       </Link>
     </ScaleReveal>
   );
 }
 
 /* ─────────────────────────────────────────
-   3. 哲学区 — Dark 背景 + 视差 + 计数器 + 浮动装饰
+   3. 哲学区 — 三色改单色 vermilion + 大编号
    ───────────────────────────────────────── */
 function PhilosophySection() {
   const t = useTranslations('home');
@@ -728,28 +589,32 @@ function PhilosophySection() {
       {/* 顶部渐变过渡 */}
       <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-paper to-transparent pointer-events-none" />
 
-      {/* 视差装饰 — 飘浮的圆环 */}
+      {/* 视差装饰 */}
       <ParallaxLayer speed={0.15} className="absolute top-10 right-[10%] pointer-events-none">
-        <div className="w-32 h-32 rounded-full border border-ink-700/30 opacity-20" />
+        <div className="w-32 h-32 rounded-full border border-ink-700/20" />
       </ParallaxLayer>
       <ParallaxLayer speed={0.25} className="absolute bottom-20 left-[8%] pointer-events-none">
-        <div className="w-20 h-20 rounded-full border border-vermilion/20 opacity-30" />
-      </ParallaxLayer>
-      <ParallaxLayer speed={0.1} className="absolute top-1/2 left-[5%] pointer-events-none">
-        <div className="w-2 h-2 rounded-full bg-celadon/40 opacity-40" />
+        <div className="w-20 h-20 rounded-full border border-vermilion/15" />
       </ParallaxLayer>
 
-      {/* 鼠标跟随渐变 */}
+      {/* 仅保留极淡的光晕 */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse 50% 40% at 50% 50%, rgba(226,85,63,0.06) 0%, transparent 60%)',
-        }}
+        style={{ background: 'radial-gradient(ellipse 50% 40% at 50% 50%, rgba(226,85,63,0.06) 0%, transparent 60%)' }}
       />
 
       <div className="relative z-10 max-w-3xl mx-auto px-lg text-center">
-        {/* 大标题 — Monopo 排版风格 */}
-        <RevealText className="font-heading text-4xl md:text-6xl lg:text-7xl text-paper tracking-wider leading-[1.1] mb-xl" delay={0.1}>
+        {/* 章节编号 */}
+        <SlideReveal direction="auto" delay={0}>
+          <div className="flex items-baseline gap-md mb-2xl justify-center">
+            <span className="font-mono text-[11px] tracking-[0.3em] text-ink-300/60">— 03</span>
+            <span className="w-24 h-[1px] bg-ink-700" />
+            <span className="font-mono text-[11px] tracking-[0.25em] text-ink-500">PHILOSOPHY</span>
+          </div>
+        </SlideReveal>
+
+        {/* 大标题 — 超大字号 */}
+        <RevealText className="font-heading text-[clamp(36px,6vw,80px)] text-paper leading-[0.95] tracking-[-0.04em] mb-xl" delay={0.1}>
           {t('philosophyTitle')}
         </RevealText>
 
@@ -758,24 +623,23 @@ function PhilosophySection() {
           <p>{t('philosophyDesc')}</p>
         </SlideReveal>
 
-        {/* 三个数据卡片 — 增强计数动画 */}
+        {/* 三个数据卡片 — 统一 vermilion 色靠字号差异做层级 */}
         <div className="grid grid-cols-3 gap-lg mb-3xl">
           {[
-            { value: 92, suffix: '%', label: t('confidenceLabel'), color: 'text-vermilion' },
-            { value: 85, suffix: '%', label: t('algorithmLabel'), color: 'text-celadon' },
-            { value: 78, suffix: '%', label: t('communityLabel'), color: 'text-apricot' },
+            { value: 92, suffix: '%', label: t('confidenceLabel'), size: 'text-4xl md:text-6xl' },
+            { value: 85, suffix: '%', label: t('algorithmLabel'), size: 'text-3xl md:text-5xl' },
+            { value: 78, suffix: '%', label: t('communityLabel'), size: 'text-2xl md:text-4xl' },
           ].map((item, i) => (
             <ScaleReveal key={item.label} delay={0.4 + i * 0.15} scaleFrom={0.85}>
               <div className="text-center group cursor-default">
-                {/* 数字 — 计数动画 */}
                 <motion.div
-                  className={`font-heading text-3xl md:text-4xl ${item.color} mb-xs`}
+                  className={`font-heading ${item.size} text-vermilion mb-xs`}
                   whileHover={{ scale: 1.1 }}
                   transition={{ duration: 0.3, ease: monopoEase }}
                 >
                   <AnimatedCounter target={item.value} suffix={item.suffix} delay={0.4 + i * 0.15} />
                 </motion.div>
-                <div className="font-body text-xs tracking-[0.15em] text-ink-400">
+                <div className="font-mono text-[11px] tracking-[0.25em] text-ink-400">
                   {item.label}
                 </div>
               </div>
@@ -783,7 +647,7 @@ function PhilosophySection() {
           ))}
         </div>
 
-        {/* 链接 — Monopo style arrow */}
+        {/* 链接 */}
         <SlideReveal direction="auto" delay={0.85} distance={20}>
           <Link
             href="/about"
@@ -803,35 +667,35 @@ function PhilosophySection() {
 }
 
 /* ─────────────────────────────────────────
-   4. CTA — 深色底 + 涟漪按钮 + 入场增强
+   4. CTA — 深色底 + 涟漪按钮
    ───────────────────────────────────────── */
 function CTASection() {
   const t = useTranslations('home');
 
   return (
     <section className="relative py-5xl overflow-hidden bg-ink-900">
-      {/* 装饰光晕 */}
+      {/* 章节编号 */}
+      <div className="flex items-baseline gap-md mb-2xl justify-center relative z-10">
+        <span className="font-mono text-[11px] tracking-[0.3em] text-ink-300/60">— 04</span>
+        <span className="w-24 h-[1px] bg-ink-700" />
+        <span className="font-mono text-[11px] tracking-[0.25em] text-ink-500">CTA</span>
+      </div>
+
+      {/* 仅保留极淡的中心光晕 */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse 70% 50% at 50% 60%, rgba(226,85,63,0.08) 0%, transparent 60%)',
-        }}
+        style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 60%, rgba(226,85,63,0.05) 0%, transparent 60%)' }}
       />
 
-      {/* 浮动装饰元素 */}
-      <ParallaxLayer speed={0.2} className="absolute top-20 right-[15%] pointer-events-none">
-        <div className="w-16 h-16 rounded-full border border-vermilion/20 opacity-20" />
-      </ParallaxLayer>
-
       <div className="relative z-10 max-w-3xl mx-auto px-lg text-center">
-        {/* 大标题 — 逐字动画 */}
+        {/* 大标题 */}
         <CharReveal
           text={t('ctaTitle')}
-          className="font-heading text-4xl md:text-6xl lg:text-7xl text-paper tracking-wider leading-[1.15] mb-xs"
+          className="font-heading text-[clamp(48px,8vw,120px)] text-paper leading-[0.92] tracking-[-0.04em] mb-xs justify-center"
           delay={0}
           staggerDelay={0.04}
         />
-        <RevealText className="font-heading text-4xl md:text-6xl lg:text-7xl text-vermilion tracking-wider leading-[1.15] mb-2xl" delay={0.3}>
+        <RevealText className="font-heading text-[clamp(48px,8vw,120px)] text-vermilion leading-[0.92] tracking-[-0.04em] mb-2xl justify-center" delay={0.3}>
           {t('ctaTitleLine2')}
         </RevealText>
 
@@ -843,337 +707,14 @@ function CTASection() {
         </SlideReveal>
 
         <ScaleReveal delay={0.7} scaleFrom={0.9}>
-          <RippleButton href="/list/new" variant="primary">
+          <Link
+            href="/list/new"
+            className="group relative overflow-hidden inline-flex items-center justify-center px-10 py-4 font-body font-medium text-base tracking-wide rounded-none bg-vermilion text-paper hover:bg-vermilion-light transition-colors duration-600"
+          >
             {t('ctaButton')}
-          </RippleButton>
+          </Link>
         </ScaleReveal>
       </div>
     </section>
-  );
-}
-
-/* ── 工具: 缩放推进 reveal（双向版） ── */
-function ScaleReveal({
-  children,
-  className,
-  delay = 0,
-  scaleFrom = 0.88,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-  scaleFrom?: number;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: '-60px' });
-  const scrollDir = useScrollDirection();
-
-  // 上划时从上方缩放进入，下划时从下方
-  const yDirection = scrollDir === 'up' ? -30 : 30;
-
-  return (
-    <motion.div
-      ref={ref}
-      className={className}
-      initial={{ opacity: 0, scale: scaleFrom, y: yDirection }}
-      animate={isInView ? { opacity: 1, scale: 1, y: 0 } : {}}
-      transition={{
-        duration: 1.1,
-        ease: monopoEase,
-        delay,
-      }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-/* ── 工具: 滑入揭示（双向版） ── */
-function SlideReveal({
-  children,
-  className,
-  direction = 'up',
-  delay = 0,
-  distance = 60,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  direction?: 'up' | 'down' | 'left' | 'right' | 'auto';
-  delay?: number;
-  distance?: number;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: '-60px' });
-  const scrollDir = useScrollDirection();
-
-  // auto 模式: 根据滚动方向自动选择入场方向
-  const resolvedDir = direction === 'auto'
-    ? (scrollDir === 'down' ? 'up' : 'down')
-    : direction;
-
-  const dir = { up: { x: 0, y: distance }, down: { x: 0, y: -distance }, left: { x: distance, y: 0 }, right: { x: -distance, y: 0 } }[resolvedDir];
-
-  return (
-    <motion.div
-      ref={ref}
-      className={className}
-      initial={{ opacity: 0, x: dir.x, y: dir.y }}
-      animate={isInView ? { opacity: 1, x: 0, y: 0 } : {}}
-      transition={{
-        duration: 1.0,
-        ease: monopoEase,
-        delay,
-      }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-/* ─────────────────────────────────────────
-   LensCursor — 真实镜片替换效果光标
-   
-   悬浮中文大字时：
-   - 中文变透明（被"替换"掉）
-   - 镜片内显示对应英文翻译
-   - 镜片有真实玻璃质感：折射、色散、高光、金属框
-   
-   非文字区域：纯玻璃透镜效果（brightness/saturate 增强）
-   ───────────────────────────────────────── */
-function LensCursor({
-  mousePx,
-  sectionRef,
-}: {
-  mousePx: { x: number; y: number };
-  sectionRef: React.RefObject<HTMLElement | null>;
-}) {
-  const [lensText, setLensText] = useState('');
-  const [lensTargetRect, setLensTargetRect] = useState<DOMRect | null>(null);
-  const [lensTargetStyle, setLensTargetStyle] = useState<React.CSSProperties>({});
-  const [lensTargetEl, setLensTargetEl] = useState<HTMLElement | null>(null);
-  const LENS_SIZE = 180;
-
-  /* 检测鼠标下方的元素，读取 data-lens-en 属性 + 目标元素位置/样式 */
-  useEffect(() => {
-    if (!sectionRef.current) return;
-    const section = sectionRef.current;
-
-    const handleMove = (e: MouseEvent) => {
-      const targets = section.querySelectorAll('[data-lens-en]');
-      let found = '';
-      let foundRect: DOMRect | null = null;
-      let foundStyle: React.CSSProperties = {};
-      let foundEl: HTMLElement | null = null;
-      for (const el of targets) {
-        const rect = el.getBoundingClientRect();
-        if (
-          e.clientX >= rect.left && e.clientX <= rect.right &&
-          e.clientY >= rect.top && e.clientY <= rect.bottom
-        ) {
-          const en = el.getAttribute('data-lens-en');
-          if (en) {
-            found = en;
-            foundRect = rect;
-            foundEl = el as HTMLElement;
-            const cs = window.getComputedStyle(el);
-            foundStyle = {
-              fontSize: cs.fontSize,
-              fontWeight: cs.fontWeight,
-              fontFamily: cs.fontFamily,
-              letterSpacing: cs.letterSpacing,
-              lineHeight: cs.lineHeight,
-            };
-            break;
-          }
-        }
-      }
-      setLensText(found);
-      setLensTargetRect(foundRect);
-      setLensTargetStyle(foundStyle);
-      setLensTargetEl(foundEl);
-    };
-
-    section.addEventListener('mousemove', handleMove);
-    return () => section.removeEventListener('mousemove', handleMove);
-  }, [sectionRef]);
-
-  /* 当鼠标悬浮在中文文字上时，让原文变成透明（被镜片"替换"） */
-  useEffect(() => {
-    if (lensTargetEl && lensText) {
-      lensTargetEl.style.opacity = '0';
-      lensTargetEl.style.transition = 'opacity 0.2s ease';
-      return () => {
-        lensTargetEl.style.opacity = '';
-        lensTargetEl.style.transition = '';
-      };
-    }
-  }, [lensTargetEl, lensText]);
-
-  /* 鼠标离开 Hero 区域时恢复所有文字透明度 */
-  useEffect(() => {
-    if (!sectionRef.current) return;
-    const section = sectionRef.current;
-    const handleLeave = () => {
-      section.querySelectorAll('[data-lens-en]').forEach(el => {
-        (el as HTMLElement).style.opacity = '';
-        (el as HTMLElement).style.transition = '';
-      });
-    };
-    section.addEventListener('mouseleave', handleLeave);
-    return () => section.removeEventListener('mouseleave', handleLeave);
-  }, [sectionRef]);
-
-  const isActive = lensText.length > 0;
-
-  /* 活跃时镜片中心对准文字中心，非活跃时跟随鼠标 */
-  const centerX = lensTargetRect
-    ? (lensTargetRect.left + lensTargetRect.width / 2)
-    : mousePx.x;
-  const centerY = lensTargetRect
-    ? (lensTargetRect.top + lensTargetRect.height / 2)
-    : mousePx.y;
-
-  return (
-    <motion.div
-      className="absolute pointer-events-none z-20"
-      animate={{
-        left: isActive ? centerX : mousePx.x,
-        top: isActive ? centerY : mousePx.y,
-        scale: isActive ? 1.1 : 1,
-      }}
-      transition={{ type: 'spring', stiffness: 600, damping: 30, mass: 0.12 }}
-      style={{ width: 0, height: 0 }}
-    >
-      {/* 外层光晕 — 呼吸效果 */}
-      <motion.div
-        style={{
-          position: 'absolute',
-          width: LENS_SIZE * 2.2,
-          height: LENS_SIZE * 2.2,
-          left: -LENS_SIZE * 1.1,
-          top: -LENS_SIZE * 1.1,
-          borderRadius: '50%',
-          background: isActive
-            ? 'radial-gradient(circle, rgba(255,255,255,0.06) 0%, rgba(226,85,63,0.04) 30%, transparent 60%)'
-            : 'radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 55%)',
-          pointerEvents: 'none',
-        }}
-        animate={{ scale: [1, 1.08, 1], opacity: [0.5, 1, 0.5] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-      />
-
-      {/* 镜片主体 — 真实凸透镜 */}
-      <div
-        style={{
-          position: 'absolute',
-          width: LENS_SIZE,
-          height: LENS_SIZE,
-          left: -LENS_SIZE / 2,
-          top: -LENS_SIZE / 2,
-          borderRadius: '50%',
-          overflow: 'hidden',
-          /* 无文字: 玻璃折射 brighten；有文字: 透明看清替换内容 */
-          backdropFilter: isActive
-            ? 'brightness(1.05)'
-            : 'brightness(1.8) saturate(1.4)',
-          WebkitBackdropFilter: isActive
-            ? 'brightness(1.05)'
-            : 'brightness(1.8) saturate(1.4)',
-          background: isActive
-            ? 'transparent'
-            : 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 70%, transparent 100%)',
-          border: isActive
-            ? '2.5px solid rgba(255,255,255,0.22)'
-            : '1.5px solid rgba(255,255,255,0.3)',
-          boxShadow: `
-            0 0 0 1px rgba(255,255,255,0.06),
-            0 10px 40px rgba(0,0,0,0.45),
-            0 0 0 4px rgba(255,255,255,0.02),
-            inset 0 0 ${isActive ? '30' : '40'}px rgba(255,255,255,0.04)
-          `,
-          transition: 'all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1)',
-        }}
-      >
-        {/* ── 英文"替换"文字 ── 悬浮中文时，镜片内显示英文 ── */}
-        <AnimatePresence mode="wait">
-          {isActive && (
-            <motion.div
-              key={lensText}
-              initial={{ opacity: 0, filter: 'blur(12px)', scale: 0.8 }}
-              animate={{ opacity: 1, filter: 'blur(0px)', scale: 1 }}
-              exit={{ opacity: 0, filter: 'blur(8px)', scale: 1.1 }}
-              transition={{ duration: 0.35, ease: [0.165, 0.84, 0.44, 1] }}
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'column',
-                padding: '0 24px',
-                zIndex: 2,
-              }}
-            >
-              <span
-                className="font-heading text-center leading-snug select-none"
-                style={{
-                  fontSize: lensTargetStyle.fontSize
-                    ? `calc(${lensTargetStyle.fontSize} * 0.65)`
-                    : 'clamp(14px, 2.5vw, 22px)',
-                  color: '#f5f0eb',
-                  fontWeight: 300,
-                  letterSpacing: '0.06em',
-                  textShadow: '0 0 24px rgba(226,85,63,0.12), 0 1px 3px rgba(0,0,0,0.5)',
-                }}
-              >
-                {lensText}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* 镜片高光层 — 真实玻璃凸面反射 */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: '50%',
-            background: isActive
-              ? `radial-gradient(ellipse 45% 28% at 32% 25%, rgba(255,255,255,0.15) 0%, transparent 55%),
-                 radial-gradient(ellipse 22% 16% at 70% 72%, rgba(255,255,255,0.04) 0%, transparent 50%)`
-              : `radial-gradient(ellipse 50% 32% at 30% 25%, rgba(255,255,255,0.28) 0%, transparent 60%),
-                 radial-gradient(ellipse 28% 20% at 68% 73%, rgba(255,255,255,0.06) 0%, transparent 50%)`,
-            pointerEvents: 'none',
-            transition: 'background 0.4s ease',
-            zIndex: 3,
-          }}
-        />
-        {/* 边缘色散暗角 — 凸透镜边缘变暗 */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: '50%',
-            boxShadow: isActive
-              ? 'inset 0 0 28px 10px rgba(0,0,0,0.18)'
-              : 'inset 0 0 38px 14px rgba(0,0,0,0.25)',
-            pointerEvents: 'none',
-            transition: 'box-shadow 0.4s ease',
-            zIndex: 3,
-          }}
-        />
-        {/* 内侧金属框弧线 — 像真实镜片的内圈高光 */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 4,
-            borderRadius: '50%',
-            border: '1px solid rgba(255,255,255,0.05)',
-            pointerEvents: 'none',
-            zIndex: 3,
-          }}
-        />
-      </div>
-    </motion.div>
   );
 }
