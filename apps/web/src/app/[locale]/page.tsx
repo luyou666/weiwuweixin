@@ -477,8 +477,8 @@ function HeroSection() {
         />
       </motion.div>
 
-      {/* ── 放大镜光标 (Monopo 风格) ── */}
-      {/* 白色圆形 + 向下箭头手柄 + 圆内文字 */}
+      {/* ── 放大镜光标 (🔍 风格) ── */}
+      {/* 半透明圆形镜片 + 斜向右下手柄 */}
       <motion.div
         className="absolute pointer-events-none z-20"
         animate={{
@@ -488,43 +488,57 @@ function HeroSection() {
         transition={{ type: 'spring', stiffness: 250, damping: 18, mass: 0.6 }}
         style={{ width: 0, height: 0 }}
       >
-        {/* 放大镜圆形镜片 */}
+        {/* 放大镜整体 — 旋转 -45° 让手柄斜向右下 */}
         <motion.div
           className="absolute"
           style={{
-            width: 120,
-            height: 120,
-            left: -60,
-            top: -60,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.92)',
-            boxShadow: '0 4px 30px rgba(0,0,0,0.25), 0 0 60px rgba(226,85,63,0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            width: 90,
+            height: 90,
+            left: -45,
+            top: -45,
+            transform: 'rotate(-45deg)',
           }}
         >
-          {/* 圆内竖排文字 */}
-          <span
-            className="font-heading text-sm tracking-[0.3em] text-ink-900 select-none"
-            style={{ writingMode: 'vertical-rl', letterSpacing: '0.2em' }}
+          {/* 圆形镜片 — 半透明白底 + 深色边框 */}
+          <motion.div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: 'rgba(255,255,255,0.88)',
+              border: '3px solid rgba(30,20,20,0.7)',
+              boxShadow: 'inset 0 0 20px rgba(255,255,255,0.3), 0 4px 30px rgba(0,0,0,0.2), 0 0 40px rgba(226,85,63,0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            探索 ↓
-          </span>
+            {/* 镜片高光反射 */}
+            <div
+              className="absolute"
+              style={{
+                width: '60%',
+                height: '60%',
+                top: '10%',
+                left: '15%',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.6) 0%, transparent 60%)',
+              }}
+            />
+          </motion.div>
+          {/* 手柄 — 从圆的底部中心向下延伸 */}
+          <div
+            className="absolute"
+            style={{
+              left: '50%',
+              top: '85%',
+              width: 6,
+              height: 38,
+              marginLeft: -3,
+              borderRadius: 3,
+              background: 'rgba(30,20,20,0.75)',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+            }}
+          />
         </motion.div>
-        {/* 放大镜手柄 — 向下的箭头 */}
-        <svg
-          style={{ position: 'absolute', left: -8, top: 60 }}
-          width="16"
-          height="40"
-          viewBox="0 0 16 40"
-          fill="none"
-        >
-          {/* 手柄杆 */}
-          <rect x="6" y="0" width="4" height="30" rx="2" fill="rgba(255,255,255,0.92)" />
-          {/* 手柄三角箭头 */}
-          <polygon points="3,28 8,38 13,28" fill="rgba(255,255,255,0.92)" />
-        </svg>
       </motion.div>
 
       {/* 网格纹理层 */}
