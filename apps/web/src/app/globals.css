@@ -1,0 +1,670 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   围物为心 — Global Styles
+   水墨贴纸风格全局层
+   ============================================================ */
+
+/* ── Fonts loaded via next/font/google in layout.tsx ── */
+
+/* ── Design Tokens（与 @weiwuweixin/ui 同步） ── */
+:root {
+  /* 墨色 Ink — 文字与深色基底 */
+  --ink-900: #1A1A24;
+  --ink-700: #3A3A4F;
+  --ink-500: #5E5E72;
+  --ink-300: #9090A4;
+  --ink-100: #D0D0DC;
+
+  /* 纸色 Paper — 浅色基底 */
+  --paper: #FBF7F0;
+  --rice: #F3ECDE;
+
+  /* 朱砂 Vermilion — 主强调色 */
+  --vermilion: #E2553F;
+  --vermilion-light: #F07860;
+  --vermilion-dark: #C04030;
+
+  /* 青瓷 Celadon — 辅助色 */
+  --celadon: #7FB3A3;
+  --celadon-light: #A4CEC0;
+  --celadon-dark: #5E9484;
+
+  /* 杏黄 Apricot — 点缀色 */
+  --apricot: #F4B860;
+  --apricot-light: #F8CC88;
+  --apricot-dark: #D49A40;
+
+  /* 靛蓝 Indigo — 链接/辅助色 */
+  --indigo: #3B4A8C;
+  --indigo-light: #5868B0;
+  --indigo-dark: #2A3668;
+
+  /* 金 Gold — 前三名 */
+  --gold: #C4973B;
+  --gold-light: #D4AD5B;
+  --gold-dark: #A47E2B;
+
+  /* 薄雾 Mist — 覆盖层 */
+  --mist: rgba(255, 255, 255, 0.6);
+  --mist-heavy: rgba(255, 255, 255, 0.85);
+
+  /* 功能色 */
+  --success: #5A9E6F;
+  --warning: #E2A53F;
+  --error: #D94040;
+  --info: #5090C8;
+
+  /* 语义色映射 */
+  --color-text-primary: var(--ink-900);
+  --color-text-secondary: var(--ink-500);
+  --color-text-muted: var(--ink-300);
+  --color-text-inverse: #FFFFFF;
+  --color-bg-primary: var(--paper);
+  --color-bg-secondary: var(--rice);
+  --color-bg-elevated: #FFFFFF;
+  --color-border: var(--ink-100);
+  --color-accent: var(--vermilion);
+
+  /* 字体 Font Families */
+  --font-heading: 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
+  --font-body: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* 字号 Scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+
+  /* 行高 */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  /* 字重 */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* 间距 Spacing */
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+
+  /* 圆角 Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 9999px;
+
+  /* 阴影 Shadows */
+  --shadow-sm: 0 1px 2px rgba(26, 26, 36, 0.06);
+  --shadow-md: 0 4px 12px rgba(26, 26, 36, 0.08);
+  --shadow-lg: 0 8px 24px rgba(26, 26, 36, 0.12);
+  --shadow-sticker: 3px 4px 0 rgba(26, 26, 36, 0.12), 0 6px 16px rgba(26, 26, 36, 0.06);
+  --shadow-sticker-hover: 4px 6px 0 rgba(26, 26, 36, 0.16), 0 10px 24px rgba(26, 26, 36, 0.1);
+
+  /* 过渡动画 Transitions */
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-bounce: cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --duration-instant: 75ms;
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --duration-slower: 600ms;
+
+  --transition-spring: var(--duration-normal) var(--spring);
+  --transition-bounce: var(--duration-slow) var(--spring-bounce);
+  --transition-ease: var(--duration-normal) var(--ease-out);
+
+  /* Z-Index */
+  --z-base: 0;
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-modal: 30;
+  --z-toast: 40;
+  --z-tooltip: 50;
+
+  /* 尺寸 */
+  --icon-xs: 16px;
+  --icon-sm: 20px;
+  --icon-md: 24px;
+  --icon-lg: 32px;
+  --icon-xl: 40px;
+}
+
+/* ── 暗色模式 Dark Theme Override ──
+   使用 .dark (Tailwind darkMode: 'class') 和 data-theme='dark' 双选择器
+   设计原则：暗色不是反色，而是"夜观山水"的意境
+*/
+.dark,
+[data-theme='dark'] {
+  /* 墨色反转 — 浅墨为字，深墨为底 */
+  --ink-900: #E8E0D4;
+  --ink-700: #C8C4BC;
+  --ink-500: #A0A098;
+  --ink-300: #706E68;
+  --ink-100: #3A3834;
+
+  /* 纸色反转 — 原墨色为底，浅墨为面 */
+  --paper: #1A1A24;
+  --rice: #2A2A34;
+
+  /* 朱砂 — 保持鲜明，微调暖意 */
+  --vermilion: #E2553F;
+  --vermilion-light: #F07860;
+  --vermilion-dark: #C04030;
+
+  /* 青瓷 — 提亮以在暗底上更醒 */
+  --celadon: #7FB3A3;
+  --celadon-light: #A4CEC0;
+  --celadon-dark: #5E9484;
+
+  /* 杏黄 — 提亮以在暗底上更醒 */
+  --apricot: #F4B860;
+  --apricot-light: #F8CC88;
+  --apricot-dark: #D49A40;
+
+  /* 靛蓝 — 提亮用于暗色链接 */
+  --indigo: #6B7AC7;
+  --indigo-light: #8898DE;
+  --indigo-dark: #4A5CA0;
+
+  /* 金 — 稍微提亮 */
+  --gold: #D4AD5B;
+  --gold-light: #E4C57B;
+  --gold-dark: #B4903B;
+
+  /* 薄雾 Mist — 暗色下变暗覆盖 */
+  --mist: rgba(0, 0, 0, 0.4);
+  --mist-heavy: rgba(0, 0, 0, 0.7);
+
+  /* 语义色映射 — 暗色版 */
+  --color-text-primary: #E8E0D4;
+  --color-text-secondary: #A0A098;
+  --color-text-muted: #706E68;
+  --color-text-inverse: #1A1A24;
+  --color-bg-primary: #1A1A24;
+  --color-bg-secondary: #2A2A34;
+  --color-bg-elevated: #32323E;
+  --color-accent: var(--vermilion);
+  --color-border: #3E3E4A;
+
+  /* 阴影 — 暗色下更深 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-sticker: 3px 4px 0 rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.2);
+  --shadow-sticker-hover: 4px 6px 0 rgba(0, 0, 0, 0.35), 0 10px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* ── 系统偏好暗色模式（无 .dark class 时作为回退） ── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --ink-900: #E8E0D4;
+    --ink-700: #C8C4BC;
+    --ink-500: #A0A098;
+    --ink-300: #706E68;
+    --ink-100: #3A3834;
+
+    --paper: #1A1A24;
+    --rice: #2A2A34;
+
+    --vermilion: #E2553F;
+    --vermilion-light: #F07860;
+    --vermilion-dark: #C04030;
+
+    --celadon: #7FB3A3;
+    --celadon-light: #A4CEC0;
+    --celadon-dark: #5E9484;
+
+    --apricot: #F4B860;
+    --apricot-light: #F8CC88;
+    --apricot-dark: #D49A40;
+
+    --indigo: #6B7AC7;
+    --indigo-light: #8898DE;
+    --indigo-dark: #4A5CA0;
+
+    --gold: #D4AD5B;
+    --gold-light: #E4C57B;
+    --gold-dark: #B4903B;
+
+    --mist: rgba(0, 0, 0, 0.4);
+    --mist-heavy: rgba(0, 0, 0, 0.7);
+
+    --color-text-primary: #E8E0D4;
+    --color-text-secondary: #A0A098;
+    --color-text-muted: #706E68;
+    --color-text-inverse: #1A1A24;
+    --color-bg-primary: #1A1A24;
+    --color-bg-secondary: #2A2A34;
+    --color-bg-elevated: #32323E;
+    --color-border: #3E3E4A;
+    --color-accent: var(--vermilion);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+    --shadow-sticker: 3px 4px 0 rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.2);
+    --shadow-sticker-hover: 4px 6px 0 rgba(0, 0, 0, 0.35), 0 10px 24px rgba(0, 0, 0, 0.25);
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply font-body text-ink-900 bg-paper;
+    font-family: var(--font-body);
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+    transition: background-color var(--duration-slow) var(--ease-out),
+                color var(--duration-slow) var(--ease-out);
+  }
+
+  .dark body,
+  [data-theme='dark'] body {
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-primary);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+
+  ::selection {
+    background: var(--vermilion);
+    color: var(--paper);
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--rice);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--ink-300);
+    border-radius: var(--radius-pill);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--ink-500);
+  }
+
+  :focus-visible {
+    box-shadow: 0 0 0 2px var(--vermilion), 0 0 0 4px var(--paper);
+    outline: 2px solid var(--vermilion);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+}
+
+@layer components {
+  /* 纸面纹理背景 */
+  .paper-texture {
+    background-color: var(--paper);
+    background-image:
+      radial-gradient(ellipse at 20% 50%, var(--rice) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 50%, var(--rice) 0%, transparent 50%);
+  }
+
+  .dark .paper-texture,
+  [data-theme='dark'] .paper-texture {
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(255,255,255,0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 50%, rgba(255,255,255,0.02) 0%, transparent 50%);
+  }
+
+  /* 水墨晕染效果 */
+  .ink-wash {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ink-wash::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at var(--ink-x, 30%) var(--ink-y, 30%),
+      var(--ink-900) 0%,
+      transparent 60%
+    );
+    opacity: 0.04;
+    pointer-events: none;
+  }
+
+  /* 印章纹理叠加 */
+  .seal-texture {
+    position: relative;
+  }
+
+  .seal-texture::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg width='4' height='4' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='1' height='1' fill='%231A1A24' opacity='0.04'/%3E%3C/svg%3E") repeat;
+    pointer-events: none;
+    border-radius: inherit;
+  }
+
+  .dark .seal-texture::after,
+  [data-theme='dark'] .seal-texture::after {
+    background: url("data:image/svg+xml,%3Csvg width='4' height='4' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='1' height='1' fill='%23E8E0D4' opacity='0.04'/%3E%3C/svg%3E") repeat;
+  }
+
+  /* 宣纸纹理 Hero */
+  .hero-paper {
+    @apply relative overflow-hidden;
+    background-color: var(--paper);
+    background-image:
+      radial-gradient(ellipse at 20% 50%, var(--rice) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 50%, var(--rice) 0%, transparent 50%),
+      url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+
+  .dark .hero-paper,
+  [data-theme='dark'] .hero-paper {
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(255,255,255,0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 50%, rgba(255,255,255,0.02) 0%, transparent 50%);
+  }
+
+  /* 水墨晕染标题效果 */
+  .ink-title {
+    font-family: var(--font-heading);
+    background: linear-gradient(
+      135deg,
+      var(--ink-900) 0%,
+      var(--ink-700) 40%,
+      var(--vermilion-dark) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .dark .ink-title,
+  [data-theme='dark'] .ink-title {
+    background: linear-gradient(
+      135deg,
+      var(--ink-900) 0%,
+      var(--vermilion) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* 算法卡片选中态 */
+  .algo-card-selected {
+    border-color: var(--vermilion) !important;
+    box-shadow: var(--shadow-sticker), 0 0 0 2px var(--vermilion) !important;
+  }
+
+  /* 步骤指示器 */
+  .step-active {
+    background-color: #C04030 !important; /* vermilion-dark — 5.23:1 contrast with white text */
+    color: #FFFFFF !important;
+  }
+  .step-completed {
+    background-color: var(--celadon);
+    color: var(--paper);
+  }
+  .step-pending {
+    background-color: var(--rice);
+    color: var(--ink-500);
+    border: 1px solid var(--color-border);
+  }
+
+  /* 全局重置 */
+  .weiwuweixin-root {
+    font-family: var(--font-body);
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ── UI 组件样式修正 ── */
+  .weiwu-card {
+    background-color: var(--color-bg-elevated);
+  }
+  .dark .weiwu-card,
+  [data-theme='dark'] .weiwu-card {
+    background-color: var(--color-bg-elevated);
+  }
+
+  .weiwu-btn {
+    font-family: var(--font-body);
+    background-color: #C04030 !important; /* vermilion-dark — 5.23:1 contrast with white text */
+    color: #FFFFFF !important;
+  }
+
+  .weiwu-confidence-seal {
+    font-family: var(--font-heading);
+  }
+
+  .weiwu-empty-state {
+    font-family: var(--font-body);
+  }
+
+  .weiwu-sticker {
+    background-color: var(--color-bg-elevated);
+  }
+  .dark .weiwu-sticker,
+  [data-theme='dark'] .weiwu-sticker {
+    background-color: var(--color-bg-elevated);
+  }
+
+  .weiwu-slider {
+    font-family: var(--font-body);
+  }
+
+  .weiwu-skeleton-ink {
+    font-family: var(--font-body);
+  }
+
+  /* ── 暗色模式组件特殊样式 ── */
+
+  /* Card 暗色模式纹理调整 */
+  .dark .weiwu-card,
+  [data-theme='dark'] .weiwu-card {
+    border-color: var(--color-border);
+  }
+
+  /* Button 暗色模式 */
+  .dark .weiwu-btn,
+  [data-theme='dark'] .weiwu-btn {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Sticker 暗色模式折角与阴影调整 */
+  .dark .weiwu-sticker,
+  [data-theme='dark'] .weiwu-sticker {
+    border-color: var(--color-border);
+  }
+
+  /* Slider 暗色模式轨道调整 */
+  .dark .weiwu-slider,
+  [data-theme='dark'] .weiwu-slider {
+    /* 轨道背景通过 CSS 变量 rice 已在暗色模式下自动调整 */
+  }
+
+  /* ── 首页扩展样式 ── */
+
+  /* 更大的间距 */
+  .py-5xl {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
+  }
+
+  /* pill 形按钮 */
+  .rounded-pill {
+    border-radius: 9999px;
+  }
+
+  /* Monopo 风格：零圆角按钮 (sharp edges) */
+  .rounded-none {
+    border-radius: 0;
+  }
+
+  /* 全幅 Hero 内容区优化 */
+  .hero-gucci-title {
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+  }
+
+  /* Monopo 大排版标题 */
+  .monopo-title {
+    letter-spacing: 0.06em;
+    line-height: 1.05;
+    font-feature-settings: 'kern' 1, 'liga' 1;
+  }
+
+  /* 深色区域链接下划线动画 */
+  .dark-link-underline {
+    position: relative;
+  }
+  .dark-link-underline::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--vermilion-light);
+    transition: width 0.3s ease;
+  }
+  .dark-link-underline:hover::after {
+    width: 100%;
+  }
+
+  /* 分屏卡片悬停效果 */
+  .split-feature-card {
+    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .split-feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(26, 26, 36, 0.15);
+  }
+
+  /* ── 首页滚动动画辅助 ── */
+
+  /* 滚动平滑段 */
+  .scroll-smooth-segments {
+    scroll-snap-type: y proximity;
+  }
+
+  /* 文字揭示遮罩 — 配合 RevealText 使用 */
+  .text-reveal-mask {
+    clip-path: inset(0 0 0 0);
+  }
+
+  /* 缩放推进容器 */
+  .scale-reveal-container {
+    will-change: transform, opacity;
+  }
+
+  /* 视差层 */
+  .parallax-layer {
+    will-change: transform;
+  }
+
+  /* 交错入场 */
+  .stagger-in > * {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: stagger-fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  .stagger-in > *:nth-child(1) { animation-delay: 0.00s; }
+  .stagger-in > *:nth-child(2) { animation-delay: 0.08s; }
+  .stagger-in > *:nth-child(3) { animation-delay: 0.16s; }
+  .stagger-in > *:nth-child(4) { animation-delay: 0.24s; }
+  .stagger-in > *:nth-child(5) { animation-delay: 0.32s; }
+  .stagger-in > *:nth-child(6) { animation-delay: 0.40s; }
+
+  @keyframes stagger-fade-up {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* 毛玻璃分隔条 */
+  .glass-divider {
+    position: relative;
+    height: 1px;
+    overflow: visible;
+  }
+  .glass-divider::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 96px;
+    height: 32px;
+    border-radius: 9999px;
+    background: linear-gradient(135deg, rgba(226,85,63,0.1), rgba(127,179,163,0.1));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 0 24px rgba(226,85,63,0.06), 0 0 48px rgba(127,179,163,0.04);
+  }
+
+  /* 卡片悬停增强 */
+  .hover-lift {
+    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(26, 26, 36, 0.12);
+  }
+
+  /* 滚动触发的微光效果 */
+  @keyframes scroll-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .shimmer-on-scroll {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(226, 85, 63, 0.03) 40%,
+      rgba(226, 85, 63, 0.06) 50%,
+      rgba(226, 85, 63, 0.03) 60%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: scroll-shimmer 3s ease-in-out infinite;
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "home": {
+    "url": "http://localhost:3000/zh",
+    "fcp_ms": 1820,
+    "lcp_ms": 1820,
+    "dcl_ms": 1827,
+    "load_ms": 2152,
+    "cls": 0.0001,
+    "dom_nodes": 98,
+    "resources": 22,
+    "transfer_kb": 461.7,
+    "wall_clock_ms": 2662
+  },
+  "list_new": {
+    "url": "http://localhost:3000/zh/list/new",
+    "fcp_ms": 900,
+    "lcp_ms": 900,
+    "dcl_ms": 914,
+    "load_ms": 1252,
+    "cls": 0.0001,
+    "dom_nodes": 131,
+    "resources": 23,
+    "transfer_kb": 541.0,
+    "wall_clock_ms": 1763
+  }
+}

@@ -1,0 +1,268 @@
+/* ============================================================
+   围物为心 — Design Tokens
+   水墨贴纸风格设计系统变量
+   ============================================================ */
+
+/* Google Fonts CDN Import */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ------------------------------------------------------------
+   1. 色板 Color Palette
+   ------------------------------------------------------------ */
+:root {
+  /* 墨色 Ink — 文字与深色基底 */
+  --ink-900: #1A1A24;
+  --ink-700: #3A3A4F;
+  --ink-500: #5E5E72;
+  --ink-300: #9090A4;
+  --ink-100: #D0D0DC;
+
+  /* 纸色 Paper — 浅色基底 */
+  --paper: #FBF7F0;
+  --rice: #F3ECDE;
+
+  /* 朱砂 Vermilion — 主强调色 */
+  --vermilion: #E2553F;
+  --vermilion-light: #F07860;
+  --vermilion-dark: #C04030;
+
+  /* 青瓷 Celadon — 辅助色 */
+  --celadon: #7FB3A3;
+  --celadon-light: #A4CEC0;
+  --celadon-dark: #5E9484;
+
+  /* 杏黄 Apricot — 点缀色 */
+  --apricot: #F4B860;
+  --apricot-light: #F8CC88;
+  --apricot-dark: #D49A40;
+
+  /* 靛蓝 Indigo — 链接/辅助色 */
+  --indigo: #3B4A8C;
+  --indigo-light: #5868B0;
+  --indigo-dark: #2A3668;
+
+  /* 薄雾 Mist — 覆盖层 */
+  --mist: rgba(255, 255, 255, 0.6);
+  --mist-heavy: rgba(255, 255, 255, 0.85);
+
+  /* 功能色 */
+  --success: #5A9E6F;
+  --warning: #E2A53F;
+  --error: #D94040;
+  --info: #5090C8;
+
+  /* 语义色映射 */
+  --color-text-primary: var(--ink-900);
+  --color-text-secondary: var(--ink-500);
+  --color-text-muted: var(--ink-300);
+  --color-text-inverse: #FFFFFF;
+  --color-bg-primary: var(--paper);
+  --color-bg-secondary: var(--rice);
+  --color-bg-elevated: #FFFFFF;
+  --color-border: var(--ink-100);
+  --color-accent: var(--vermilion);
+
+  /* ------------------------------------------------------------
+     2. 字体 Font Families
+     ------------------------------------------------------------ */
+  --font-heading: 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
+  --font-body: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* 字号 Scale */
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.875rem;   /* 14px */
+  --text-base: 1rem;     /* 16px */
+  --text-lg: 1.125rem;   /* 18px */
+  --text-xl: 1.25rem;    /* 20px */
+  --text-2xl: 1.5rem;    /* 24px */
+  --text-3xl: 1.875rem;  /* 30px */
+  --text-4xl: 2.25rem;   /* 36px */
+
+  /* 行高 */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  /* 字重 */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* ------------------------------------------------------------
+     3. 间距 Spacing
+     ------------------------------------------------------------ */
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+
+  /* ------------------------------------------------------------
+     4. 圆角 Border Radius
+     ------------------------------------------------------------ */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 9999px;
+
+  /* ------------------------------------------------------------
+     5. 阴影 Shadows
+     ------------------------------------------------------------ */
+  --shadow-sm: 0 1px 2px rgba(26, 26, 36, 0.06);
+  --shadow-md: 0 4px 12px rgba(26, 26, 36, 0.08);
+  --shadow-lg: 0 8px 24px rgba(26, 26, 36, 0.12);
+  --shadow-sticker: 3px 4px 0 rgba(26, 26, 36, 0.12), 0 6px 16px rgba(26, 26, 36, 0.06);
+  --shadow-sticker-hover: 4px 6px 0 rgba(26, 26, 36, 0.16), 0 10px 24px rgba(26, 26, 36, 0.1);
+
+  /* ------------------------------------------------------------
+     6. 过渡动画 Transitions
+     ------------------------------------------------------------ */
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-bounce: cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* 过渡时长 */
+  --duration-instant: 75ms;
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+  --duration-slower: 600ms;
+
+  /* 组合过渡 */
+  --transition-spring: var(--duration-normal) var(--spring);
+  --transition-bounce: var(--duration-slow) var(--spring-bounce);
+  --transition-ease: var(--duration-normal) var(--ease-out);
+
+  /* ------------------------------------------------------------
+     7. Z-Index
+     ------------------------------------------------------------ */
+  --z-base: 0;
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-modal: 30;
+  --z-toast: 40;
+  --z-tooltip: 50;
+
+  /* ------------------------------------------------------------
+     8. 尺寸
+     ------------------------------------------------------------ */
+  --icon-xs: 16px;
+  --icon-sm: 20px;
+  --icon-md: 24px;
+  --icon-lg: 32px;
+  --icon-xl: 40px;
+}
+
+/* ------------------------------------------------------------
+   暗色模式 Dark Theme Override
+   ------------------------------------------------------------ */
+[data-theme='dark'] {
+  --ink-900: #F0ECE4;
+  --ink-700: #C8C4BC;
+  --ink-500: #A0A098;
+  --ink-300: #706E68;
+  --ink-100: #3A3834;
+
+  --paper: #1A1A24;
+  --rice: #24242E;
+
+  --vermilion: #F06B58;
+  --vermilion-light: #F48878;
+  --vermilion-dark: #D05040;
+
+  --celadon: #8FC4B2;
+  --celadon-light: #B0DBC8;
+  --celadon-dark: #6EA08E;
+
+  --apricot: #F8C878;
+  --apricot-light: #FBDA98;
+  --apricot-dark: #D8A848;
+
+  --indigo: #6878C0;
+  --indigo-light: #8090D8;
+  --indigo-dark: #4860A0;
+
+  --mist: rgba(0, 0, 0, 0.4);
+  --mist-heavy: rgba(0, 0, 0, 0.7);
+
+  --color-text-primary: #F0ECE4;
+  --color-text-secondary: #A0A098;
+  --color-text-muted: #706E68;
+  --color-text-inverse: #1A1A24;
+  --color-bg-primary: #1A1A24;
+  --color-bg-secondary: #24242E;
+  --color-bg-elevated: #2E2E3A;
+  --color-border: #3A3834;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-sticker: 3px 4px 0 rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.2);
+  --shadow-sticker-hover: 4px 6px 0 rgba(0, 0, 0, 0.35), 0 10px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* ------------------------------------------------------------
+   纸面纹理背景 Mixin（供组件引用）
+   ------------------------------------------------------------ */
+.paper-texture {
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(ellipse at 20% 50%, var(--rice) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 50%, var(--rice) 0%, transparent 50%);
+}
+
+[data-theme='dark'] .paper-texture {
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(255,255,255,0.03) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 50%, rgba(255,255,255,0.02) 0%, transparent 50%);
+}
+
+/* 水墨晕染效果基类 */
+.ink-wash {
+  position: relative;
+  overflow: hidden;
+}
+
+.ink-wash::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at var(--ink-x, 30%) var(--ink-y, 30%),
+    var(--ink-900) 0%,
+    transparent 60%
+  );
+  opacity: 0.04;
+  pointer-events: none;
+}
+
+/* 印章纹理叠加 */
+.seal-texture {
+  position: relative;
+}
+
+.seal-texture::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='4' height='4' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='1' height='1' fill='%231A1A24' opacity='0.04'/%3E%3C/svg%3E") repeat;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* 全局重置 */
+.weiwuweixin-root {
+  font-family: var(--font-body);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

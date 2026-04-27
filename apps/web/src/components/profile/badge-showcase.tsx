@@ -1,0 +1,299 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import { useTranslations } from 'next-intl';
+import type { BadgeInfo } from '@weiwuweixin/shared';
+
+/* ============================================================
+   BadgeShowcase — 徽章展示
+   4种圆形SVG印章图案
+   已获得：金色光晕 + 微闪光动画
+   未获得：灰色半透明 + "待解锁"
+   ============================================================ */
+
+interface BadgeShowcaseProps {
+  badges: BadgeInfo[];
+}
+
+export function BadgeShowcase({ badges }: BadgeShowcaseProps) {
+  return (
+    <div className="flex gap-lg overflow-x-auto pb-sm snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
+      {badges.map((badge, i) => (
+        <BadgeItem key={badge.type} badge={badge} index={i} />
+      ))}
+    </div>
+  );
+}
+
+/* ─── 单个徽章 ─── */
+function BadgeItem({ badge, index }: { badge: BadgeInfo; index: number }) {
+  const t = useTranslations('profile');
+
+  const badgeNameKey: Record<string, string> = {
+    'first-list': 'badgeFirstList',
+    'echo-eight': 'badgeEchoEight',
+    'chorus-100': 'badgeChorus100',
+    pioneer: 'badgePioneer',
+  };
+
+  const badgeDescKey: Record<string, string> = {
+    'first-list': 'badgeFirstListDesc',
+    'echo-eight': 'badgeEchoEightDesc',
+    'chorus-100': 'badgeChorus100Desc',
+    pioneer: 'badgePioneerDesc',
+  };
+
+  const name = t(badgeNameKey[badge.type] as Parameters<typeof t>[0]);
+  const desc = t(badgeDescKey[badge.type] as Parameters<typeof t>[0]);
+
+  return (
+    <motion.div
+      className="flex flex-col items-center snap-start flex-shrink-0"
+      style={{ minWidth: '120px' }}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{
+        type: 'spring',
+        stiffness: 260,
+        damping: 20,
+        delay: index * 0.1,
+      }}
+    >
+      {/* 徽章圆形容器 */}
+      <div className="relative">
+        {badge.earned ? (
+          <motion.div
+            className="relative"
+            animate={{
+              boxShadow: [
+                '0 0 0px rgba(244, 184, 96, 0)',
+                '0 0 12px rgba(244, 184, 96, 0.4)',
+                '0 0 0px rgba(244, 184, 96, 0)',
+              ],
+            }}
+            transition={{
+              duration: 2.5,
+              repeat: Infinity,
+              ease: 'easeInOut',
+            }}
+          >
+            <div
+              className="w-20 h-20 rounded-full flex items-center justify-center"
+              style={{
+                background: 'radial-gradient(circle, var(--apricot-light) 0%, var(--apricot) 60%, var(--apricot-dark) 100%)',
+                boxShadow: '0 0 16px rgba(244, 184, 96, 0.3), var(--shadow-sticker)',
+              }}
+            >
+              <BadgeSVG type={badge.type} earned />
+            </div>
+          </motion.div>
+        ) : (
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center opacity-40"
+            style={{
+              background: 'var(--ink-100)',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <BadgeSVG type={badge.type} earned={false} />
+          </div>
+        )}
+      </div>
+
+      <motion.p
+        className={`mt-sm text-xs font-medium text-center ${badge.earned ? 'text-ink-900' : 'text-ink-300'}`}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: index * 0.1 + 0.15 }}
+      >
+        {name}
+      </motion.p>
+
+      <motion.p
+        className="text-xs text-center mt-1"
+        style={{
+          color: badge.earned ? 'var(--ink-500)' : 'var(--ink-300)',
+          fontSize: 'var(--text-xs)',
+          maxWidth: '100px',
+        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: index * 0.1 + 0.2 }}
+      >
+        {badge.earned ? desc : t('badgeLocked')}
+      </motion.p>
+    </motion.div>
+  );
+}
+
+/* ============================================================
+   BadgeSVG — 圆形 SVG 印章图案（简约水墨风）
+   ============================================================ */
+
+function BadgeSVG({ type, earned }: { type: string; earned: boolean }) {
+  const ink = earned ? '#1A1A24' : '#9090A4';
+  const bgOp = earned ? 0.15 : 0.08;
+
+  switch (type) {
+    case 'first-list':
+      return <FirstListSeal ink={ink} bgOp={bgOp} />;
+    case 'echo-eight':
+      return <EchoEightSeal ink={ink} bgOp={bgOp} />;
+    case 'chorus-100':
+      return <ChorusHundredSeal ink={ink} bgOp={bgOp} />;
+    case 'pioneer':
+      return <PioneerSeal ink={ink} bgOp={bgOp} />;
+    default:
+      return null;
+  }
+}
+
+/* ─── 初心：水墨新手卷轴图案 ─── */
+function FirstListSeal({ ink, bgOp }: { ink: string; bgOp: number }) {
+  return (
+    <svg viewBox="0 0 80 80" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="40" cy="40" r="36" stroke={ink} strokeWidth="1.5" opacity={0.6} />
+      <rect x="28" y="22" width="24" height="36" rx="2" stroke={ink} strokeWidth="1.5" fill={ink} fillOpacity={bgOp} />
+      <line x1="26" y1="22" x2="54" y2="22" stroke={ink} strokeWidth="2" strokeLinecap="round" />
+      <circle cx="26" cy="22" r="2.5" fill={ink} opacity={0.7} />
+      <circle cx="54" cy="22" r="2.5" fill={ink} opacity={0.7} />
+      <line x1="26" y1="58" x2="54" y2="58" stroke={ink} strokeWidth="2" strokeLinecap="round" />
+      <circle cx="26" cy="58" r="2.5" fill={ink} opacity={0.7} />
+      <circle cx="54" cy="58" r="2.5" fill={ink} opacity={0.7} />
+      <line x1="34" y1="32" x2="46" y2="32" stroke={ink} strokeWidth="1" opacity={0.5} />
+      <line x1="34" y1="37" x2="44" y2="37" stroke={ink} strokeWidth="1" opacity={0.5} />
+      <line x1="34" y1="42" x2="46" y2="42" stroke={ink} strokeWidth="1" opacity={0.4} />
+      <line x1="34" y1="47" x2="42" y2="47" stroke={ink} strokeWidth="1" opacity={0.3} />
+    </svg>
+  );
+}
+
+/* ─── 八方共鸣：八瓣莲花图案 ─── */
+function EchoEightSeal({ ink, bgOp }: { ink: string; bgOp: number }) {
+  const petals = Array.from({ length: 8 }, (_, i) => {
+    const angle = (i * 45) * (Math.PI / 180);
+    const cx = 40 + 16 * Math.cos(angle);
+    const cy = 40 + 16 * Math.sin(angle);
+    return { cx, cy, angle };
+  });
+
+  return (
+    <svg viewBox="0 0 80 80" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="40" cy="40" r="36" stroke={ink} strokeWidth="1.5" opacity={0.6} />
+      {petals.map((p, i) => (
+        <ellipse
+          key={i}
+          cx={p.cx}
+          cy={p.cy}
+          rx="8"
+          ry="4"
+          transform={`rotate(${i * 45} ${p.cx} ${p.cy})`}
+          fill={ink}
+          fillOpacity={bgOp}
+          stroke={ink}
+          strokeWidth="1"
+          opacity={0.6}
+        />
+      ))}
+      <circle cx="40" cy="40" r="5" fill={ink} opacity={0.7} />
+      <circle cx="40" cy="40" r="2" fill="white" opacity={0.5} />
+    </svg>
+  );
+}
+
+/* ─── 众声喧哗：百鸟朝凤图案 ─── */
+function ChorusHundredSeal({ ink, bgOp }: { ink: string; bgOp: number }) {
+  return (
+    <svg viewBox="0 0 80 80" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="40" cy="40" r="36" stroke={ink} strokeWidth="1.5" opacity={0.6} />
+      {/* 凤凰主体 */}
+      <path
+        d="M40 18 C44 24, 48 28, 46 34 C44 30, 42 28, 40 30 C38 28, 36 30, 34 34 C32 28, 36 24, 40 18Z"
+        fill={ink}
+        fillOpacity={bgOp * 2}
+        stroke={ink}
+        strokeWidth="1"
+        opacity={0.7}
+      />
+      {/* 凤凰尾羽 */}
+      <path
+        d="M40 34 C42 38, 46 44, 44 52 C42 48, 40 46, 40 46 C40 46, 38 48, 36 52 C34 44, 38 38, 40 34Z"
+        fill={ink}
+        fillOpacity={bgOp}
+        stroke={ink}
+        strokeWidth="1"
+        opacity={0.6}
+      />
+      <path
+        d="M34 52 C32 48, 30 50, 28 54"
+        stroke={ink}
+        strokeWidth="1"
+        strokeLinecap="round"
+        opacity={0.3}
+      />
+      <path
+        d="M46 52 C48 48, 50 50, 52 54"
+        stroke={ink}
+        strokeWidth="1"
+        strokeLinecap="round"
+        opacity={0.3}
+      />
+      {/* 散落鸟点（代表众声） */}
+      <circle cx="22" cy="32" r="1.5" fill={ink} opacity={0.35} />
+      <circle cx="58" cy="28" r="1.5" fill={ink} opacity={0.3} />
+      <circle cx="54" cy="50" r="1.2" fill={ink} opacity={0.25} />
+      <circle cx="26" cy="52" r="1.2" fill={ink} opacity={0.3} />
+      <circle cx="18" cy="44" r="1" fill={ink} opacity={0.2} />
+      <circle cx="62" cy="40" r="1" fill={ink} opacity={0.2} />
+      <circle cx="48" cy="60" r="1" fill={ink} opacity={0.2} />
+      <circle cx="32" cy="62" r="1" fill={ink} opacity={0.2} />
+      {/* 中心点 */}
+      <circle cx="40" cy="32" r="2" fill={ink} opacity={0.5} />
+    </svg>
+  );
+}
+
+/* ─── 品类开拓者：山水探险者图案 ─── */
+function PioneerSeal({ ink, bgOp }: { ink: string; bgOp: number }) {
+  return (
+    <svg viewBox="0 0 80 80" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="40" cy="40" r="36" stroke={ink} strokeWidth="1.5" opacity={0.6} />
+      {/* 远山 */}
+      <path
+        d="M10 56 L24 30 L34 42 L44 24 L54 38 L64 28 L74 44 L74 56Z"
+        fill={ink}
+        fillOpacity={bgOp}
+        stroke={ink}
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+        opacity={0.5}
+      />
+      {/* 近山 */}
+      <path
+        d="M6 60 L18 38 L30 48 L40 34 L52 46 L62 36 L76 50 L76 60Z"
+        fill={ink}
+        fillOpacity={bgOp * 1.5}
+        stroke={ink}
+        strokeWidth="1"
+        opacity={0.4}
+      />
+      {/* 探险者小人 */}
+      <circle cx="40" cy="26" r="2.5" fill={ink} opacity={0.6} />
+      <line x1="40" y1="28" x2="40" y2="36" stroke={ink} strokeWidth="1.5" opacity={0.6} />
+      <line x1="40" y1="36" x2="37" y2="40" stroke={ink} strokeWidth="1" opacity={0.5} />
+      <line x1="40" y1="36" x2="43" y2="40" stroke={ink} strokeWidth="1" opacity={0.5} />
+      <line x1="40" y1="31" x2="36" y2="29" stroke={ink} strokeWidth="1" opacity={0.5} strokeLinecap="round" />
+      <line x1="40" y1="31" x2="44" y2="29" stroke={ink} strokeWidth="1" opacity={0.5} strokeLinecap="round" />
+      {/* 旗帜 */}
+      <line x1="44" y1="29" x2="44" y2="22" stroke={ink} strokeWidth="1" opacity={0.5} />
+      <path
+        d="M44 22 L49 24 L44 26Z"
+        fill={ink}
+        fillOpacity={0.3}
+        stroke={ink}
+        strokeWidth="0.8"
+        opacity={0.5}
+      />
+    </svg>
+  );
+}

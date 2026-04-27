@@ -1,0 +1,290 @@
+// 围物为心 — Prisma Schema
+// 数据源：PostgreSQL（docker-compose 配置）
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+//  枚举
+// ============================================================
+
+/// 榜单可见性
+enum Visibility {
+  PUBLIC
+  LINK_ONLY
+  PRIVATE
+}
+
+// ============================================================
+//  用户
+// ============================================================
+
+model User {
+  id        String   @id @default(cuid())
+  handle    String   @unique
+  nickname  String
+  avatarUrl String?
+  bio       String?
+  /// 匿名场景设备标识
+  deviceId  String?  @unique
+  /// 正式账号邮箱（注册后填写）
+  email     String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relations
+  lists            List[]
+  authorScores     AuthorScore[]
+  communityScores  CommunityScore[]
+  givenRapports    Rapport[]      @relation("GivenRapports")
+  receivedRapports Rapport[]      @relation("ReceivedRapports")
+  comments         Comment[]
+  badges           Badge[]
+  account          Account?
+  refreshTokens    RefreshToken[]
+
+  @@index([deviceId])
+}
+
+// ============================================================
+//  账号认证
+// ============================================================
+
+/// 正式账号 — 邮箱+密码登录
+model Account {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  emailVerified Boolean   @default(false)
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  refreshTokens RefreshToken[]
+}
+
+/// 刷新令牌 — 长期会话保持
+model RefreshToken {
+  id          String    @id @default(cuid())
+  token       String    @unique
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId   String?
+  account     Account?  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  deviceInfo  String?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
+
+  @@index([userId])
+  @@index([token])
+}
+
+// ============================================================
+//  榜单
+// ============================================================
+
+model List {
+  id          String     @id @default(cuid())
+  title       String
+  subtitle    String     @default("")
+  algorithmId String     @default("weighted-mean")
+  scale       String     @default("1-5")
+  visibility  Visibility @default(PUBLIC)
+  coverUrl    String?
+  note        String?
+  viewCount   Int        @default(0)
+  voteCount   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // foreign keys
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // relations
+  dimensions      Dimension[]
+  items           Item[]
+  authorScores    AuthorScore[]
+  communityScores CommunityScore[]
+  comments        Comment[]
+
+  @@index([authorId])
+  @@index([visibility])
+  @@index([createdAt])
+}
+
+// ============================================================
+//  维度
+// ============================================================
+
+model Dimension {
+  id     String @id @default(cuid())
+  name   String
+  weight Float @default(1.0)
+  scale  Int?
+
+  // foreign keys
+  listId String
+  list   List   @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  // relations
+  authorScores AuthorScore[]
+
+  @@index([listId])
+}
+
+// ============================================================
+//  条目
+// ============================================================
+
+model Item {
+  id   String @id @default(cuid())
+  name String
+  note String?
+  url  String?
+  rank Int?
+
+  // foreign keys
+  listId String
+  list   List   @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  // relations
+  authorScores    AuthorScore[]
+  communityScores CommunityScore[]
+
+  @@index([listId])
+}
+
+// ============================================================
+//  作者评分
+// ============================================================
+
+model AuthorScore {
+  id    String @id @default(cuid())
+  value Float
+  confidence Float @default(0)
+
+  // foreign keys
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listId      String
+  list        List      @relation(fields: [listId], references: [id], onDelete: Cascade)
+  dimensionId String
+  dimension   Dimension @relation(fields: [dimensionId], references: [id], onDelete: Cascade)
+  itemId      String
+  item        Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, dimensionId, itemId])
+  @@index([userId])
+  @@index([itemId])
+  @@index([dimensionId])
+}
+
+// ============================================================
+//  社区评分
+// ============================================================
+
+model CommunityScore {
+  id    String @id @default(cuid())
+  value Float
+  confidence Float @default(0)
+  voteCount Int      @default(0)
+
+  /// 匿名投票指纹
+  voterFingerprint String @default("")
+
+  // foreign keys
+  listId String
+  list   List?  @relation(fields: [listId], references: [id], onDelete: Cascade)
+  itemId String
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([listId, itemId, voterFingerprint])
+  @@index([listId])
+  @@index([itemId])
+  @@index([userId])
+}
+
+// ============================================================
+//  同好关系
+// ============================================================
+
+model Rapport {
+  id String @id @default(cuid())
+
+  userId         String
+  user           User   @relation("GivenRapports", fields: [userId], references: [id], onDelete: Cascade)
+  targetUserId   String
+  targetUser     User   @relation("ReceivedRapports", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  /// 评分品味相似度（0-1）
+  similarity   Float @default(0)
+  /// 共同评价的清单数
+  overlapCount Int   @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, targetUserId])
+  @@index([userId])
+  @@index([targetUserId])
+}
+
+// ============================================================
+//  评论
+// ============================================================
+
+model Comment {
+  id      String @id @default(cuid())
+  content String
+  /// 情感倾向分数 (-1 到 +1)
+  sentiment Float @default(0)
+
+  // foreign keys
+  listId   String
+  list     List   @relation(fields: [listId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([listId])
+  @@index([authorId])
+}
+
+// ============================================================
+//  徽章
+// ============================================================
+
+model Badge {
+  id          String @id @default(cuid())
+  code        String
+  name        String
+  description String @default("")
+  iconUrl     String?
+
+  // foreign keys
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  earnedAt DateTime @default(now())
+
+  @@unique([userId, code])
+  @@index([userId])
+}

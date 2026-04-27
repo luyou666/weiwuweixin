@@ -1,0 +1,10 @@
+Running axe-core 4.11.3 in chrome-headless
+
+Testing http://localhost:3000/zh ... please wait, this may take a minute.
+ 0 violations found!
+Testing complete of 1 pages
+
+Please note that only 20% to 50% of all accessibility issues can automatically be detected. 
+Manual testing is always required. For more information see:
+https://dequeuniversity.com/class/testing
+

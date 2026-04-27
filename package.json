@@ -1,0 +1,49 @@
+{
+  "name": "weiwuweixin",
+  "version": "0.0.1",
+  "private": true,
+  "description": "围物为心 - Monorepo",
+  "scripts": {
+    "dev": "pnpm --parallel --filter './apps/*' --filter './packages/*' dev",
+    "dev:web": "pnpm --filter @weiwuweixin/web dev",
+    "dev:api": "pnpm --filter @weiwuweixin/api dev",
+    "build": "pnpm --filter './packages/*' build && pnpm --filter './apps/*' build",
+    "lint": "pnpm --parallel --filter './apps/*' --filter './packages/*' lint",
+    "test": "pnpm --parallel --filter './packages/*' test",
+    "test:all": "pnpm --parallel --filter './apps/*' --filter './packages/*' test",
+    "test:e2e": "playwright test",
+    "seed:demo": "pnpm exec tsx packages/shared/seed.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@tailwindcss/forms": "^0.5.11",
+    "@types/node": "^20.19.39",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
+    "embedded-postgres": "18.3.0-beta.17",
+    "eslint": "^8.57.0",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
+    "pg": "^8.20.0",
+    "prettier": "^3.2.5",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.2"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=18.17.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@9.0.6"
+}
