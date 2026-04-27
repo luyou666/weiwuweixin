@@ -422,13 +422,15 @@ function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
 
-  /* 鼠标跟随光效 */
+  /* 鼠标跟随光效 — 使用像素坐标实现更大更亮的跟随圆 */
+  const [mousePx, setMousePx] = useState({ x: 0, y: 0 });
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setMousePos({
       x: ((e.clientX - rect.left) / rect.width) * 100,
       y: ((e.clientY - rect.top) / rect.height) * 100,
     });
+    setMousePx({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   }, []);
 
   /* Hero 区域滚动视差 */
@@ -442,17 +444,88 @@ function HeroSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full min-h-[100vh] flex flex-col items-center justify-center overflow-hidden bg-ink-900"
+      className="relative w-full min-h-[100vh] flex flex-col items-center justify-center overflow-hidden bg-ink-900 cursor-none"
       onMouseMove={handleMouseMove}
     >
-      {/* 鼠标跟随渐变光效 */}
+      {/* 鼠标跟随光晕 — Monopo 风格呼吸脉冲 */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `radial-gradient(ellipse 60% 50% at ${mousePos.x}% ${mousePos.y}%, rgba(226,85,63,0.12) 0%, transparent 50%),
-                       radial-gradient(ellipse 40% 30% at ${100 - mousePos.x}% ${100 - mousePos.y}%, rgba(127,179,163,0.08) 0%, transparent 40%)`,
+        animate={{
+          background: `
+            radial-gradient(circle 420px at ${mousePx.x}px ${mousePx.y}px, rgba(226,85,63,0.35) 0%, rgba(226,85,63,0.12) 40%, transparent 70%),
+            radial-gradient(circle 280px at ${mousePx.x}px ${mousePx.y}px, rgba(255,220,200,0.18) 0%, transparent 60%),
+            radial-gradient(ellipse 50% 40% at ${100 - mousePos.x}% ${100 - mousePos.y}%, rgba(127,179,163,0.15) 0%, transparent 50%)
+          `,
         }}
-      />
+        transition={{ duration: 0.3 }}
+      >
+        {/* 呼吸光效 — 缓慢脉冲明暗 */}
+        <motion.div
+          className="absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(circle 600px at 50% 50%, rgba(226,85,63,0.06) 0%, transparent 60%),
+              radial-gradient(circle 400px at 30% 70%, rgba(127,179,163,0.05) 0%, transparent 50%)
+            `,
+          }}
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+        />
+      </motion.div>
+
+      {/* ── 放大镜光标 (Monopo 风格) ── */}
+      {/* 白色圆形 + 向下箭头手柄 + 圆内文字 */}
+      <motion.div
+        className="absolute pointer-events-none z-20"
+        animate={{
+          left: mousePx.x,
+          top: mousePx.y,
+        }}
+        transition={{ type: 'spring', stiffness: 250, damping: 18, mass: 0.6 }}
+        style={{ width: 0, height: 0 }}
+      >
+        {/* 放大镜圆形镜片 */}
+        <motion.div
+          className="absolute"
+          style={{
+            width: 120,
+            height: 120,
+            left: -60,
+            top: -60,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.92)',
+            boxShadow: '0 4px 30px rgba(0,0,0,0.25), 0 0 60px rgba(226,85,63,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {/* 圆内竖排文字 */}
+          <span
+            className="font-heading text-sm tracking-[0.3em] text-ink-900 select-none"
+            style={{ writingMode: 'vertical-rl', letterSpacing: '0.2em' }}
+          >
+            探索 ↓
+          </span>
+        </motion.div>
+        {/* 放大镜手柄 — 向下的箭头 */}
+        <svg
+          style={{ position: 'absolute', left: -8, top: 60 }}
+          width="16"
+          height="40"
+          viewBox="0 0 16 40"
+          fill="none"
+        >
+          {/* 手柄杆 */}
+          <rect x="6" y="0" width="4" height="30" rx="2" fill="rgba(255,255,255,0.92)" />
+          {/* 手柄三角箭头 */}
+          <polygon points="3,28 8,38 13,28" fill="rgba(255,255,255,0.92)" />
+        </svg>
+      </motion.div>
 
       {/* 网格纹理层 */}
       <div
