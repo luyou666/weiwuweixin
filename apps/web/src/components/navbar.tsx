@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter, usePathname } from '@/i18n/navigation';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
@@ -14,12 +15,17 @@ export function Navbar() {
 
   const { user, isHydrated } = useAuthStore();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<DOMRect | null>(null);
+  const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
+        setMenuPosition(null);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -28,11 +34,13 @@ export function Navbar() {
 
   useEffect(() => {
     setMenuOpen(false);
+    setMenuPosition(null);
   }, [pathname]);
 
   const handleLogout = async () => {
     await logout();
     setMenuOpen(false);
+    setMenuPosition(null);
     router.push('/');
   };
 
@@ -79,7 +87,11 @@ export function Navbar() {
           {isHydrated && user && user.isAuthenticated ? (
             <div className="relative" ref={menuRef}>
               <button
-                onClick={() => setMenuOpen(!menuOpen)}
+                onClick={() => {
+                  const rect = menuRef.current?.getBoundingClientRect();
+                  if (rect) setMenuPosition(rect);
+                  setMenuOpen(!menuOpen);
+                }}
                 className="group relative inline-flex flex-col items-start leading-none"
               >
                 {/* 小英文标签 */}
@@ -92,44 +104,52 @@ export function Navbar() {
                 </span>
               </button>
 
-              <AnimatePresence>
-                {menuOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 w-52 bg-ink-900/95 backdrop-blur-xl border border-ink-700/40 rounded-none shadow-xl shadow-ink-950/50 overflow-hidden py-1"
+              {/* Portal 菜单 — 渲染到 body 以脱离 mix-blend-difference */}
+              {mounted && menuOpen && createPortal(
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.15 }}
+                  className="fixed z-[9999] w-56 backdrop-blur-2xl border border-white/10 rounded-sm shadow-2xl overflow-hidden py-1"
+                  style={{
+                    top: menuPosition ? menuPosition.bottom + 8 : 0,
+                    right: menuPosition ? window.innerWidth - menuPosition.right : 0,
+                    backgroundColor: 'rgba(26, 26, 46, 0.96)',
+                    color: 'white',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
+                  }}
+                >
+                  <div className="px-4 py-3 border-b border-white/10">
+                    <p className="text-white text-sm font-medium truncate">
+                      {user.nickname || user.handle}
+                    </p>
+                    <p className="text-white/50 text-xs truncate">{user.email}</p>
+                  </div>
+                  <Link
+                    href={`/u/${user.handle}`}
+                    className="block px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                    onClick={() => setMenuOpen(false)}
                   >
-                    <div className="px-4 py-3 border-b border-ink-800/40">
-                      <p className="text-paper text-sm font-medium truncate">
-                        {user.nickname || user.handle}
-                      </p>
-                      <p className="text-ink-400 text-xs truncate">{user.email}</p>
-                    </div>
-                    <Link
-                      href={`/u/${user.handle}`}
-                      className="block px-4 py-2.5 text-sm text-ink-300 hover:text-paper hover:bg-ink-800/40 transition-colors"
+                    我的主页
+                  </Link>
+                  <Link
+                    href="/settings"
+                    className="block px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    设置
+                  </Link>
+                  <div className="border-t border-white/10 mt-1 pt-1">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2.5 text-sm text-[#E2553F]/90 hover:text-[#E2553F] hover:bg-[#E2553F]/5 transition-colors"
                     >
-                      我的主页
-                    </Link>
-                    <Link
-                      href="/settings"
-                      className="block px-4 py-2.5 text-sm text-ink-300 hover:text-paper hover:bg-ink-800/40 transition-colors"
-                    >
-                      设置
-                    </Link>
-                    <div className="border-t border-ink-800/40 mt-1 pt-1">
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-2.5 text-sm text-vermilion/80 hover:text-vermilion hover:bg-vermilion/5 transition-colors"
-                      >
-                        {t('logout')}
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                      {t('logout')}
+                    </button>
+                  </div>
+                </motion.div>,
+                document.body
+              )}
             </div>
           ) : (
             <NavLink href="/auth" label="LOG IN" cn="登录" emphasis />

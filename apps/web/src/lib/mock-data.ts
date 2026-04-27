@@ -520,6 +520,23 @@ export const MOCK_PROFILES: Record<string, ProfileData> = {
       { type: BadgeType.Pioneer, name: 'Category Pioneer', nameZh: '品类开拓者', description: 'Awarded for creating the first list in a category', descriptionZh: '某分类下首个榜单获得', earned: false, earnedAt: null },
     ],
   },
+  testuser: {
+    id: 'u4',
+    handle: 'testuser',
+    nickname: '测试用户',
+    bio: '万物皆可评，唯主观不可欺。用心感受世界，以榜单记录真实。',
+    stats: {
+      listCount: 3,
+      rapportCount: 12,
+      bookmarkedCount: 35,
+    },
+    badges: [
+      { type: BadgeType.FirstList, name: 'First Step', nameZh: '初心', description: 'Awarded for creating your first list', descriptionZh: '创建第一个榜单获得', earned: true, earnedAt: '2024-06-15T08:00:00Z' },
+      { type: BadgeType.EchoEight, name: 'Eightfold Echo', nameZh: '八方共鸣', description: 'Awarded when a single list reaches ≥80% consensus', descriptionZh: '单榜置信度≥80%获得', earned: false, earnedAt: null },
+      { type: BadgeType.Chorus100, name: 'Chorus of Voices', nameZh: '众声喧哗', description: 'Awarded when a single list gets ≥100 participants', descriptionZh: '单榜参评≥100人获得', earned: false, earnedAt: null },
+      { type: BadgeType.Pioneer, name: 'Category Pioneer', nameZh: '品类开拓者', description: 'Awarded for creating the first list in a category', descriptionZh: '某分类下首个榜单获得', earned: false, earnedAt: null },
+    ],
+  },
   luge: {
     id: 'u3',
     handle: 'luge',
