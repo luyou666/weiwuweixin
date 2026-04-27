@@ -31,6 +31,14 @@ import type { FeedList } from '@/lib/mock-data';
 const monopoEase = [0.165, 0.84, 0.44, 1] as const;
 const monopoEaseOut = [0.22, 1, 0.36, 1] as const;
 
+/* ── 镜片英文映射 — 中文大字对应的英文翻译 ── */
+const HERO_EN_MAP: Record<string, string> = {
+  '以心度物': 'Measure with',
+  '以物观心': 'your heart',
+  '守护': 'Guard',
+  '你的主观性': 'your subjectivity',
+};
+
 /* ── 滚动方向上下文 ── */
 import { createContext, useContext } from 'react';
 const ScrollDirectionContext = createContext<'up' | 'down'>('down');
@@ -102,14 +110,16 @@ function RevealText({
   );
 }
 
-/* ── 工具: 交错文字揭示 — 每个字符独立动画（双向版） ── */
+/* ── 工具: 交错文字揭示 — 每个字符独立动画（双向版 + 镜片英文映射） ── */
 function CharReveal({
   text,
+  enText,
   className,
   delay = 0,
   staggerDelay = 0.03,
 }: {
   text: string;
+  enText?: string;
   className?: string;
   delay?: number;
   staggerDelay?: number;
@@ -122,11 +132,19 @@ function CharReveal({
   const enterY = scrollDir === 'up' ? '-120%' : '120%';
   const enterRotateX = scrollDir === 'up' ? -40 : 40;
 
+  // 将英文翻译映射到每个中文字符
+  // enText 如 "Measure with" → 整段英文对应整段中文
+  // 只在最后一个字符上放完整英文翻译，其他字符放空
+  const chars = text.split('');
+  const enLabel = enText || '';
+
   return (
     <div ref={ref} className={`flex flex-wrap justify-center ${className || ''}`} aria-label={text}>
-      {text.split('').map((char, i) => (
+      {chars.map((char, i) => (
         <motion.span
           key={`${char}-${i}`}
+          data-lens-en={i === chars.length - 1 ? enLabel : ''}
+          data-lens-char={char}
           initial={{ y: enterY, opacity: 0, rotateX: enterRotateX }}
           animate={isInView ? { y: '0%', opacity: 1, rotateX: 0 } : {}}
           transition={{
@@ -477,69 +495,8 @@ function HeroSection() {
         />
       </motion.div>
 
-      {/* ── 放大镜光标 (🔍 风格) ── */}
-      {/* 半透明圆形镜片 + 斜向右下手柄 */}
-      <motion.div
-        className="absolute pointer-events-none z-20"
-        animate={{
-          left: mousePx.x,
-          top: mousePx.y,
-        }}
-        transition={{ type: 'spring', stiffness: 250, damping: 18, mass: 0.6 }}
-        style={{ width: 0, height: 0 }}
-      >
-        {/* 放大镜整体 — 旋转 -45° 让手柄斜向右下 */}
-        <motion.div
-          className="absolute"
-          style={{
-            width: 90,
-            height: 90,
-            left: -45,
-            top: -45,
-            transform: 'rotate(-45deg)',
-          }}
-        >
-          {/* 圆形镜片 — 半透明白底 + 深色边框 */}
-          <motion.div
-            className="absolute inset-0 rounded-full"
-            style={{
-              background: 'rgba(255,255,255,0.88)',
-              border: '3px solid rgba(30,20,20,0.7)',
-              boxShadow: 'inset 0 0 20px rgba(255,255,255,0.3), 0 4px 30px rgba(0,0,0,0.2), 0 0 40px rgba(226,85,63,0.12)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {/* 镜片高光反射 */}
-            <div
-              className="absolute"
-              style={{
-                width: '60%',
-                height: '60%',
-                top: '10%',
-                left: '15%',
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, rgba(255,255,255,0.6) 0%, transparent 60%)',
-              }}
-            />
-          </motion.div>
-          {/* 手柄 — 从圆的底部中心向下延伸 */}
-          <div
-            className="absolute"
-            style={{
-              left: '50%',
-              top: '85%',
-              width: 6,
-              height: 38,
-              marginLeft: -3,
-              borderRadius: 3,
-              background: 'rgba(30,20,20,0.75)',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-            }}
-          />
-        </motion.div>
-      </motion.div>
+      {/* ── 镜片光标 ── 玻璃透镜效果，内部显示放大内容 */}
+      <LensCursor mousePx={mousePx} />
 
       {/* 网格纹理层 */}
       <div
@@ -557,17 +514,19 @@ function HeroSection() {
         className="relative z-10 text-center px-lg max-w-4xl mx-auto"
         style={{ y: heroY, opacity: heroOpacity }}
       >
-        {/* 第一行: 以心度物 — 逐字弹入 */}
+        {/* 第一行: 以心度物 — 逐字弹入 + 镜片英文映射 */}
         <CharReveal
           text={t('heroLine1')}
+          enText={HERO_EN_MAP[t('heroLine1')]}
           className="font-heading text-6xl md:text-8xl lg:text-9xl text-paper tracking-[0.08em] leading-[1.1] mb-xs"
           delay={0.4}
           staggerDelay={0.05}
         />
 
-        {/* 第二行: 以物观心 — 逐字弹入（延迟更久） */}
+        {/* 第二行: 以物观心 — 逐字弹入（延迟更久） + 镜片英文映射 */}
         <CharReveal
           text={t('heroLine2')}
+          enText={HERO_EN_MAP[t('heroLine2')]}
           className="font-heading text-6xl md:text-8xl lg:text-9xl text-ink-300 tracking-[0.08em] leading-[1.1] mb-2xl"
           delay={0.8}
           staggerDelay={0.04}
@@ -965,6 +924,66 @@ function SlideReveal({
       }}
     >
       {children}
+    </motion.div>
+  );
+}
+
+/* ─────────────────────────────────────────
+   LensCursor — 镜片效果光标 (Monopo 风格)
+   白色圆圈 + 竖排文字 + 向下箭头手柄
+   参考 monopo.london 的圆形信息光标设计
+   ───────────────────────────────────────── */
+function LensCursor({
+  mousePx,
+}: {
+  mousePx: { x: number; y: number };
+}) {
+  const SIZE = 120;
+  return (
+    <motion.div
+      className="absolute pointer-events-none z-20"
+      animate={{
+        left: mousePx.x,
+        top: mousePx.y,
+      }}
+      transition={{ type: 'spring', stiffness: 250, damping: 18, mass: 0.5 }}
+      style={{ width: 0, height: 0 }}
+    >
+      {/* 圆形镜片 — Monopo 风格白色圆圈 */}
+      <div
+        style={{
+          position: 'absolute',
+          width: SIZE,
+          height: SIZE,
+          left: -SIZE / 2,
+          top: -SIZE / 2,
+          borderRadius: '50%',
+          background: 'rgba(255, 255, 255, 0.92)',
+          backdropFilter: 'blur(2px)',
+          WebkitBackdropFilter: 'blur(2px)',
+          color: '#1a1a1a',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: '1px solid rgba(255, 255, 255, 0.4)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 60px rgba(226,85,63,0.12)',
+        }}
+      >
+        {/* 圆内竖排文字 — 和 monopo 一样 */}
+        <span
+          style={{
+            writingMode: 'vertical-rl',
+            fontSize: '13px',
+            fontWeight: 500,
+            letterSpacing: '0.15em',
+            lineHeight: 1,
+            color: '#1a1a1a',
+            fontFamily: 'var(--font-body)',
+          }}
+        >
+          探索 ↓
+        </span>
+      </div>
     </motion.div>
   );
 }
