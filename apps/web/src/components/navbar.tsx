@@ -14,13 +14,7 @@ export function Navbar() {
 
   const { user, isHydrated } = useAuthStore();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const { scrollY } = useScroll();
-  useMotionValueEvent(scrollY, 'change', (latest) => {
-    setScrolled(latest > 20);
-  });
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -47,69 +41,53 @@ export function Navbar() {
 
   return (
     <motion.header
-      className={`fixed top-[6vh] left-[6vw] right-[6vw] z-50 transition-all duration-500 ${
-        scrolled
-          ? 'mix-blend-difference'
-          : 'mix-blend-difference'
-      }`}
-      initial={{ y: -60, opacity: 0 }}
+      initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 1.4 }}
+      // 关键: fixed + mix-blend-difference 让文字始终对比背景
+      // text-white + 在 difference 模式下会自动反色
+      className="fixed top-0 left-0 right-0 z-50 mix-blend-difference"
     >
-      <div className="flex items-center justify-between">
-        {/* Logo — 极小 24px */}
-        <div className="flex items-center gap-2xl">
-          <Link
-            href="/"
-            className="flex items-center gap-sm text-paper hover:opacity-80 transition-opacity"
-          >
-            <span className="text-paper text-2xl font-heading leading-none">围物为心</span>
-          </Link>
+      <nav className="flex items-center justify-between px-[6vw] py-[2.4vh]">
+        {/* 左：Logo */}
+        <Link
+          href="/"
+          className="group inline-flex items-center gap-sm"
+        >
+          {/* 小印章符号 */}
+          <span className="font-heading text-base text-white tracking-[0.05em] select-none">
+            围
+          </span>
+          {/* 主文字 — 字重稍粗、字距收紧、字号略放大 */}
+          <span className="font-heading text-[15px] font-medium text-white tracking-[0.08em]">
+            围物为心
+          </span>
+        </Link>
 
-          {/* 导航 — small caps mono 间距 2xl */}
-          <nav className="hidden md:flex items-center gap-2xl">
-            <Link
-              href="/explore"
-              className="font-mono text-[11px] tracking-[0.25em] text-paper/70 hover:text-paper transition-colors duration-300"
-            >
-              探索
-            </Link>
-            <Link
-              href="/about"
-              className="font-mono text-[11px] tracking-[0.25em] text-paper/70 hover:text-paper transition-colors duration-300"
-            >
-              关于
-            </Link>
-            <Link
-              href="/list/new"
-              className="font-mono text-[11px] tracking-[0.25em] text-paper/70 hover:text-paper transition-colors duration-300"
-            >
-              新建
-            </Link>
-          </nav>
+        {/* 中：导航菜单（只在桌面显示） */}
+        <div className="hidden md:flex items-center gap-2xl">
+          <NavLink href="/explore" label="EXPLORE" cn="探索" />
+          <NavLink href="/about" label="ABOUT" cn="关于" />
         </div>
 
-        {/* 右侧：用户区 */}
-        <div className="flex items-center gap-2xl">
+        {/* 右：操作 */}
+        <div className="flex items-center gap-xl">
+          {/* 新建 — 强调 */}
+          <NavLink href="/list/new" label="NEW" cn="新建" emphasis />
+
           {/* 登录/用户菜单 */}
           {isHydrated && user && user.isAuthenticated ? (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center gap-sm group"
+                className="group relative inline-flex flex-col items-start leading-none"
               >
-                <div className="w-8 h-8 rounded-full border border-paper/30 flex items-center justify-center text-paper text-xs font-bold overflow-hidden">
-                  {user.avatarUrl ? (
-                    <img
-                      src={user.avatarUrl}
-                      alt={user.nickname || ''}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    (user.nickname?.[0] ?? user.handle[0])
-                  )}
-                </div>
-                <span className="font-mono text-[11px] tracking-[0.2em] text-paper/70 group-hover:text-paper transition-colors hidden sm:block">
+                {/* 小英文标签 */}
+                <span className="font-mono text-[10px] tracking-[0.3em] text-white opacity-70 group-hover:opacity-100 transition-opacity duration-500">
+                  ACCOUNT
+                </span>
+                {/* 中文 */}
+                <span className="font-heading text-[13px] text-white tracking-[0.15em] mt-[3px] opacity-95 group-hover:opacity-100 transition-opacity duration-500">
                   {user.nickname || user.handle}
                 </span>
               </button>
@@ -154,15 +132,45 @@ export function Navbar() {
               </AnimatePresence>
             </div>
           ) : (
-            <Link
-              href="/auth"
-              className="font-mono text-[11px] tracking-[0.25em] text-paper/70 hover:text-paper border-b border-paper/30 hover:border-paper transition-all duration-300 pb-px"
-            >
-              {t('login')}
-            </Link>
+            <NavLink href="/auth" label="LOG IN" cn="登录" emphasis />
           )}
         </div>
-      </div>
+      </nav>
     </motion.header>
+  );
+}
+
+/* ── 单个导航项：英文 mono small caps + 中文衬线 双行布局 ── */
+function NavLink({
+  href,
+  label,
+  cn,
+  emphasis,
+}: {
+  href: string;
+  label: string;
+  cn: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group relative inline-flex flex-col items-start leading-none"
+    >
+      {/* 顶部小英文标签（mono small caps） */}
+      <span
+        className={`font-mono text-[10px] tracking-[0.3em] text-white ${
+          emphasis ? 'opacity-100' : 'opacity-70'
+        } group-hover:opacity-100 transition-opacity duration-500`}
+      >
+        {label}
+      </span>
+      {/* 下方中文（衬线） */}
+      <span className="font-heading text-[13px] text-white tracking-[0.15em] mt-[3px] opacity-95 group-hover:opacity-100 transition-opacity duration-500">
+        {cn}
+      </span>
+      {/* hover 下划线 — 0 → 100% 从左滑入 */}
+      <span className="absolute -bottom-[6px] left-0 h-[1px] w-0 bg-white transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:w-full" />
+    </Link>
   );
 }

@@ -562,6 +562,32 @@
   }
   .scroll-line { animation: scroll-line 2s ease-in-out infinite; }
 
+  /* §2.6 噪点纹理胶片颗粒漂移 */
+  @keyframes grain-shift {
+    0%, 100%   { transform: translate(0, 0); }
+    10%        { transform: translate(-5%, -5%); }
+    20%        { transform: translate(5%, 5%); }
+    30%        { transform: translate(-3%, 7%); }
+    40%        { transform: translate(7%, -3%); }
+    50%        { transform: translate(-7%, 3%); }
+    60%        { transform: translate(3%, -7%); }
+    70%        { transform: translate(-4%, 4%); }
+    80%        { transform: translate(4%, -4%); }
+    90%        { transform: translate(-6%, 6%); }
+  }
+  .grain-overlay {
+    animation: grain-shift 8s steps(10) infinite;
+  }
+
+  /* §2.7 朱砂色短线在白色细线内流下来 */
+  @keyframes scroll-line-down {
+    0%   { transform: translateY(-100%); }
+    100% { transform: translateY(330%); }
+  }
+  .scroll-line-down {
+    animation: scroll-line-down 2s ease-in-out infinite;
+  }
+
   /* 深色区域链接下划线动画 */
   .dark-link-underline {
     position: relative;

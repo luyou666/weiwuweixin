@@ -7,6 +7,7 @@ import {
   useScroll,
   useTransform,
   useSpring,
+  useMotionValue,
   AnimatePresence,
 } from 'framer-motion';
 import { useRef, useState, useEffect, useCallback } from 'react';
@@ -16,6 +17,8 @@ import { ConfidenceSeal, EmptyState, LoadingState, ErrorState } from '@weiwuweix
 import { fetchFeedLists } from '@/lib/api';
 import type { FeedList } from '@/lib/mock-data';
 import { Marquee } from '@/components/marquee';
+import { HeroMeta } from '@/components/hero-meta';
+import { WordCycler } from '@/components/word-cycler';
 
 /* ============================================================
    首页 — 围物为心 · Monopo London 风格重构 v7
@@ -417,7 +420,33 @@ function HeroSection() {
   const t = useTranslations('home');
   const sectionRef = useRef<HTMLElement>(null);
 
-  /* Hero 视差 */
+  /* §2.1 入场序列 variants */
+  const containerVariants = {
+    hidden: {},
+    show: {
+      transition: { staggerChildren: 0.2, delayChildren: 0.6 },
+    },
+  };
+  const itemVariants = {
+    hidden: { y: 30, opacity: 0 },
+    show: { y: 0, opacity: 1, transition: { duration: 1.0, ease: [0.22, 1, 0.36, 1] } },
+  };
+
+  /* §2.4 鼠标视差 — 极淡，只在主标题上 */
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const titleX = useTransform(mouseX, [-0.5, 0.5], [-12, 12]);
+  const titleY = useTransform(mouseY, [-0.5, 0.5], [-8, 8]);
+  const titleSpringX = useSpring(titleX, { stiffness: 80, damping: 25 });
+  const titleSpringY = useSpring(titleY, { stiffness: 80, damping: 25 });
+
+  const handleMove = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    mouseX.set((e.clientX - rect.left) / rect.width - 0.5);
+    mouseY.set((e.clientY - rect.top) / rect.height - 0.5);
+  };
+
+  /* Hero 滚动视差 */
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ['start start', 'end start'],
@@ -425,61 +454,92 @@ function HeroSection() {
   const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
+  /* §2.3 WordCycler 词语 */
+  const cycleWords = [t('heroWordCycle1'), t('heroWordCycle2'), t('heroWordCycle3'), t('heroWordCycle4')];
+
   return (
-    <section
+    <motion.section
       ref={sectionRef}
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
       className="relative w-full h-[100svh] bg-ink-900 overflow-hidden"
+      onMouseMove={handleMove}
     >
       {/* 内容层 — 滚动视差 */}
       <motion.div
         className="absolute inset-0 z-10"
         style={{ y: heroY, opacity: heroOpacity }}
       >
-        {/* 左上 — 极小字编号+元信息 */}
-        <div className="absolute top-[12vh] left-[6vw] flex items-center gap-md text-paper/60 z-10">
+        {/* §2.2 右上 — 实时时钟/元数据角标（替代原来的左上编号） */}
+        <motion.div variants={itemVariants}>
+          <HeroMeta />
+        </motion.div>
+
+        {/* §2.5 左侧边缘竖字 — 从下往上读 */}
+        <motion.div variants={itemVariants} className="absolute left-[1.5vw] top-1/2 -translate-y-1/2 z-10 select-none">
+          <span
+            className="font-mono text-[10px] tracking-[0.4em] text-white/40 whitespace-nowrap"
+            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+          >
+            Subjectivity is sacred — guard it with care
+          </span>
+        </motion.div>
+
+        {/* §2.5 右侧边缘竖字 — 从上往下读 */}
+        <motion.div variants={itemVariants} className="absolute right-[1.5vw] top-1/2 -translate-y-1/2 z-10 select-none">
+          <span
+            className="font-mono text-[10px] tracking-[0.4em] text-white/40 whitespace-nowrap"
+            style={{ writingMode: 'vertical-rl' }}
+          >
+            Est · 2026 · WeiwuWeixin Studio
+          </span>
+        </motion.div>
+
+        {/* 左上 — 极小字编号+元信息（保留作为第二元信息行） */}
+        <motion.div variants={itemVariants} className="absolute top-[12vh] left-[6vw] flex items-center gap-md text-paper/60 z-10">
           <span className="font-mono text-[11px] tracking-[0.2em]">N°04 — 2026</span>
           <span className="w-12 h-[1px] bg-paper/30" />
           <span className="font-mono text-[11px] tracking-[0.2em]">WEIWUWEIXIN</span>
-        </div>
+        </motion.div>
 
-        {/* 主标题 — 满版超大字，左对齐 */}
-        <div className="absolute bottom-[18vh] left-[6vw] right-[6vw] z-10">
-          <h1 className="font-heading text-[clamp(80px,16vw,260px)] text-paper leading-[0.92] tracking-[-0.04em] font-normal">
-            <CharReveal text={t('heroLine1')} className="block opacity-90" delay={0.4} staggerDelay={0.05} />
-            <span className="block italic text-vermilion">
-              <CharReveal text={t('heroLine2')} delay={0.7} staggerDelay={0.04} />
-            </span>
-          </h1>
-        </div>
+        {/* 主标题 — 满版超大字，左对齐 + §2.4 鼠标视差 */}
+        <motion.div variants={itemVariants} className="absolute bottom-[18vh] left-[6vw] right-[6vw] z-10">
+          {/* 视差只在主标题上，元数据/CTA完全静止 */}
+          <motion.div style={{ x: titleSpringX, y: titleSpringY }}>
+            <h1 className="font-heading text-[clamp(80px,16vw,260px)] text-paper leading-[0.92] tracking-[-0.04em] font-normal">
+              <CharReveal text={t('heroLine1')} className="block opacity-90" delay={0.4} staggerDelay={0.06} />
+              <span className="block italic text-vermilion">
+                {t('heroWordCycleJoin')}
+                <WordCycler words={cycleWords} className="text-vermilion" />
+              </span>
+            </h1>
+          </motion.div>
+        </motion.div>
 
-        {/* 右下角 — 副信息 + 滚动指示 */}
-        <div className="absolute bottom-[6vh] right-[6vw] flex flex-col items-end gap-xs z-10">
+        {/* 右下角 — 副信息 */}
+        <motion.div variants={itemVariants} className="absolute bottom-[6vh] right-[6vw] flex flex-col items-end gap-xs z-10">
           <motion.p
             className="font-body text-xs text-paper/50 max-w-[260px] text-right leading-relaxed"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease: monopoEase, delay: 1.2 }}
           >
             {t('heroLine3Bold')}{t('heroLine3')} / {t('heroLine4')}
           </motion.p>
-          <motion.div
-            className="mt-md flex items-center gap-xs text-paper/60 text-[11px] tracking-[0.3em] font-mono"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, ease: monopoEase, delay: 1.5 }}
+          {/* §2.7 可点击滚动指示器 */}
+          <button
+            onClick={() => {
+              document.querySelector('#feed')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="mt-md group flex items-center gap-xs text-white/60 text-[11px] tracking-[0.3em] font-mono cursor-pointer hover:text-white transition-colors duration-500"
           >
             SCROLL
-            <span className="block w-px h-8 bg-paper/30 scroll-line" />
-          </motion.div>
-        </div>
+            <span className="block w-px h-8 bg-white/30 ml-sm relative overflow-hidden">
+              <span className="absolute top-0 left-0 w-full h-[30%] bg-vermilion scroll-line-down" />
+            </span>
+          </button>
+        </motion.div>
 
         {/* 左下角 — 主 CTA 单一按钮 + 文字链接 */}
-        <motion.div
-          className="absolute bottom-[6vh] left-[6vw] flex items-center gap-2xl z-10"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, ease: monopoEase, delay: 1.7 }}
-        >
+        <motion.div variants={itemVariants} className="absolute bottom-[6vh] left-[6vw] flex items-center gap-2xl z-10">
           <Link href="/list/new" className="group inline-flex items-center gap-md text-paper">
             <span className="w-14 h-14 rounded-full border border-paper/40 group-hover:bg-paper group-hover:text-ink-900 transition-all duration-700 flex items-center justify-center text-xl">→</span>
             <span className="font-body text-sm tracking-wider">Start a List</span>
@@ -495,7 +555,15 @@ function HeroSection() {
         className="absolute inset-x-0 bottom-0 h-[40vh] pointer-events-none"
         style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 120%, rgba(226,85,63,0.12), transparent 70%)' }}
       />
-    </section>
+
+      {/* §2.6 噪点纹理 Overlay（Film Grain） */}
+      <div
+        className="grain-overlay absolute inset-0 pointer-events-none z-30 opacity-[0.05] mix-blend-overlay"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+        }}
+      />
+    </motion.section>
   );
 }
 
