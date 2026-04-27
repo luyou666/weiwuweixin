@@ -45,4 +45,5 @@ minio-data/
 redis-data/
 
 # PostgreSQL data
-pg-data/
+pg-data/check-users.cjs
+create-test-user.cjs
