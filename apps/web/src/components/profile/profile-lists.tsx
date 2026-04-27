@@ -2,13 +2,15 @@
 
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+import Link from 'next/link';
 import { Card, ConfidenceSeal } from '@weiwuweixin/ui';
 import type { FeedList } from '@/lib/mock-data';
 import type { ProfileSortMode } from '@/lib/api';
 
 /* ============================================================
    ProfileLists — 个人榜单列表
-   FLIP 动画排序切换 + 排序标签 + 卡片 hover 增强
+   FLIP 动画排序切换 + 排序标签 + 卡片可点击 + 收藏按钮
    ============================================================ */
 
 interface ProfileListsProps {
@@ -27,7 +29,7 @@ export function ProfileLists({ lists, sortMode, onSortChange }: ProfileListsProp
   const t = useTranslations('profile');
 
   return (
-    <div>
+    <div id="lists">
       {/* ─── 排序标签（药丸风格） ─── */}
       <div className="flex gap-xs mb-lg">
         {SORT_OPTIONS.map((opt) => {
@@ -38,6 +40,7 @@ export function ProfileLists({ lists, sortMode, onSortChange }: ProfileListsProp
               onClick={() => onSortChange(opt.key)}
               className={[
                 'px-md py-xs rounded-full text-sm font-medium transition-all duration-200',
+                'focus:outline-none focus:ring-2 focus:ring-indigo/20',
                 isActive
                   ? 'bg-ink-900 text-paper shadow-sm'
                   : 'bg-rice text-ink-500 hover:bg-ink-100 hover:text-ink-700',
@@ -67,10 +70,10 @@ export function ProfileLists({ lists, sortMode, onSortChange }: ProfileListsProp
   );
 }
 
-/* ─── 单个榜单卡片 ─── */
+/* ─── 单个榜单卡片（可点击 + 收藏 + 分享） ─── */
 function ProfileListCard({ list, index }: { list: FeedList; index: number }) {
   const t = useTranslations('profile');
-  const tHome = useTranslations('home');
+  const [bookmarked, setBookmarked] = useState(false);
 
   return (
     <motion.div
@@ -85,9 +88,16 @@ function ProfileListCard({ list, index }: { list: FeedList; index: number }) {
         y: { type: 'spring', stiffness: 200, damping: 20, delay: index * 0.04 },
       }}
     >
-      <Card interactive size="md" className="flex gap-md group">
+      <Card interactive size="md" className="flex gap-md group relative">
+        {/* 整张卡片可点击 — 包裹 Link */}
+        <Link
+          href={`/list/${list.id}`}
+          className="absolute inset-0 z-0"
+          aria-label={list.title}
+        />
+
         {/* 置信度印章 */}
-        <div className="flex-shrink-0 pt-xs transition-transform group-hover:scale-105">
+        <div className="flex-shrink-0 pt-xs transition-transform group-hover:scale-105 relative z-10">
           <ConfidenceSeal
             confidence={list.confidence}
             size="sm"
@@ -96,7 +106,7 @@ function ProfileListCard({ list, index }: { list: FeedList; index: number }) {
         </div>
 
         {/* 内容区 */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 relative z-10">
           <h3 className="font-heading text-lg text-ink-900 truncate group-hover:text-vermilion transition-colors">
             {list.title}
           </h3>
@@ -127,11 +137,37 @@ function ProfileListCard({ list, index }: { list: FeedList; index: number }) {
           </div>
         </div>
 
-        {/* 右侧箭头指示 */}
-        <div className="flex-shrink-0 flex items-center text-ink-200 group-hover:text-ink-400 transition-colors">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M6 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        {/* 右侧操作区 */}
+        <div className="flex-shrink-0 flex flex-col items-center justify-center gap-sm relative z-10">
+          {/* 收藏按钮 */}
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBookmarked(!bookmarked); }}
+            className={[
+              'p-xs rounded-lg transition-all',
+              bookmarked
+                ? 'text-vermilion bg-vermilion/10'
+                : 'text-ink-200 hover:text-vermilion hover:bg-ink-50',
+              'focus:outline-none focus:ring-2 focus:ring-vermilion/20',
+            ].join(' ')}
+            aria-label={bookmarked ? t('removeBookmark') : t('addBookmark')}
+          >
+            <motion.svg
+              width="18" height="18" viewBox="0 0 18 18"
+              fill={bookmarked ? 'currentColor' : 'none'}
+              stroke="currentColor" strokeWidth="1.5"
+              animate={{ scale: bookmarked ? [1, 1.2, 1] : 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <path d="M4 3h10a1 1 0 011 1v11l-6-3-6 3V4a1 1 0 011-1z" strokeLinecap="round" strokeLinejoin="round" />
+            </motion.svg>
+          </button>
+
+          {/* 箭头指示 */}
+          <div className="text-ink-200 group-hover:text-ink-400 transition-colors">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M6 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
         </div>
       </Card>
     </motion.div>

@@ -1,12 +1,13 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import type { BadgeInfo } from '@weiwuweixin/shared';
 
 /* ============================================================
    BadgeShowcase — 围物为心徽章展示
-   4种圆形SVG印章图案 + 解锁进度条 + hover展开详情
+   4种圆形SVG印章图案 + 解锁进度条 + 点击展开详情
    ============================================================ */
 
 interface BadgeShowcaseProps {
@@ -18,7 +19,7 @@ export function BadgeShowcase({ badges }: BadgeShowcaseProps) {
   const earnedCount = badges.filter(b => b.earned).length;
 
   return (
-    <div>
+    <div id="badges">
       {/* ─── 进度条 ─── */}
       <div className="flex items-center gap-sm mb-lg">
         <div className="flex-1 h-1.5 bg-ink-100 rounded-full overflow-hidden">
@@ -45,7 +46,7 @@ export function BadgeShowcase({ badges }: BadgeShowcaseProps) {
   );
 }
 
-/* ─── 单个徽章 ─── */
+/* ─── 单个徽章（点击展开详情） ─── */
 const badgeNameKeys: Record<string, string> = {
   'first-list': 'badgeFirstList',
   'echo-eight': 'badgeEchoEight',
@@ -62,14 +63,16 @@ const badgeDescKeys: Record<string, string> = {
 
 function BadgeItem({ badge, index }: { badge: BadgeInfo; index: number }) {
   const t = useTranslations('profile');
+  const [expanded, setExpanded] = useState(false);
 
   const name = t(badgeNameKeys[badge.type] as Parameters<typeof t>[0]);
   const desc = t(badgeDescKeys[badge.type] as Parameters<typeof t>[0]);
 
   return (
-    <motion.div
-      className="flex flex-col items-center p-lg rounded-2xl transition-colors group
-        hover:bg-ink-50/50 cursor-default"
+    <motion.button
+      onClick={() => setExpanded(!expanded)}
+      className="flex flex-col items-center p-lg rounded-2xl transition-colors group text-left
+        hover:bg-ink-50/50 focus:outline-none focus:ring-2 focus:ring-indigo/20"
       initial={{ opacity: 0, scale: 0.85 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{
@@ -125,16 +128,39 @@ function BadgeItem({ badge, index }: { badge: BadgeInfo; index: number }) {
         {name}
       </p>
 
-      {/* 徽章描述 / 未解锁 */}
-      <p
-        className="text-xs text-center mt-1 max-w-[100px] leading-snug"
-        style={{
-          color: badge.earned ? 'var(--ink-500)' : 'var(--ink-300)',
-        }}
+      {/* 徽章描述 / 展开动画 */}
+      <AnimatePresence>
+        {expanded ? (
+          <motion.p
+            className="text-xs text-center mt-1 max-w-[120px] leading-snug"
+            style={{ color: badge.earned ? 'var(--ink-500)' : 'var(--ink-300)' }}
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 4 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {badge.earned ? desc : t('badgeLocked')}
+          </motion.p>
+        ) : (
+          <motion.p
+            className="text-xs text-center mt-1 max-w-[100px] leading-snug truncate"
+            style={{ color: badge.earned ? 'var(--ink-500)' : 'var(--ink-300)' }}
+            layout
+          >
+            {badge.earned ? desc : t('badgeLocked')}
+          </motion.p>
+        )}
+      </AnimatePresence>
+
+      {/* 展开/收起提示 */}
+      <motion.span
+        className="text-[10px] text-ink-300 mt-1"
+        animate={{ rotate: expanded ? 180 : 0 }}
+        transition={{ duration: 0.2 }}
       >
-        {badge.earned ? desc : t('badgeLocked')}
-      </p>
-    </motion.div>
+        ▾
+      </motion.span>
+    </motion.button>
   );
 }
 
