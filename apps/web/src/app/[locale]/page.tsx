@@ -17,21 +17,54 @@ import { fetchFeedLists } from '@/lib/api';
 import type { FeedList } from '@/lib/mock-data';
 
 /* ============================================================
-   首页 — 围物为心 · Monopo 风格 v3 "高设2版"
+   首页 — 围物为心 · Monopo 风格 v4 "高设3版"
    
-   动态效果增强：
+   动态效果增强 v4：
    1. Hero区: 鼠标跟随光效 + 文字逐字弹入 + 滚动视差
-   2. 榜单区: Sticky滚动标题切换 + 滚动标尺 + 卡片交错出现
+   2. 榜单区: 卡片交错出现 + 上下划双向入场
    3. 哲学区: 数字滚动计数器 + 视差装饰
    4. CTA区: 涟漪按钮 + 入场动画增强
-   5. 全局: 自定义光标 + 页面载入动画
+   5. 全局: 滚动条隐藏 + 上下划双向动画 + 滚动方向感知
    ============================================================ */
 
 /* ── 缓动函数 (Monopo cubic-bezier) ── */
 const monopoEase = [0.165, 0.84, 0.44, 1] as const;
 const monopoEaseOut = [0.22, 1, 0.36, 1] as const;
 
-/* ── 工具: 文字逐行揭示 (增强版) ── */
+/* ── 滚动方向上下文 ── */
+import { createContext, useContext } from 'react';
+const ScrollDirectionContext = createContext<'up' | 'down'>('down');
+function useScrollDirection() {
+  return useContext(ScrollDirectionContext);
+}
+
+/* ── 滚动方向监听 Provider ── */
+function ScrollDirectionProvider({ children }: { children: React.ReactNode }) {
+  const [direction, setDirection] = useState<'up' | 'down'>('down');
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentY = window.scrollY;
+      const diff = currentY - lastScrollY.current;
+      // 需要 5px 以上的位移才切换方向，避免微抖
+      if (Math.abs(diff) > 5) {
+        setDirection(diff > 0 ? 'down' : 'up');
+      }
+      lastScrollY.current = currentY;
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  return (
+    <ScrollDirectionContext.Provider value={direction}>
+      {children}
+    </ScrollDirectionContext.Provider>
+  );
+}
+
+/* ── 工具: 文字逐行揭示 (双向版) ── */
 function RevealText({
   children,
   className,
@@ -41,15 +74,21 @@ function RevealText({
   children: React.ReactNode;
   className?: string;
   delay?: number;
-  direction?: 'up' | 'down';
+  direction?: 'up' | 'down' | 'auto';
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-80px' });
+  const scrollDir = useScrollDirection();
+
+  // 自动根据滚动方向决定入场方向
+  const enterFrom = direction === 'auto'
+    ? (scrollDir === 'down' ? 'up' : 'down')
+    : direction;
 
   return (
     <div ref={ref} className={`overflow-hidden ${className || ''}`}>
       <motion.div
-        initial={{ y: direction === 'up' ? '110%' : '-110%', opacity: 0 }}
+        initial={{ y: enterFrom === 'up' ? '110%' : '-110%', opacity: 0 }}
         animate={isInView ? { y: '0%', opacity: 1 } : {}}
         transition={{
           duration: 1.2,
@@ -63,7 +102,7 @@ function RevealText({
   );
 }
 
-/* ── 工具: 交错文字揭示 — 每个字符独立动画 ── */
+/* ── 工具: 交错文字揭示 — 每个字符独立动画（双向版） ── */
 function CharReveal({
   text,
   className,
@@ -77,13 +116,18 @@ function CharReveal({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-50px' });
+  const scrollDir = useScrollDirection();
+
+  // 上划时字符从下方弹入，下划时从上方滑入
+  const enterY = scrollDir === 'up' ? '-120%' : '120%';
+  const enterRotateX = scrollDir === 'up' ? -40 : 40;
 
   return (
     <div ref={ref} className={`flex flex-wrap justify-center ${className || ''}`} aria-label={text}>
       {text.split('').map((char, i) => (
         <motion.span
           key={`${char}-${i}`}
-          initial={{ y: '120%', opacity: 0, rotateX: 40 }}
+          initial={{ y: enterY, opacity: 0, rotateX: enterRotateX }}
           animate={isInView ? { y: '0%', opacity: 1, rotateX: 0 } : {}}
           transition={{
             duration: 0.8,
@@ -91,7 +135,7 @@ function CharReveal({
             delay: delay + i * staggerDelay,
           }}
           className="inline-block"
-          style={{ transformOrigin: 'bottom center' }}
+          style={{ transformOrigin: scrollDir === 'up' ? 'top center' : 'bottom center' }}
         >
           {char === ' ' ? '\u00A0' : char}
         </motion.span>
@@ -265,6 +309,7 @@ export default function HomePage() {
   }, []);
 
   return (
+    <ScrollDirectionProvider>
     <main className="min-h-screen bg-paper">
       {/* 页面载入遮罩 */}
       <AnimatePresence>
@@ -293,7 +338,7 @@ export default function HomePage() {
       <section id="feed" className="py-5xl bg-paper relative">
         <div className="max-w-6xl mx-auto px-lg">
           {/* Section Header - Monopo style uppercase label */}
-          <SlideReveal direction="up" delay={0} distance={30}>
+          <SlideReveal direction="auto" delay={0} distance={30}>
             <div className="flex items-center gap-md mb-2xl">
               <div className="w-16 h-[1px] bg-ink-300" />
               <p className="font-body text-xs tracking-[0.25em] text-ink-300">
@@ -343,7 +388,7 @@ export default function HomePage() {
           )}
 
           {/* 底部 CTA 链接 — Monopo style arrow */}
-          <SlideReveal className="text-center mt-2xl" direction="up" delay={0.2}>
+          <SlideReveal className="text-center mt-2xl" direction="auto" delay={0.2}>
             <Link
               href="/explore"
               className="group inline-flex items-center gap-sm font-body text-sm text-ink-500 hover:text-vermilion transition-colors duration-300"
@@ -365,6 +410,7 @@ export default function HomePage() {
       {/* 4. CTA ── 涟漪按钮增强 */}
       <CTASection />
     </main>
+    </ScrollDirectionProvider>
   );
 }
 
@@ -660,7 +706,7 @@ function PhilosophySection() {
         </RevealText>
 
         {/* 描述 */}
-        <SlideReveal className="font-body text-base md:text-lg text-ink-300 leading-relaxed max-w-2xl mx-auto mb-3xl" direction="up" delay={0.3}>
+        <SlideReveal className="font-body text-base md:text-lg text-ink-300 leading-relaxed max-w-2xl mx-auto mb-3xl" direction="auto" delay={0.3}>
           <p>{t('philosophyDesc')}</p>
         </SlideReveal>
 
@@ -690,7 +736,7 @@ function PhilosophySection() {
         </div>
 
         {/* 链接 — Monopo style arrow */}
-        <SlideReveal direction="up" delay={0.85} distance={20}>
+        <SlideReveal direction="auto" delay={0.85} distance={20}>
           <Link
             href="/about"
             className="group inline-flex items-center gap-sm font-body text-sm text-ink-100 hover:text-vermilion transition-colors duration-300"
@@ -742,7 +788,7 @@ function CTASection() {
         </RevealText>
 
         {/* 描述 */}
-        <SlideReveal className="mb-2xl" direction="up" delay={0.5}>
+        <SlideReveal className="mb-2xl" direction="auto" delay={0.5}>
           <p className="font-body text-base text-ink-300 leading-relaxed max-w-lg mx-auto">
             {t('ctaDesc')}
           </p>
@@ -758,7 +804,7 @@ function CTASection() {
   );
 }
 
-/* ── 工具: 缩放推进 reveal ── */
+/* ── 工具: 缩放推进 reveal（双向版） ── */
 function ScaleReveal({
   children,
   className,
@@ -772,12 +818,16 @@ function ScaleReveal({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-60px' });
+  const scrollDir = useScrollDirection();
+
+  // 上划时从上方缩放进入，下划时从下方
+  const yDirection = scrollDir === 'up' ? -30 : 30;
 
   return (
     <motion.div
       ref={ref}
       className={className}
-      initial={{ opacity: 0, scale: scaleFrom, y: 30 }}
+      initial={{ opacity: 0, scale: scaleFrom, y: yDirection }}
       animate={isInView ? { opacity: 1, scale: 1, y: 0 } : {}}
       transition={{
         duration: 1.1,
@@ -790,7 +840,7 @@ function ScaleReveal({
   );
 }
 
-/* ── 工具: 滑入揭示 ── */
+/* ── 工具: 滑入揭示（双向版） ── */
 function SlideReveal({
   children,
   className,
@@ -800,13 +850,20 @@ function SlideReveal({
 }: {
   children: React.ReactNode;
   className?: string;
-  direction?: 'up' | 'down' | 'left' | 'right';
+  direction?: 'up' | 'down' | 'left' | 'right' | 'auto';
   delay?: number;
   distance?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-60px' });
-  const dir = { up: { x: 0, y: distance }, down: { x: 0, y: -distance }, left: { x: distance, y: 0 }, right: { x: -distance, y: 0 } }[direction];
+  const scrollDir = useScrollDirection();
+
+  // auto 模式: 根据滚动方向自动选择入场方向
+  const resolvedDir = direction === 'auto'
+    ? (scrollDir === 'down' ? 'up' : 'down')
+    : direction;
+
+  const dir = { up: { x: 0, y: distance }, down: { x: 0, y: -distance }, left: { x: distance, y: 0 }, right: { x: -distance, y: 0 } }[resolvedDir];
 
   return (
     <motion.div

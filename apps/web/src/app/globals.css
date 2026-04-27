@@ -302,19 +302,23 @@
     color: var(--paper);
   }
 
+  /* 滚动条隐藏 — Monopo风格无滚动条 */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 0;
+    height: 0;
   }
   ::-webkit-scrollbar-track {
-    background: var(--rice);
+    display: none;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--ink-300);
-    border-radius: var(--radius-pill);
+    display: none;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--ink-500);
+    display: none;
+  }
+  /* Firefox 隐藏滚动条 */
+  * {
+    scrollbar-width: none;
   }
 
   :focus-visible {
