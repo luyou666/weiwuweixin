@@ -56,6 +56,8 @@ export async function jwtAuthMiddleware(
         deviceId: user.deviceId ?? '',
         isAuthenticated: true,
       };
+      // 兼容旧代码中读取 req.user 的路由
+      (req as any).user = req.authUser;
       return;
     } catch {
       // JWT 无效/过期，降级到 device-auth
@@ -87,4 +89,7 @@ export async function jwtAuthMiddleware(
     deviceId,
     isAuthenticated: false,
   };
+
+  // 兼容旧代码中读取 req.user 的路由
+  (req as any).user = req.authUser;
 }

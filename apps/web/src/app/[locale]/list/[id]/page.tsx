@@ -3,15 +3,22 @@
 /**
  * 围物为心 — 榜单详情页 /list/[id]
  * 展示排名 + 共识度 + 评论 + 社区分数
+ * 数据从真实 API 获取
+ * 
+ * Design: Monopo London — black on white, massive editorial typography,
+ * generous white space, no cards, scroll reveals.
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { useRouter } from '@/i18n/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Link, useRouter } from '@/i18n/navigation';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { Card, Button, ConfidenceSeal } from '@weiwuweixin/ui';
-import { computeConfidence } from '@weiwuweixin/scoring';
 import { useTranslations } from 'next-intl';
+import { fetchListById, fetchComments, postComment } from '@/lib/api';
+import type { ListDetail, CommentItem as ApiCommentItem } from '@/lib/api';
+import { voteList, getListVoteStatus } from '@/lib/api-client';
 import { RankingTable } from '@/components/list-detail/ranking-table';
 import type { RankingItem } from '@/components/list-detail/ranking-table';
 import { ConfidencePanel } from '@/components/list-detail/confidence-panel';
@@ -19,38 +26,111 @@ import { CommentSection } from '@/components/list-detail/comment-section';
 import type { CommentData } from '@/components/list-detail/comment-section';
 import { CommunityScores } from '@/components/list-detail/community-scores';
 import { ScoreDetailDialog } from '@/components/list-detail/score-detail-dialog';
+import { ListVoteButtons } from '@/components/list-detail/list-vote-buttons';
 
 /* ============================================================
-   Mock 数据
+   工具函数 — 将 API 响应转为组件所需格式
    ============================================================ */
 
-const mockListDetail = {
-  id: 'demo-list-1',
-  title: '2024年度最佳前端框架',
-  subtitle: '基于开发体验、生态成熟度、性能表现三个维度',
-  author: { nickname: '码上花开', avatar: null },
-  algorithmId: 'weighted-mean',
-  confidence: 72,
-  items: [
-    { id: '1', name: 'React', overallScore: 8.7, dimensions: [{ name: '开发体验', score: 9.2 }, { name: '生态', score: 9.5 }, { name: '性能', score: 7.4 }], confidence: 85 },
-    { id: '2', name: 'Vue', overallScore: 8.5, dimensions: [{ name: '开发体验', score: 9.0 }, { name: '生态', score: 8.8 }, { name: '性能', score: 7.7 }], confidence: 80 },
-    { id: '3', name: 'Svelte', overallScore: 8.3, dimensions: [{ name: '开发体验', score: 9.4 }, { name: '生态', score: 6.8 }, { name: '性能', score: 8.7 }], confidence: 58 },
-    { id: '4', name: 'Angular', overallScore: 7.8, dimensions: [{ name: '开发体验', score: 6.5 }, { name: '生态', score: 8.2 }, { name: '性能', score: 8.7 }], confidence: 72 },
-    { id: '5', name: 'Solid', overallScore: 7.6, dimensions: [{ name: '开发体验', score: 8.0 }, { name: '生态', score: 5.5 }, { name: '性能', score: 9.3 }], confidence: 35 },
-    { id: '6', name: 'Astro', overallScore: 7.4, dimensions: [{ name: '开发体验', score: 8.8 }, { name: '生态', score: 6.0 }, { name: '性能', score: 7.4 }], confidence: 42 },
-    { id: '7', name: 'HTMX', overallScore: 6.9, dimensions: [{ name: '开发体验', score: 7.5 }, { name: '生态', score: 5.0 }, { name: '性能', score: 8.2 }], confidence: 28 },
-    { id: '8', name: 'Qwik', overallScore: 6.5, dimensions: [{ name: '开发体验', score: 7.0 }, { name: '生态', score: 4.2 }, { name: '性能', score: 8.3 }], confidence: 18 },
-  ],
-  communityScores: { participantCount: 38, averageAgreement: 0.65 },
-  comments: [
-    { id: 'c1', user: '山高水长', content: 'React 生态确实无敌，但性能方面确实还有优化空间', sentiment: 0.6, createdAt: '2024-03-15' },
-    { id: 'c2', user: '晚风轻吟', content: 'Vue 的开发体验很丝滑，特别是组合式 API', sentiment: 0.8, createdAt: '2024-03-16' },
-    { id: 'c3', user: '石破天惊', content: 'Svelte 的性能表现惊艳，但生态还需要成长', sentiment: 0.3, createdAt: '2024-03-18' },
-    { id: 'c4', user: '云中漫步', content: 'Angular 在大型项目中还是有它的优势', sentiment: 0.5, createdAt: '2024-03-20' },
-    { id: 'c5', user: '月影星河', content: 'Solid 的细粒度响应式确实先进，只是社区还小', sentiment: 0.4, createdAt: '2024-03-22' },
-    { id: 'c6', user: '落笔生花', content: 'HTMX 的理念很棒，回归 Web 本质', sentiment: 0.2, createdAt: '2024-04-01' },
-  ] as CommentData[],
-};
+/** 计算条目综合分（authorScores 按维度权重加权平均） */
+function computeOverallScore(
+  item: ListDetail['items'][0],
+  dimensions: ListDetail['dimensions'],
+): number {
+  const scores = item.authorScores;
+  if (scores.length === 0 || dimensions.length === 0) return 0;
+
+  const weightSum = dimensions.reduce((s, d) => s + d.weight, 0);
+  if (weightSum === 0) return 0;
+
+  let total = 0;
+  for (const dim of dimensions) {
+    const score = scores.find(s => s.dimensionId === dim.id);
+    total += (score?.value ?? 0) * dim.weight;
+  }
+  return Math.round((total / weightSum) * 10) / 10;
+}
+
+/** 计算条目置信度（communityScores 平均） */
+function computeItemConfidence(item: ListDetail['items'][0]): number {
+  if (item.communityScores.length === 0) return 0;
+  const avg = item.communityScores.reduce((s, c) => s + c.confidence, 0) / item.communityScores.length;
+  return Math.round(avg * 100);
+}
+
+/** 将 API 数据转为 RankingItem[] */
+function toRankingItems(list: ListDetail): RankingItem[] {
+  return list.items.map(item => ({
+    id: item.id,
+    name: item.name,
+    overallScore: computeOverallScore(item, list.dimensions),
+    dimensions: list.dimensions.map(dim => {
+      const score = item.authorScores.find(s => s.dimensionId === dim.id);
+      return {
+        name: dim.name,
+        score: score?.value ?? 0,
+      };
+    }),
+    confidence: computeItemConfidence(item),
+  }));
+}
+
+/** 将 API CommentItem 转为 CommentData[] */
+function toComments(apiComments: ApiCommentItem[]): CommentData[] {
+  return apiComments.map(c => ({
+    id: c.id,
+    user: c.author.nickname,
+    avatarUrl: c.author.avatarUrl ?? undefined,
+    content: c.content,
+    sentiment: c.sentiment,
+    createdAt: c.createdAt.split('T')[0],
+  }));
+}
+
+/** 计算榜单整体置信度 — 优先使用后端计算值（0-1），降级取 communityScores 平均 */
+function computeListConfidence(list: ListDetail): number {
+  // 后端已计算探索页一致置信度（0-1，与话题聚合/瀑布流同公式）
+  if (list.confidence != null && list.confidence > 0) {
+    return list.confidence; // 0-1 小数
+  }
+  // 降级：从 communityScores 简单平均
+  if (list.communityScores.length === 0) return 0;
+  const avg = list.communityScores.reduce((s, c) => s + c.confidence, 0) / list.communityScores.length;
+  return avg; // 也是 0-1
+}
+
+/* ============================================================
+   Scroll-reveal wrapper — Monopo staggered entrance
+   ============================================================ */
+
+function RevealSection({
+  children,
+  className = '',
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: '-60px' });
+
+  return (
+    <motion.div
+      ref={ref}
+      className={className}
+      initial={{ opacity: 0, y: 40 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+      transition={{
+        duration: 0.8,
+        delay,
+        ease: [0.25, 0.46, 0.45, 0.94],
+      }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 /* ============================================================
    主页面
@@ -60,14 +140,98 @@ export default function ListDetailPage() {
   const params = useParams();
   const router = useRouter();
   const t = useTranslations('listDetail');
+  const queryClient = useQueryClient();
 
   const listId = params.id as string;
 
-  // Mock 数据 — 实际项目走 API
-  const listData = mockListDetail;
+  // ─── 数据获取 ───
+  const { data: listData, isLoading, isError, refetch } = useQuery<ListDetail>({
+    queryKey: ['list-detail', listId],
+    queryFn: () => fetchListById(listId),
+    enabled: !!listId,
+  });
 
-  // 评论 — 本地状态管理（mock 场景下简单追加）
-  const [comments, setComments] = useState<CommentData[]>(listData.comments);
+  // ─── 榜单级投票状态 ───
+  const { data: voteData } = useQuery({
+    queryKey: ['list-vote', listId],
+    queryFn: () => getListVoteStatus(listId),
+    enabled: !!listId,
+  });
+
+  const [myVote, setMyVote] = useState<'up' | 'down' | null>(voteData?.direction ?? null);
+  const [upvoteCount, setUpvoteCount] = useState(listData?.upvoteCount ?? 0);
+  const [downvoteCount, setDownvoteCount] = useState(listData?.downvoteCount ?? 0);
+  // 乐观更新置信度：投票后立即响应当前投票变化，后端数据回来后自动覆盖
+  const [optimisticConfidence, setOptimisticConfidence] = useState<number | null>(null);
+  // 🦌 阿鹿赫尔战队 — 关注 & 同好 交互状态
+  const [followed, setFollowed] = useState(false);
+  const [allied, setAllied] = useState(false);
+  const [followAnim, setFollowAnim] = useState(false);
+  const [allyAnim, setAllyAnim] = useState(false);
+
+  // 当 API 数据到达时同步状态（包括回滚乐观更新）
+  React.useEffect(() => {
+    if (listData) {
+      setUpvoteCount(listData.upvoteCount);
+      setDownvoteCount(listData.downvoteCount);
+      // 后端真实数据到达后，清除乐观估算
+      setOptimisticConfidence(null);
+    }
+  }, [listData]);
+
+  React.useEffect(() => {
+    if (voteData) {
+      setMyVote(voteData.direction);
+    }
+  }, [voteData]);
+
+  // 投票 mutation
+  const voteMutation = useMutation({
+    mutationFn: (direction: 'up' | 'down') => voteList(listId, direction),
+    onSuccess: (result) => {
+      setMyVote(result.direction);
+      setUpvoteCount(result.upvoteCount);
+      setDownvoteCount(result.downvoteCount);
+      // 乐观更新置信度：根据新投票数即时估算（0-1，与 enrichList 同公式）
+      const newUpvote = result.upvoteCount;
+      const newDownvote = result.downvoteCount;
+      const newTotal = newUpvote + newDownvote;
+      const voteRatio = newTotal > 0 ? newUpvote / newTotal : 0;
+      const scoreCount = listData?.communityScores?.length ?? 0;
+      const base = scoreCount > 0 ? 0.2 : 0.05;
+      const participationBoost = Math.min(0.4, (scoreCount / 30) * 0.2);
+      const consensusBoost = newTotal > 0 ? Math.min(0.3, voteRatio * 0.3) : 0;
+      const optimistic = Math.min(0.99, Math.max(0.05, base + participationBoost + consensusBoost));
+      setOptimisticConfidence(optimistic);
+      // 刷新榜单详情以获取最新置信度
+      queryClient.invalidateQueries({ queryKey: ['list-detail', listId] });
+    },
+  });
+
+  const handleListVote = useCallback((direction: 'up' | 'down') => {
+    voteMutation.mutate(direction);
+  }, [voteMutation]);
+
+  // ─── 评论数据（独立 API） ───
+  const { data: commentsData } = useQuery({
+    queryKey: ['list-comments', listId],
+    queryFn: () => fetchComments(listId),
+    enabled: !!listId,
+  });
+
+  const comments: CommentData[] = useMemo(
+    () => commentsData?.data ? toComments(commentsData.data) : [],
+    [commentsData],
+  );
+
+  // 评论 mutation
+  const commentMutation = useMutation({
+    mutationFn: (content: string) => postComment(listId, content),
+    onSuccess: () => {
+      // 刷新评论列表
+      queryClient.invalidateQueries({ queryKey: ['list-comments', listId] });
+    },
+  });
 
   // 评分详情弹窗
   const [detailItem, setDetailItem] = useState<RankingItem | null>(null);
@@ -79,192 +243,384 @@ export default function ListDetailPage() {
   }, []);
 
   const handleCommentSubmit = useCallback((content: string) => {
-    const newComment: CommentData = {
-      id: `c-${Date.now()}`,
-      user: '我',
-      content,
-      sentiment: 0,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-    setComments((prev) => [newComment, ...prev]);
-  }, []);
+    commentMutation.mutate(content);
+  }, [commentMutation]);
 
   // 排名条目
   const rankingItems: RankingItem[] = useMemo(
-    () => listData.items.map((item) => ({
-      id: item.id,
-      name: item.name,
-      overallScore: item.overallScore,
-      dimensions: item.dimensions,
-      confidence: item.confidence,
-    })),
-    [listData.items],
+    () => listData ? toRankingItems(listData) : [],
+    [listData],
   );
 
-  // 共识度 params — 从 mock 数据推算
+  // 置信度 — 优先使用乐观更新值（投票后立即响应），否则用后端真实值（0-1）
+  const confidence = optimisticConfidence ?? (listData ? computeListConfidence(listData) : 0);
+  // ConfidencePanel 内部期望 0-100，传递时乘以 100
+
+  // 共识度 params — 优先使用后端 scoring 引擎返回的真实参数
+  // 投票后乐观更新 voteConsensus
   const confidenceParams = useMemo(
-    () => ({
-      N: listData.communityScores.participantCount,
-      tau: listData.communityScores.averageAgreement,
-      sentiment: 0.5,
-      daysSinceLastVote: 5,
-    }),
-    [listData.communityScores],
+    () => {
+      const baseParams = listData?.confidenceParams
+        ? {
+            N: listData.confidenceParams.N,
+            tau: listData.confidenceParams.tau,
+            sentiment: listData.confidenceParams.sentiment,
+            daysSinceLastVote: listData.confidenceParams.daysSinceLastVote,
+            voteConsensus: listData.confidenceParams.voteConsensus ?? listData.voteConsensus ?? 0,
+          }
+        : {
+            N: listData?.stats?.community?.totalVotes ?? 0,
+            tau: listData?.stats?.community?.avgConfidence ?? 0,
+            sentiment: 0.5,
+            daysSinceLastVote: 5,
+            voteConsensus: listData?.voteConsensus ?? 0,
+          };
+
+      // 投票后乐观更新 voteConsensus
+      if (optimisticConfidence !== null) {
+        const newTotal = upvoteCount + downvoteCount;
+        return {
+          ...baseParams,
+          voteConsensus: newTotal > 0 ? upvoteCount / newTotal : 0,
+        };
+      }
+      return baseParams;
+    },
+    [listData, optimisticConfidence, upvoteCount, downvoteCount],
   );
+
+  // ─── 加载态 ───
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border border-black border-t-transparent mx-auto mb-6" />
+          <p className="text-black/40 text-sm tracking-wider uppercase">
+            {t('loading') ?? '加载中...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── 错误态 ───
+  if (isError || !listData) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-black text-xl font-light mb-4">
+            {t('errorTitle') ?? '加载失败'}
+          </p>
+          <p className="text-black/40 text-sm mb-8">
+            {t('errorDesc') ?? '无法获取榜单数据'}
+          </p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-block px-8 py-3 text-xs uppercase tracking-widest border border-black text-black hover:bg-black hover:text-white transition-colors duration-300"
+          >
+            {t('retry') ?? '重试'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const itemCount = listData.items.length;
+  const participantCount = listData.stats.community.totalVotes;
 
   return (
-    <div className="min-h-screen bg-[var(--paper)]">
-      {/* ─── 顶部导航 ─── */}
+    <div className="min-h-screen bg-white text-black">
+      {/* ─── 顶部导航：Monopo 极简细线 header ─── */}
       <header
-        className="sticky top-0 z-sticky backdrop-blur-sm"
-        style={{
-          background: 'var(--paper)',
-          opacity: 0.95,
-          borderBottom: '1px solid var(--color-border)',
-        }}
+        className="fixed top-0 inset-x-0 z-50 bg-white"
+        style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
       >
-        <div className="max-w-4xl mx-auto px-lg py-sm flex items-center justify-between">
+        <div className="max-w-[1440px] mx-auto px-10 md:px-20 h-14 flex items-center justify-between">
           <button
+            type="button"
             onClick={() => router.back()}
-            className="font-[var(--font-heading)] text-[var(--text-base)] hover:text-[var(--vermilion)] transition-colors"
-            style={{ color: 'var(--ink-900)' }}
+            className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-black/30 hover:text-black transition-colors duration-300"
+            aria-label="返回"
           >
-            ← {t('backToList') ?? '返回'}
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <path d="M10 3L5 8l5 5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="hidden sm:inline">{t('backToList') ?? '返回'}</span>
           </button>
-          <h1 className="font-[var(--font-heading)] text-[var(--text-base)]" style={{ color: 'var(--ink-700)' }}>
+
+          <span className="text-[10px] uppercase tracking-[0.2em] text-black/20 font-light">
             {t('listDetail') ?? '榜单详情'}
-          </h1>
+          </span>
+
+          {/* Spacer for balance */}
           <div className="w-16" />
         </div>
       </header>
 
-      {/* ─── 主内容区 ─── */}
-      <main className="max-w-4xl mx-auto px-lg py-lg">
-        {/* ─── 榜单头部 ─── */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          className="mb-xl"
-        >
-          <Card interactive={false} textured size="lg">
-            {/* 封面装饰条 */}
-            <div
-              className="h-2 rounded-[var(--radius-pill, 999px)] mb-lg"
-              style={{
-                background: 'linear-gradient(90deg, var(--vermilion), var(--celadon), var(--indigo, #5B6ABF))',
-              }}
-            />
-
+      {/* ─── Hero 区：Monopo 杂志式大标题 ─── */}
+      <section className="pt-32 pb-24 md:pt-40 md:pb-32 px-10 md:px-20">
+        <div className="max-w-[1440px] mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            {/* Massive editorial headline */}
             <h1
-              className="font-[var(--font-heading)] text-[var(--text-2xl, 1.5rem)] mb-1"
-              style={{ color: 'var(--ink-900)' }}
+              className="text-[clamp(2.5rem,6vw,4.75rem)] font-normal leading-[1.05] tracking-[-0.02em] max-w-4xl"
+              style={{ fontFamily: 'var(--font-heading), Inter, Helvetica, sans-serif' }}
             >
               {listData.title}
             </h1>
+
+            {/* Subtitle — provocative single line */}
             {listData.subtitle && (
               <p
-                className="text-[var(--text-sm)] mb-4"
-                style={{ color: 'var(--ink-500)' }}
+                className="mt-8 text-base md:text-lg font-light text-black/40 max-w-xl leading-relaxed"
+                style={{ fontFamily: 'var(--font-heading), Inter, Helvetica, sans-serif' }}
               >
                 {listData.subtitle}
               </p>
             )}
 
-            {/* 作者 + 统计 */}
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                {/* 头像 */}
+            {/* Author + Stats — understated, separated by generous space */}
+            <div className="mt-16 flex flex-wrap items-center gap-x-10 gap-y-4">
+              {/* Author */}
+              <div className="flex items-center gap-3">
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center font-[var(--font-heading)] text-[var(--text-xs)]"
-                  style={{
-                    background: 'var(--vermilion)',
-                    color: 'var(--paper)',
-                  }}
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-medium text-white bg-black"
                 >
                   {listData.author.nickname.charAt(0)}
                 </div>
-                <span className="text-[var(--text-sm)] font-medium" style={{ color: 'var(--ink-900)' }}>
+                <span className="text-sm font-light text-black/60">
                   {listData.author.nickname}
                 </span>
               </div>
 
-              <div className="flex items-center gap-4 text-[var(--text-xs)]" style={{ color: 'var(--ink-500)' }}>
-                <span>{listData.items.length} {t('itemCount')}</span>
-                <span>{listData.communityScores.participantCount} {t('voteCount')}</span>
-                <span className="inline-flex items-center gap-1">
+              {/* Thin divider */}
+              <span className="hidden sm:block w-px h-5 bg-black/10" />
+
+              {/* Stats */}
+              <div className="flex items-center gap-6 text-xs uppercase tracking-wider text-black/30">
+                <span>
+                  {itemCount} {t('itemCount') ?? '项'}
+                </span>
+                <span>
+                  {participantCount} {t('voteCount') ?? '参与'}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
                   <span
-                    className="inline-block w-2 h-2 rounded-full"
-                    style={{ background: listData.confidence >= 60 ? 'var(--celadon)' : 'var(--apricot, #E8A849)' }}
+                    className="inline-block w-1.5 h-1.5 rounded-full"
+                    style={{
+                      background:
+                        confidence >= 0.6 ? '#7FB3A3' : '#E8A849',
+                    }}
                   />
-                  {t('confidence')} {listData.confidence}
+                  共识 {(confidence * 100).toFixed(0)}%
                 </span>
               </div>
             </div>
-          </Card>
-        </motion.div>
+          </motion.div>
+        </div>
+      </section>
 
-        {/* ─── 两列布局：排名 + 侧栏 ─── */}
-        <div className="flex flex-col lg:flex-row gap-lg">
-          {/* 左列：排名表格 */}
-          <div className="flex-1 min-w-0">
-                  <RankingTable
-                    items={rankingItems}
-                    onItemClick={handleItemClick}
-                    onVote={(itemId, direction) => {
-                      // 模拟投票 — 在实际项目中调用 API
-                      console.log(`Vote ${direction} on item ${itemId}`);
-                    }}
+      {/* ─── 投票区：轻量，融入 hero 底部 ─── */}
+      <section className="pb-16 md:pb-20 px-10 md:px-20">
+        <div className="max-w-[1440px] mx-auto">
+          <RevealSection delay={0.15}>
+            <div className="border-t border-black/5 pt-10 max-w-xl">
+              <ListVoteButtons
+                myVote={myVote}
+                upvoteCount={upvoteCount}
+                downvoteCount={downvoteCount}
+                onVote={handleListVote}
+              />
+            </div>
+          </RevealSection>
+        </div>
+      </section>
+
+      {/* ─── 滚动指示器 ─── */}
+      <div className="px-10 md:px-20 pb-8">
+        <div className="max-w-[1440px] mx-auto">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.2, duration: 0.6 }}
+            className="text-[10px] uppercase tracking-[0.3em] text-black/15"
+          >
+            ↓ {t('scrollDown') ?? '向下浏览'}
+          </motion.div>
+        </div>
+      </div>
+
+      {/* ─── 排名 + 侧栏：Monopo 编辑式两列布局 ─── */}
+      <section className="pb-32 px-10 md:px-20">
+        <div className="max-w-[1440px] mx-auto">
+          <div className="flex flex-col lg:flex-row gap-20">
+            {/* 左列：排名 */}
+            <div className="flex-1 min-w-0">
+              <RevealSection delay={0.1}>
+                <RankingTable
+                  items={rankingItems}
+                  onItemClick={handleItemClick}
+                />
+              </RevealSection>
+            </div>
+
+            {/* 右列：共识度 + 社区 + 评论 */}
+            <div className="lg:w-[360px] flex-shrink-0">
+              <div className="space-y-20">
+                <RevealSection delay={0.25}>
+                  <ConfidencePanel
+                    params={confidenceParams}
+                    overrideValue={confidence * 100}
                   />
-          </div>
+                </RevealSection>
 
-          {/* 右列：共识度 + 社区评分 + 评论 */}
-          <div className="lg:w-[340px] flex-shrink-0 space-y-lg">
-            {/* 共识度面板 */}
-            <ConfidencePanel
-              params={confidenceParams}
-              overrideValue={listData.confidence}
-            />
+                <RevealSection delay={0.35}>
+                  <CommunityScores
+                    participantCount={participantCount}
+                    averageAgreement={listData.stats.community.avgConfidence}
+                  />
+                </RevealSection>
 
-            {/* 社区评分概览 */}
-            <CommunityScores
-              participantCount={listData.communityScores.participantCount}
-              averageAgreement={listData.communityScores.averageAgreement}
-            />
-
-            {/* 评论区 */}
-            <CommentSection
-              comments={comments}
-              onSubmit={handleCommentSubmit}
-            />
+                <RevealSection delay={0.45}>
+                  <CommentSection
+                    comments={comments}
+                    onSubmit={handleCommentSubmit}
+                  />
+                </RevealSection>
+              </div>
+            </div>
           </div>
         </div>
-      </main>
+      </section>
 
-      {/* ─── 底部操作栏 ─── */}
+      {/* ─── 底部操作栏：Monopo 极简固定栏 ─── */}
       <motion.footer
         initial={{ y: 60 }}
         animate={{ y: 0 }}
-        transition={{ type: 'spring', stiffness: 250, damping: 25, delay: 0.3 }}
-        className="fixed bottom-0 inset-x-0 z-sticky backdrop-blur-sm"
-        style={{
-          background: 'var(--paper)',
-          opacity: 0.97,
-          borderTop: '1px solid var(--color-border)',
-        }}
+        transition={{ type: 'spring', stiffness: 200, damping: 25, delay: 0.5 }}
+        className="fixed bottom-0 inset-x-0 z-50 bg-white"
+        style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}
       >
-        <div className="max-w-4xl mx-auto px-lg py-sm flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button size="sm" onClick={() => router.push(`/list/${listId}/export`)}>
-              📷 {t('exportShareCard') ?? '导出分享卡'}
-            </Button>
-            <Button size="sm" onClick={() => { /* TODO: 同好功能 */ }}>
-              🤝 {t('findAlly') ?? '同好'}
-            </Button>
+        <div className="max-w-[1440px] mx-auto px-10 md:px-20 h-14 flex items-center justify-between">
+          {/* Left actions */}
+          <div className="flex items-center gap-4">
+            {/* Export */}
+            <Link href={`/list/${listId}/export`}>
+              <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black transition-colors duration-300 cursor-pointer">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                >
+                  <path d="M6 1v7M3 5l3 3 3-3M1 9v1.5A.5.5 0 001.5 11h9a.5.5 0 00.5-.5V9" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {t('exportShareCard') ?? '导出'}
+              </span>
+            </Link>
+
+            {/* Ally button */}
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                setAllied(v => !v);
+                setAllyAnim(true);
+                setTimeout(() => setAllyAnim(false), 1500);
+              }}
+              className={`inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] transition-colors duration-300 ${
+                allied
+                  ? 'text-black font-medium'
+                  : 'text-black/20 hover:text-black/50'
+              }`}
+            >
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={allied ? 'allied' : 'ally'}
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                >
+                  {allied ? '🤝' : '🤝'}
+                </motion.span>
+              </AnimatePresence>
+              {allied
+                ? (t('findAlly') ?? '同好')
+                : (t('findAlly') ?? '同好')}
+            </motion.button>
+
+            {/* Ally toast */}
+            <AnimatePresence>
+              {allyAnim && (
+                <motion.span
+                  initial={{ opacity: 0, y: 10, x: '-50%' }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="fixed bottom-20 left-1/2 z-50 px-4 py-2 bg-black text-white text-xs rounded pointer-events-none"
+                >
+                  {allied ? '🤝 已找到同好！' : '已取消同好'}
+                </motion.span>
+              )}
+            </AnimatePresence>
           </div>
-          <Button size="sm" onClick={() => { /* TODO: 关注功能 */ }}>
-            ⭐ {t('followList') ?? '关注榜单'}
-          </Button>
+
+          {/* Follow button */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              setFollowed(v => !v);
+              setFollowAnim(true);
+              setTimeout(() => setFollowAnim(false), 1500);
+            }}
+            className={`inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] transition-colors duration-300 ${
+              followed
+                ? 'text-black font-medium'
+                : 'text-black/20 hover:text-black/50'
+            }`}
+          >
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={followed ? 'followed' : 'follow'}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+              >
+                {followed ? '★' : '☆'}
+              </motion.span>
+            </AnimatePresence>
+            {followed
+              ? (t('followList') ?? '关注')
+              : (t('followList') ?? '关注')}
+          </motion.button>
+
+          {/* Follow toast */}
+          <AnimatePresence>
+            {followAnim && (
+              <motion.span
+                initial={{ opacity: 0, y: 10, x: '-50%' }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="fixed bottom-20 left-1/2 z-50 px-4 py-2 bg-black text-white text-xs rounded pointer-events-none"
+              >
+                {followed ? '★ 已关注此榜单！' : '已取消关注'}
+              </motion.span>
+            )}
+          </AnimatePresence>
         </div>
       </motion.footer>
 
@@ -276,7 +632,7 @@ export default function ListDetailPage() {
       />
 
       {/* 底部占位 — 防止操作栏遮挡 */}
-      <div className="h-16" />
+      <div className="h-14" />
     </div>
   );
 }

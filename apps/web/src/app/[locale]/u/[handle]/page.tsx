@@ -85,7 +85,7 @@ export default function ProfilePage() {
         <div className="flex gap-xs mb-xl border-b border-ink-100">
           <TabButton labelKey="listsSection" active={activeTab === 'lists'} onClick={() => setActiveTab('lists')} count={profile.stats.listCount} />
           <TabButton labelKey="activitySection" active={activeTab === 'activity'} onClick={() => setActiveTab('activity')} count={activities.length} />
-          <TabButton labelKey="badgesSection" active={activeTab === 'badges'} onClick={() => setActiveTab('badges')} count={profile.badges.filter(b => b.earned).length} />
+          <TabButton labelKey="badgesSection" active={activeTab === 'badges'} onClick={() => setActiveTab('badges')} count={profile.badges?.filter(b => b.earned).length ?? 0} />
         </div>
 
         <AnimatePresence mode="wait">
@@ -106,7 +106,7 @@ export default function ProfilePage() {
 
           {activeTab === 'badges' && (
             <motion.section key="badges" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} transition={{ duration: 0.25 }} className="py-sm">
-              <BadgeShowcase badges={profile.badges} />
+              <BadgeShowcase badges={profile.badges ?? []} />
             </motion.section>
           )}
         </AnimatePresence>
@@ -120,7 +120,7 @@ export default function ProfilePage() {
 function TabButton({ labelKey, active, onClick, count }: { labelKey: string; active: boolean; onClick: () => void; count?: number }) {
   const t = useTranslations('profile');
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       className={['relative px-md pb-sm text-sm font-medium transition-colors focus:outline-none', active ? 'text-ink-900' : 'text-ink-400 hover:text-ink-600'].join(' ')}
     >

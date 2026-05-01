@@ -138,7 +138,22 @@
     "confidenceTrend": "Confidence Trend",
     "communityScores": "Community Scores",
     "scoreDistribution": "Score Distribution",
-    "volatility": "Volatility"
+    "volatility": "Volatility",
+    "voteListLabel": "Your stance on this list",
+    "upvoteLabel": "Agree",
+    "downvoteLabel": "Doubt",
+    "close": "Close",
+    "dimensionScores": "Dimension Scores",
+    "overallScore": "Overall Score",
+    "loading": "Loading…",
+    "errorTitle": "Something went wrong",
+    "errorDesc": "Unable to load this list. Please try again later.",
+    "retry": "Retry",
+    "deepAccord": "Deep Accord",
+    "doubtful": "Doubtful",
+    "emerging": "Emerging",
+    "forming": "Forming",
+    "settled": "Settled"
   },
   "scoring": {
     "guide": "Measure with your heart",
@@ -157,7 +172,9 @@
       "consensus": "Consensus",
       "duration": "Duration",
       "seconds": "seconds",
-      "penaltyWarning": "Short scoring time may affect consensus"
+      "penaltyWarning": "Short scoring time may affect consensus",
+      "likeActive": "Like",
+      "likeHint": "Tap to express agreement"
     },
     "dimensionChoice": {
       "title": "Choose Dimensions",
@@ -246,7 +263,10 @@
     "emerging": "Emerging",
     "forming": "Forming",
     "settled": "Settled",
-    "deepAccord": "Deep Accord"
+    "deepAccord": "Deep Accord",
+    "confidenceTrend": "Confidence Trend",
+    "itemCount": "{count} items",
+    "ranking": "Ranking"
   },
   "microcopy": {
     "emptyImprint": "Nothing here yet, waiting for your heart",
@@ -263,7 +283,23 @@
     "searchEmptyDesc": "Try different keywords, perhaps in deeper waters"
   },
   "about": {
-    "title": "About Weiwuweixin"
+    "heroLabel": "ABOUT",
+    "sectionStoryNumber": "— 01",
+    "sectionAlgoNumber": "— 02",
+    "sectionTeamNumber": "— 03",
+    "storyTitle": "Our Story",
+    "storyText": "\"Weiwuweixin\" draws its name from the Buddhist concept of \"encircling things\" — all things can be encircled and measured, and the heart is the measuring rod. Every person's subjective impression carries independent value and should not be flattened by simple averaging. Weiwuweixin honors each rater's unique perspective, safeguarding diverse voices through multiple algorithms, allowing consensus to emerge naturally from difference. This is not the pursuit of objectivity — it's the poise of embracing subjectivity, leaving a credible imprint from every heart.",
+    "algoTitle": "Algorithms: The Math of Subjectivity",
+    "algoDesc": "We believe subjective judgment deserves rigor. Here are the scoring aggregation algorithms we use, each respecting your judgment from a different angle.",
+    "teamTitle": "Team & Copyright",
+    "teamDesc": "Weiwuweixin is an open-source project built solely by A Lu. He believes everyone's feelings deserve better tools for aggregation and consensus.",
+    "copyright": "© 2026 Weiwuweixin",
+    "license": "MIT License · v0.1.0",
+    "readMore": "Read more →",
+    "downloadPressKit": "Download Press Kit ↓",
+    "contactEmail": "zwk1319206608@163.com →",
+    "contactLabel": "CONTACT",
+    "algoSceneLabel": "Use Case"
   },
   "auth": {
     "loginTitle": "Welcome back",
@@ -275,7 +311,7 @@
     "emailInvalid": "Please enter a valid email",
     "nickname": "Nickname",
     "nicknamePlaceholder": "Your name",
-    "password": "Password",
+    "password": "***",
     "passwordPlaceholder": "At least 6 characters",
     "passwordTooShort": "Password must be at least 6 characters",
     "confirmPassword": "Confirm password",
@@ -294,7 +330,8 @@
     "logout": "Logout",
     "guest": "Guest",
     "loginSuccess": "Login successful, welcome back",
-    "registerSuccess": "Registration successful, welcome"
+    "registerSuccess": "Registration successful, welcome",
+    "operationFailed": "Operation failed, please try again"
   },
   "explore": {
     "title": "Explore",
@@ -333,7 +370,11 @@
     "cancel": "Cancel",
     "loadMore": "Load more",
     "empty": "No echoes yet in the mountains",
-    "sentimentFilter": "Sentiment filter"
+    "sentimentFilter": "Sentiment filter",
+    "filterAll": "All",
+    "filterPositive": "Positive",
+    "filterNegative": "Critical",
+    "submitReply": "Reply"
   },
   "profile": {
     "listsSection": "Lists",
@@ -422,8 +463,19 @@
     "saveBtn": "Save"
   },
   "footer": {
-    "copyright": "Weiwuweixin © 2024",
+    "copyright": "Weiwuweixin © 2026",
     "poweredBy": "Powered by Hermes Agent"
+  },
+  "leaderboard": {
+    "title": "Hotness Rank",
+    "subtitle": "Real-time community hotness, auto-refreshes every 30s",
+    "scores": "scores",
+    "comments": "comments",
+    "errorTitle": "Failed to load",
+    "errorDesc": "Please try again later",
+    "emptyTitle": "No lists yet",
+    "emptyDesc": "No public lists yet, go create one",
+    "footer": "WeiWuWeiXin · Hotness calculated from community activity in real time"
   },
   "nav": {
     "exploreCn": "Explore",

@@ -152,13 +152,21 @@ export const ConfidenceSeal = forwardRef<HTMLDivElement, ConfidenceSealProps>(
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 18 }}
         >
-          <span className="font-bold leading-none" style={{ fontSize: config.fontSize, color }}>
-            {percentage}
+          <span className="font-bold leading-none" style={{ fontSize: config.fontSize, color, transition: 'color 0.4s ease' }}>
+            <motion.span
+              key={percentage}
+              initial={{ opacity: 0.5, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              style={{ display: 'inline-block' }}
+            >
+              {percentage}
+            </motion.span>
             <span className="text-[0.6em] opacity-70">%</span>
           </span>
           <span
             className="text-[0.5em] mt-0.5 opacity-70 tracking-wider"
-            style={{ fontSize: config.fontSize, color: 'var(--color-text-secondary)' }}
+            style={{ fontSize: config.fontSize, color: 'var(--color-text-secondary)', transition: 'color 0.4s ease' }}
           >
             {displayLabel}
           </span>

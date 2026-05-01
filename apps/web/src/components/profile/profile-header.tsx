@@ -3,8 +3,8 @@
 import { motion, useMotionValue, useTransform, useSpring, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { useRef, useState, type MouseEvent } from 'react';
-import { useRouter } from 'next/navigation';
-import type { ProfileData } from '@/lib/mock-data';
+import { Link, useRouter } from '@/i18n/navigation';
+import type { ProfileData } from '@/lib/api';
 
 /* ============================================================
    ProfileHeader — 围物为心个人主页头部
@@ -47,8 +47,8 @@ export function ProfileHeader({ profile, isOwn = false, onTabChange }: ProfileHe
     mouseY.set((e.clientY - rect.top) / rect.height - 0.5);
   }
 
-  const earnedBadges = profile.badges.filter(b => b.earned).length;
-  const totalBadges = profile.badges.length;
+  const earnedBadges = (profile.badges ?? []).filter(b => b.earned).length;
+  const totalBadges = (profile.badges ?? []).length;
 
   return (
     <motion.section
@@ -81,7 +81,7 @@ export function ProfileHeader({ profile, isOwn = false, onTabChange }: ProfileHe
         />
         {/* Banner 编辑提示（自己的主页） */}
         {isOwn && (
-          <button
+          <button type="button"
             className="absolute top-md right-md p-sm rounded-full bg-black/20 hover:bg-black/40 text-white/60 hover:text-white transition-all focus:outline-none focus:ring-2 focus:ring-white/30"
             aria-label="更换封面"
           >
@@ -105,7 +105,7 @@ export function ProfileHeader({ profile, isOwn = false, onTabChange }: ProfileHe
           <div className="absolute -inset-1.5 rounded-full pointer-events-none"
             style={{ border: '2px solid var(--ink-200)', opacity: 0.2 }}
           />
-          <button
+          <button type="button"
             className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-vermilion/50 focus:ring-offset-2"
             style={{
               background: profile.avatarUrl ? undefined : 'var(--rice)',
@@ -164,10 +164,10 @@ export function ProfileHeader({ profile, isOwn = false, onTabChange }: ProfileHe
         {/* ─── 统计数字栏 ─── */}
         <motion.div className="flex items-center gap-xl mt-lg pb-lg border-b border-ink-100" variants={itemVariants}>
           <StatItem value={profile.stats.listCount} label="榜单" onClick={onTabChange ? () => onTabChange('lists') : undefined} />
-          <StatItem value={profile.stats.rapportCount} label="同好" onClick={onTabChange ? () => onTabChange('activity') : undefined} />
-          <StatItem value={profile.stats.bookmarkedCount} label="收藏" onClick={onTabChange ? () => onTabChange('lists') : undefined} />
+          <StatItem value={profile.stats.rapportCount ?? 0} label="同好" onClick={onTabChange ? () => onTabChange('activity') : undefined} />
+          <StatItem value={profile.stats.bookmarkedCount ?? 0} label="收藏" onClick={onTabChange ? () => onTabChange('lists') : undefined} />
           <div className="w-px h-8 bg-ink-100 hidden sm:block" />
-          <button
+          <button type="button"
             className="hidden sm:flex items-center gap-xs text-sm text-ink-400 hover:text-ink-600 transition-colors focus:outline-none"
             onClick={onTabChange ? () => onTabChange('badges') : undefined}
           >
@@ -190,7 +190,7 @@ function StatItem({ value, label, onClick }: { value: number; label: string; onC
       <span className="text-xs text-ink-400 mt-1">{label}</span>
     </div>
   );
-  return onClick ? <button onClick={onClick} className="focus:outline-none focus:ring-2 focus:ring-vermilion/30 rounded-lg p-1 -m-1">{el}</button> : el;
+  return onClick ? <button type="button" onClick={onClick} className="focus:outline-none focus:ring-2 focus:ring-vermilion/30 rounded-lg p-1 -m-1">{el}</button> : el;
 }
 
 /* ─── 关注按钮（状态切换 + Spring 动效） ─── */
@@ -292,7 +292,7 @@ function ShareButton() {
 
   return (
     <div className="relative">
-      <button
+      <button type="button"
         onClick={handleShare}
         className={[
           'p-sm rounded-lg transition-all duration-200 active:scale-[0.95]',
@@ -344,7 +344,7 @@ function MoreMenuButton() {
 
   return (
     <div className="relative">
-      <button
+      <button type="button"
         onClick={() => setOpen(!open)}
         className="p-sm text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo/20"
         aria-label={t('moreOptions')}
@@ -367,10 +367,10 @@ function MoreMenuButton() {
               exit={{ opacity: 0, scale: 0.95, y: -4 }}
               transition={{ duration: 0.15 }}
             >
-              <button className="w-full px-md py-sm text-sm text-white/70 hover:text-white hover:bg-white/10 text-left transition-colors" onClick={() => setOpen(false)}>
+              <button type="button" className="w-full px-md py-sm text-sm text-white/70 hover:text-white hover:bg-white/10 text-left transition-colors" onClick={() => setOpen(false)}>
                 {t('blockUser')}
               </button>
-              <button className="w-full px-md py-sm text-sm text-vermilion/80 hover:text-vermilion hover:bg-vermilion/10 text-left transition-colors" onClick={() => setOpen(false)}>
+              <button type="button" className="w-full px-md py-sm text-sm text-vermilion/80 hover:text-vermilion hover:bg-vermilion/10 text-left transition-colors" onClick={() => setOpen(false)}>
                 {t('reportUser')}
               </button>
             </motion.div>
@@ -388,7 +388,7 @@ function EditProfileButton() {
 
   return (
     <>
-      <button
+      <button type="button"
         onClick={() => setOpen(true)}
         className="px-lg py-sm text-sm font-medium border rounded-xl transition-all
           border-ink-200 text-ink-700 bg-paper hover:bg-ink-50 hover:border-ink-300
@@ -408,11 +408,9 @@ function EditProfileButton() {
 
 /* ─── 设置按钮 ─── */
 function SettingsButton() {
-  const router = useRouter();
-
   return (
-    <button
-      onClick={() => router.push('/settings')}
+    <Link
+      href="/settings"
       className="p-sm text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo/20"
       aria-label="设置"
     >
@@ -420,7 +418,7 @@ function SettingsButton() {
         <circle cx="10" cy="10" r="3" />
         <path d="M10 1v2M10 17v2M1 10h2M17 10h2M3.5 3.5l1.4 1.4M15.1 15.1l1.4 1.4M3.5 16.5l1.4-1.4M15.1 4.9l1.4-1.4" strokeLinecap="round" />
       </svg>
-    </button>
+    </Link>
   );
 }
 
@@ -464,7 +462,7 @@ function EditProfileDialog({ open, onClose }: { open: boolean; onClose: () => vo
         {/* 标题栏 */}
         <div className="flex items-center justify-between mb-lg">
           <h2 className="font-heading text-xl text-ink-900 tracking-wider">{t('editProfile')}</h2>
-          <button onClick={onClose} className="p-xs text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded-lg transition-colors focus:outline-none" aria-label={t('close')}>
+          <button type="button" onClick={onClose} className="p-xs text-ink-400 hover:text-ink-700 hover:bg-ink-50 rounded-lg transition-colors focus:outline-none" aria-label={t('close')}>
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M4 4l10 10M14 4L4 14" strokeLinecap="round" />
             </svg>
@@ -495,13 +493,13 @@ function EditProfileDialog({ open, onClose }: { open: boolean; onClose: () => vo
 
         {/* 操作按钮 */}
         <div className="flex items-center justify-end gap-sm">
-          <button
+          <button type="button"
             onClick={onClose}
             className="px-lg py-sm text-sm font-medium rounded-xl border border-ink-200 text-ink-600 hover:bg-ink-50 active:scale-[0.97] transition-all focus:outline-none"
           >
             {t('cancel')}
           </button>
-          <button
+          <button type="button"
             onClick={handleSave} disabled={saving}
             className={[
               'px-lg py-sm text-sm font-medium rounded-xl transition-all active:scale-[0.97] focus:outline-none',

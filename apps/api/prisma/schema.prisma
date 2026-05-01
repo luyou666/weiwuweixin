@@ -46,6 +46,7 @@ model User {
   receivedRapports Rapport[]      @relation("ReceivedRapports")
   comments         Comment[]
   badges           Badge[]
+  listVotes        ListVote[]
   account          Account?
   refreshTokens    RefreshToken[]
 
@@ -109,12 +110,17 @@ model List {
   authorId String
   author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
+  // 榜单级点赞/点踩计数
+  upvoteCount   Int        @default(0)
+  downvoteCount Int        @default(0)
+
   // relations
   dimensions      Dimension[]
   items           Item[]
   authorScores    AuthorScore[]
   communityScores CommunityScore[]
   comments        Comment[]
+  listVotes       ListVote[]
 
   @@index([authorId])
   @@index([visibility])
@@ -286,5 +292,32 @@ model Badge {
   earnedAt DateTime @default(now())
 
   @@unique([userId, code])
+  @@index([userId])
+}
+
+// ============================================================
+//  榜单投票（点赞/点踩，影响置信度）
+// ============================================================
+
+model ListVote {
+  id String @id @default(cuid())
+
+  /// 投票方向: up=点赞, down=点踩
+  direction String
+
+  /// 投票者指纹（匿名场景用设备ID）
+  voterFingerprint String @default("")
+
+  // foreign keys
+  listId String
+  list   List   @relation(fields: [listId], references: [id], onDelete: Cascade)
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([listId, voterFingerprint])
+  @@index([listId])
   @@index([userId])
 }

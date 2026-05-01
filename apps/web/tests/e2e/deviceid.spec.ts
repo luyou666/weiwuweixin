@@ -19,7 +19,7 @@ test('manually trigger deviceId', async ({ page }) => {
       isUUID: /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id),
       allLS: Object.fromEntries(
         Array.from({length: localStorage.length}, (_, i) => {
-          const key = localStorage.key(i);
+          const key = localStorage.key(i) ?? '';
           return [key, localStorage.getItem(key)];
         })
       ),

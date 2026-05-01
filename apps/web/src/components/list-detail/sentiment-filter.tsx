@@ -90,7 +90,7 @@ export function SentimentFilter({
         const count = counts[option === 'all' ? 'all' : option in counts ? option : 'all'] ?? 0;
 
         return (
-          <button
+          <button type="button"
             key={option}
             onClick={() => onChange(option)}
             className="relative px-3 py-1.5 rounded-[var(--radius-md, 8px)] text-sm font-medium transition-all duration-200"

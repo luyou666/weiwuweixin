@@ -37,22 +37,54 @@ const NEGATIVE = [...NEGATIVE_ZH, ...NEGATIVE_EN];
 export function analyzeSentiment(text: string): number {
   if (!text || typeof text !== 'string') return 0;
 
-  // 转小写，将中英文标点视为分隔符
-  const normalized = text.toLowerCase().replace(/[^\w\u4e00-\u9fff]/g, ' ');
-  const tokens = normalized.split(/\s+/).filter(Boolean);
+  // 转小写
+  const normalized = text.toLowerCase();
 
-  if (tokens.length === 0) return 0;
+  // ── 英文分词 (空格分隔) ──
+  const hasEnglish = /[a-zA-Z]/.test(normalized);
+  let tokens: string[] = [];
+
+  if (hasEnglish) {
+    // 英文用空格分词
+    const noPunct = normalized.replace(/[^\w\s\u4e00-\u9fff]/g, ' ');
+    tokens = noPunct.split(/\s+/).filter(Boolean);
+  }
+
+  // ── 中文：逐词扫描匹配 ──
+  // 对每个词典词，检查是否在文本中出现
+  const allPos = hasEnglish ? POSITIVE : [...POSITIVE_ZH];
+  const allNeg = hasEnglish ? NEGATIVE : [...NEGATIVE_ZH];
 
   let score = 0;
+  let matchCount = 0;
 
+  // 英文token匹配
   for (const token of tokens) {
-    if (POSITIVE.includes(token)) {
-      score += 1;
-    } else if (NEGATIVE.includes(token)) {
-      score -= 1;
+    if (allPos.includes(token.toLowerCase())) { score += 1; matchCount++; }
+    else if (allNeg.includes(token.toLowerCase())) { score -= 1; matchCount++; }
+  }
+
+  // 中文：对每个中文词典词做子串匹配
+  // 使用中文特有词典（POSITIVE_ZH / NEGATIVE_ZH）
+  for (const word of POSITIVE_ZH) {
+    if (normalized.includes(word)) { score += 1; matchCount++; }
+  }
+  for (const word of NEGATIVE_ZH) {
+    if (normalized.includes(word)) { score -= 1; matchCount++; }
+  }
+
+  // 英文词典补充（如果没被中文覆盖）
+  if (hasEnglish) {
+    for (const word of POSITIVE_EN) {
+      if (normalized.includes(word)) { score += 1; matchCount++; }
+    }
+    for (const word of NEGATIVE_EN) {
+      if (normalized.includes(word)) { score -= 1; matchCount++; }
     }
   }
 
+  if (matchCount === 0) return 0;
+
   // tanh 压缩到 (-1, +1)
-  return Math.tanh(score / tokens.length * 3);
+  return Math.tanh(score / matchCount * 3);
 }

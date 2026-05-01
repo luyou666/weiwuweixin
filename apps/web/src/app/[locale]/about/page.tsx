@@ -2,67 +2,195 @@
 
 /**
  * 围物为心 — About 页 /about
- * 产品故事 · 五种算法介绍（KaTeX 公式）· 团队与版权
- * 复用 Card / Sticker，纸面卡片 + 宣纸纹理
+ * Monopo London Press 风格 v2 — 7层高级动画系统
+ * 
+ * 动画层:
+ *   1. CharReveal — 巨型标题逐字揭示 (staggerChildren + 3D rotateX)
+ *   2. Mouse Parallax — Hero 标题微弱鼠标跟随视差
+ *   3. Scroll-Driven — useScroll/useTransform 连续滚动驱动
+ *   4. Card 3D Tilt — perspective + 鼠标 rotateX/Y (monopo PressSeries 模式)
+ *   5. AnimatedCounter — 算法编号递增动画
+ *   6. Spring Micro — 卡片 hover + 链接弹簧反馈
+ *   7. Grain Animation — 噪点漂移 + 底部渐变
  */
-import React, { useMemo } from 'react';
-import { useTranslations } from 'next-intl';
-import { motion } from 'framer-motion';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
+import {
+  motion,
+  useInView,
+  useScroll,
+  useTransform,
+  useSpring,
+  useMotionValue,
+  AnimatePresence,
+} from 'framer-motion';
 import katex from 'katex';
-import { Card } from '@weiwuweixin/ui';
-import { Sticker } from '@weiwuweixin/ui';
 import { getAllEngines } from '@weiwuweixin/scoring';
 
-/* ── 动画变体 ── */
-const fadeInUp = {
-  hidden: { opacity: 0, y: 24 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: 'spring' as const,
-      stiffness: 180,
-      damping: 20,
-      delay: i * 0.08,
-    },
-  }),
-};
+/* ═══════════════════════════════════════════════════════
+   🎬 缓动常量 — Monopo DNA (来自 monopo.london CSS 提取)
+   ═══════════════════════════════════════════════════════ */
+const monopoEase = [0.165, 0.84, 0.44, 1] as const;        // 主力: 93% 使用率
+const EASE_CURTAIN = [0.76, 0, 0.24, 1] as const;           // 幕布揭幕
+const EASE_EXPO = [0.77, 0, 0.175, 1] as const;             // 导航/展开
+const EASE_FAST_EXIT = [0.895, 0.03, 0.685, 0.22] as const; // 快速离场
 
-/* ── KaTeX 行内公式渲染 ── */
-function KaTeXFormula({ tex, displayMode = true }: { tex: string; displayMode?: boolean }) {
-  const html = useMemo(() => {
-    try {
-      return katex.renderToString(tex, {
-        displayMode,
-        throwOnError: false,
-        strict: false,
-      });
-    } catch {
-      return tex;
-    }
-  }, [tex, displayMode]);
+/* ═══════════════════════════════════════════════════════
+   🔤 Layer 1: CharReveal — 逐字揭示 (3D rotateX)
+   ═══════════════════════════════════════════════════════ */
+function CharReveal({
+  text,
+  className,
+  delay = 0,
+  staggerDelay = 0.03,
+  rotateX = 40,
+}: {
+  text: string;
+  className?: string;
+  delay?: number;
+  staggerDelay?: number;
+  rotateX?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: '-80px' });
+  const chars = text.split('');
 
   return (
-    <span
-      className="katex-wrapper"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div ref={ref} className={`flex flex-wrap ${className || ''}`} aria-label={text}>
+      {chars.map((char, i) => (
+        <motion.span
+          key={`${char}-${i}`}
+          initial={{ y: '120%', opacity: 0, rotateX }}
+          animate={isInView ? { y: '0%', opacity: 1, rotateX: 0 } : {}}
+          transition={{
+            duration: 0.8,
+            ease: monopoEase,
+            delay: delay + i * staggerDelay,
+          }}
+          className="inline-block"
+          style={{ transformOrigin: 'bottom center' }}
+        >
+          {char === ' ' ? '\u00A0' : char}
+        </motion.span>
+      ))}
+    </div>
   );
 }
 
 /* ═══════════════════════════════════════════════════════
-   About 页面
+   🖱️ Layer 2: Mouse Parallax — Hero 鼠标跟随
+   ═══════════════════════════════════════════════════════ */
+function useMouseParallax(intensity = 16) {
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const springX = useSpring(mx, { stiffness: 60, damping: 20, mass: 0.5 });
+  const springY = useSpring(my, { stiffness: 60, damping: 20, mass: 0.5 });
+  const x = useTransform(springX, [-0.5, 0.5], [-intensity, intensity]);
+  const y = useTransform(springY, [-0.5, 0.5], [-intensity, intensity]);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    mx.set((e.clientX - rect.left) / rect.width - 0.5);
+    my.set((e.clientY - rect.top) / rect.height - 0.5);
+  };
+  const handleMouseLeave = () => { mx.set(0); my.set(0); };
+
+  return { x, y, handleMouseMove, handleMouseLeave };
+}
+
+/* ═══════════════════════════════════════════════════════
+   🎴 Layer 4: Card 3D Tilt — perspective + rotateX/Y
+   ═══════════════════════════════════════════════════════ */
+function Card3DTilt({ children, className }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const rx = useMotionValue(0);
+  const ry = useMotionValue(0);
+  const springRx = useSpring(rx, { stiffness: 180, damping: 18 });
+  const springRy = useSpring(ry, { stiffness: 180, damping: 18 });
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const rect = ref.current?.getBoundingClientRect();
+    if (!rect) return;
+    const cx = (e.clientX - rect.left) / rect.width - 0.5;
+    const cy = (e.clientY - rect.top) / rect.height - 0.5;
+    ry.set(cx * 4);
+    rx.set(-cy * 4);
+  };
+  const handleMouseLeave = () => { rx.set(0); ry.set(0); };
+
+  return (
+    <motion.div
+      ref={ref}
+      className={className}
+      style={{ perspective: 800, transformStyle: 'preserve-3d' } as React.CSSProperties}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
+      <motion.div
+        style={{ rotateX: springRx, rotateY: springRy, transformStyle: 'preserve-3d' as React.CSSProperties }}
+      >
+        {children}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   🔢 Layer 5: AnimatedCounter — 数字递增
+   ═══════════════════════════════════════════════════════ */
+function AnimatedCounter({
+  target,
+  delay = 0,
+  duration = 1.5,
+}: {
+  target: number;
+  delay?: number;
+  duration?: number;
+}) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, { once: true, margin: '-50px' });
+
+  useEffect(() => {
+    if (!isInView) return;
+    let startTime: number;
+    let raf: number;
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const elapsed = timestamp - startTime - delay * 1000;
+      if (elapsed < 0) { raf = requestAnimationFrame(animate); return; }
+      const progress = Math.min(elapsed / (duration * 1000), 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.round(eased * target));
+      if (progress < 1) raf = requestAnimationFrame(animate);
+    };
+    raf = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(raf);
+  }, [isInView, target, duration, delay]);
+
+  return <span ref={ref}>{String(count).padStart(2, '0')}</span>;
+}
+
+/* ═══════════════════════════════════════════════════════
+   📐 KaTeX 公式渲染
+   ═══════════════════════════════════════════════════════ */
+function KaTeXFormula({ tex, displayMode = true }: { tex: string; displayMode?: boolean }) {
+  const html = useMemo(() => {
+    try { return katex.renderToString(tex, { displayMode, throwOnError: false, strict: false }); }
+    catch { return tex; }
+  }, [tex, displayMode]);
+  return <span className="katex-wrapper" dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
+/* ═══════════════════════════════════════════════════════
+   📄 About Page — Monopo Press v2 · 7-Layer Animation System
    ═══════════════════════════════════════════════════════ */
 export default function AboutPage() {
   const t = useTranslations('about');
-  const locale = typeof window !== 'undefined'
-    ? (window.location.pathname.startsWith('/en') ? 'en' : 'zh')
-    : 'zh';
+  const locale = useLocale();
 
-  /* 从 scoring 引擎 take describe() */
   const engines = useMemo(() => getAllEngines(), []);
 
-  /* 算法元信息 — KaTeX 公式与 describe() 描述 */
   const algorithms = useMemo(() => {
     const formulaMap: Record<string, string> = {
       'weighted-mean': '\\text{Score} = \\frac{\\sum_{i} w_i \\cdot D_i}{\\sum_{i} w_i}',
@@ -71,7 +199,6 @@ export default function AboutPage() {
       'topsis': 'C_i = \\frac{d_i^-}{d_i^+ + d_i^-}',
       'bayesian-shrinkage': '\\hat{S} = \\frac{n}{n+m}\\bar{S} + \\frac{m}{n+m}\\mu',
     };
-
     const nameMap: Record<string, { zh: string; en: string }> = {
       'weighted-mean': { zh: '加权平均', en: 'Weighted Mean' },
       'geometric-mean': { zh: '几何平均', en: 'Geometric Mean' },
@@ -79,7 +206,6 @@ export default function AboutPage() {
       'topsis': { zh: 'TOPSIS 理想解', en: 'TOPSIS Ideal Solution' },
       'bayesian-shrinkage': { zh: '贝叶斯收缩', en: 'Bayesian Shrinkage' },
     };
-
     const sceneMap: Record<string, { zh: string; en: string }> = {
       'weighted-mean': { zh: '适合各维度独立贡献、互不牵制的场景', en: 'Best for independent dimension contributions' },
       'geometric-mean': { zh: '适合需要惩罚短板、强调均衡的场景', en: 'Best for penalizing weaknesses and emphasizing balance' },
@@ -87,133 +213,399 @@ export default function AboutPage() {
       'topsis': { zh: '适合多维度综合比较、需要兼顾全局优化的场景', en: 'Best for multi-criteria global optimization' },
       'bayesian-shrinkage': { zh: '适合评分人数不一、需要公平比较的场景', en: 'Best for fair comparison with varying sample sizes' },
     };
-
-    return engines.map((engine, i) => ({
+    return engines.map((engine) => ({
       id: engine.id,
       name: nameMap[engine.id]?.[locale === 'en' ? 'en' : 'zh'] ?? engine.name,
       desc: engine.describe(locale === 'en' ? 'en' : 'zh'),
       formula: formulaMap[engine.id] ?? '',
       scene: sceneMap[engine.id]?.[locale === 'en' ? 'en' : 'zh'] ?? '',
-      accent: (['vermilion', 'celadon', 'apricot', 'indigo', 'vermilion'] as const)[i],
     }));
   }, [engines, locale]);
 
-  return (
-    <main className="min-h-screen paper-texture">
-      {/* ═══ 产品故事 ═══ */}
-      <section className="max-w-3xl mx-auto px-lg py-3xl">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 160, damping: 18 }}
-        >
-          <Card interactive={false} size="lg" className="mb-xl">
-            <div className="flex items-center gap-md mb-lg">
-              <Sticker size="md" folded={true} rotatable={false}>
-                <span className="font-heading text-2xl text-[var(--vermilion)]">心</span>
-              </Sticker>
-              <h1 className="font-heading text-2xl md:text-3xl text-ink-900">
-                {locale === 'en' ? 'Our Story' : '产品故事'}
-              </h1>
-            </div>
+  /* ── 页面上层 scroll progress 驱动 ── */
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start start', 'end end'] });
 
-            <p className="font-body text-base md:text-lg text-ink-700 leading-relaxed mb-lg">
-              「围物为心」四字取自佛学「围物」之义——万物皆可围而量度，而心是丈量的尺度。
-              每个人对事物的主观感受都有独立价值，不应被简单平均抹平。围物为心尊重每位评分者的独特视角，
-              以多元算法守护不同声音，让共识从差异中自然浮现。这不是追求客观，
-              而是拥抱主观的从容——让每一颗心都留下可信的印记。
-            </p>
-          </Card>
+  /* Layer 2: Hero 鼠标视差 */
+  const heroParallax = useMouseParallax(20);
+
+  /* Layer 7: grain overlay scroll-driven opacity */
+  const grainOpacity = useTransform(scrollYProgress, [0, 0.3, 0.8, 1], [0.35, 0.55, 0.55, 0.25]);
+  const springGrainOpacity = useSpring(grainOpacity, { stiffness: 40, damping: 20 });
+
+  return (
+    <main
+      ref={containerRef}
+      className="min-h-screen relative overflow-hidden"
+      style={{ backgroundColor: '#0A0A14', color: '#F5F0E8' }}
+    >
+      {/* ═══════════════════════════════════════════════════════
+         Layer 7: Grain Texture — 噪点 + scroll-driven opacity
+         ═══════════════════════════════════════════════════════ */}
+      <motion.div
+        className="fixed inset-0 pointer-events-none z-0 grain-shift"
+        style={{
+          opacity: springGrainOpacity,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")`,
+        }}
+      />
+
+      {/* ═══════════════════════════════════════════════════════
+         HERO — Layer 1 + 2: CharReveal + Mouse Parallax
+         ═══════════════════════════════════════════════════════ */}
+      <section className="relative z-10 px-[6vw] pt-[16vh] pb-[8vh] md:pt-[24vh] md:pb-[12vh]">
+        {/* Number label */}
+        <motion.div
+          className="flex items-baseline gap-4 mb-8"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: monopoEase, delay: 0.2 }}
+        >
+          <span
+            className="font-mono text-[10px] tracking-[0.35em] uppercase"
+            style={{ color: 'rgba(245,240,232,0.3)' }}
+          >
+            {t('sectionStoryNumber')}
+          </span>
+          <span className="w-16 h-[1px]" style={{ backgroundColor: 'rgba(245,240,232,0.15)' }} />
+          <span
+            className="font-mono text-[10px] tracking-[0.3em] uppercase"
+            style={{ color: 'rgba(245,240,232,0.5)' }}
+          >
+            {t('heroLabel')}
+          </span>
         </motion.div>
+
+        {/* Layer 1: CharReveal H1 + Layer 2: Mouse Parallax */}
+        <motion.div
+          className="mb-6"
+          onMouseMove={heroParallax.handleMouseMove}
+          onMouseLeave={heroParallax.handleMouseLeave}
+        >
+          <motion.div style={{ x: heroParallax.x, y: heroParallax.y }}>
+            <div
+              className="flex flex-wrap"
+              style={{
+                fontFamily: 'var(--font-heading)',
+                fontSize: 'clamp(52px, 10vw, 140px)',
+                fontWeight: 400,
+                color: '#F5F0E8',
+                lineHeight: 0.92,
+                letterSpacing: '-0.04em',
+              }}
+            >
+              <CharReveal
+                text={t('storyTitle')}
+                staggerDelay={0.04}
+                delay={0.4}
+                rotateX={30}
+              />
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Description — fade in */}
+        <motion.p
+          className="font-body text-base md:text-lg leading-relaxed max-w-2xl"
+          style={{ color: 'rgba(245,240,232,0.55)' }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: monopoEase, delay: 1.2 }}
+        >
+          {t('storyText')}
+        </motion.p>
       </section>
 
-      {/* ═══ 五种算法 ═══ */}
-      <section className="max-w-4xl mx-auto px-lg pb-3xl">
-        <motion.h2
-          className="font-heading text-2xl md:text-3xl text-ink-900 mb-xl text-center"
-          initial={{ opacity: 0, y: 16 }}
+      {/* ═══════════════════════════════════════════════════════
+         ALGORITHMS — Layer 3/4/5/6: Scroll + 3D Tilt + Counter + Spring
+         ═══════════════════════════════════════════════════════ */}
+      <section className="relative z-10 px-[6vw] pb-[16vh]">
+        {/* Section header */}
+        <motion.div
+          className="flex items-baseline gap-4 mb-4"
+          initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-50px' }}
-          transition={{ type: 'spring', stiffness: 180, damping: 20 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.8, ease: monopoEase }}
         >
-          {t('algoTitle')}
-        </motion.h2>
+          <span
+            className="font-mono text-[10px] tracking-[0.35em] uppercase"
+            style={{ color: 'rgba(245,240,232,0.3)' }}
+          >
+            {t('sectionAlgoNumber')}
+          </span>
+          <span className="w-16 h-[1px]" style={{ backgroundColor: 'rgba(245,240,232,0.15)' }} />
+          <span
+            className="font-mono text-[10px] tracking-[0.3em] uppercase"
+            style={{ color: 'rgba(245,240,232,0.5)' }}
+          >
+            ALGORITHMS
+          </span>
+        </motion.div>
+
+        {/* Layer 1: CharReveal H2 */}
+        <div
+          className="mb-3 max-w-2xl"
+          style={{
+            fontFamily: 'var(--font-heading)',
+            fontSize: 'clamp(32px, 6vw, 72px)',
+            fontWeight: 400,
+            color: '#F5F0E8',
+            lineHeight: 0.95,
+            letterSpacing: '-0.03em',
+          }}
+        >
+          <CharReveal
+            text={t('algoTitle')}
+            staggerDelay={0.03}
+            delay={0.1}
+            rotateX={25}
+          />
+        </div>
 
         <motion.p
-          className="font-body text-base text-ink-500 text-center max-w-2xl mx-auto mb-2xl leading-relaxed"
+          className="font-body text-sm md:text-base leading-relaxed max-w-xl mb-10"
+          style={{ color: 'rgba(245,240,232,0.4)' }}
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.1 }}
+          transition={{ duration: 0.6, ease: monopoEase, delay: 0.3 }}
         >
           {t('algoDesc')}
         </motion.p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
-          {algorithms.map((algo, i) => (
-            <motion.div
-              key={algo.id}
-              custom={i}
-              variants={fadeInUp}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: '-30px' }}
-            >
-              <Card interactive={false} size="md" className="h-full flex flex-col">
-                {/* 算法名 */}
-                <h3 className="font-heading text-lg text-ink-900 mb-sm">
-                  {algo.name}
-                </h3>
+        {/* Layer 3 + 4: Scroll-driven + 3D Tilt card grid */}
+        <div className="grid grid-cols-12 gap-4 md:gap-6">
+          {algorithms.map((algo, i) => {
+            const layouts = [
+              'col-span-12 md:col-span-7 md:col-start-1',
+              'col-span-12 md:col-span-5 md:col-start-8 md:mt-[8vh]',
+              'col-span-12 md:col-span-6 md:col-start-1',
+              'col-span-12 md:col-span-6 md:col-start-6 md:mt-[-4vh]',
+              'col-span-12 md:col-span-8 md:col-start-3 md:mt-[6vh]',
+            ];
 
-                {/* 场景 */}
-                <p className="font-body text-sm text-ink-500 leading-relaxed mb-md">
-                  💡 {algo.scene}
-                </p>
+            return (
+              <motion.div
+                key={algo.id}
+                className={layouts[i]}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-60px' }}
+                transition={{ duration: 0.7, ease: monopoEase, delay: i * 0.1 }}
+              >
+                {/* Layer 4: 3D Tilt wrapper */}
+                <Card3DTilt>
+                  {/* Layer 6: Spring hover scale */}
+                  <motion.div
+                    className="p-6 md:p-8 h-full flex flex-col cursor-default"
+                    style={{
+                      backgroundColor: '#1A1A24',
+                      borderRadius: 0,
+                      border: 'none',
+                      boxShadow: 'none',
+                    }}
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  >
+                    {/* Layer 5: Animated counter */}
+                    <span
+                      className="font-mono text-[22px] font-light mb-4 block"
+                      style={{ color: 'rgba(245,240,232,0.08)' }}
+                    >
+                      <AnimatedCounter target={i + 1} delay={i * 0.1} duration={1.2} />
+                    </span>
 
-                {/* KaTeX 公式 */}
-                <div className="mt-auto pt-sm border-t border-[var(--color-border)]">
-                  <div className="bg-[var(--color-bg-secondary)] rounded-[var(--radius-md)] px-md py-sm overflow-x-auto">
-                    <KaTeXFormula tex={algo.formula} displayMode={true} />
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-          ))}
+                    <h3
+                      className="font-heading text-xl md:text-2xl mb-2"
+                      style={{ color: '#F5F0E8', fontWeight: 400 }}
+                    >
+                      {algo.name}
+                    </h3>
+
+                    <p
+                      className="font-body text-sm leading-relaxed mb-auto"
+                      style={{ color: 'rgba(245,240,232,0.35)' }}
+                    >
+                      <span
+                        className="font-mono text-[10px] tracking-[0.25em] uppercase mr-2"
+                        style={{ color: 'rgba(245,240,232,0.2)' }}
+                      >
+                        {t('algoSceneLabel')}
+                      </span>
+                      {algo.scene}
+                    </p>
+
+                    <div
+                      className="mt-4 p-4 overflow-x-auto"
+                      style={{ backgroundColor: '#0A0A14' }}
+                    >
+                      <KaTeXFormula tex={algo.formula} displayMode={true} />
+                    </div>
+                  </motion.div>
+                </Card3DTilt>
+              </motion.div>
+            );
+          })}
         </div>
-
-        {/* 第五个算法可能不满一行，单独居中 */}
       </section>
 
-      {/* ═══ 团队与版权 ═══ */}
-      <section className="max-w-3xl mx-auto px-lg pb-3xl">
+      {/* ═══════════════════════════════════════════════════════
+         TEAM & CONTACT — Layer 3 + 6: Scroll parallax + Spring hover
+         ═══════════════════════════════════════════════════════ */}
+      <section className="relative z-10 px-[6vw] pb-[12vh]">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          className="flex items-baseline gap-4 mb-4"
+          initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-50px' }}
-          transition={{ type: 'spring', stiffness: 180, damping: 20 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.8, ease: monopoEase }}
         >
-          <Card interactive={false} size="lg" className="text-center">
-            <Sticker size="md" folded={true} rotatable={false} className="mx-auto mb-lg">
-              <span className="font-heading text-2xl text-[var(--vermilion)]">心</span>
-            </Sticker>
+          <span
+            className="font-mono text-[10px] tracking-[0.35em] uppercase"
+            style={{ color: 'rgba(245,240,232,0.3)' }}
+          >
+            {t('sectionTeamNumber')}
+          </span>
+          <span className="w-16 h-[1px]" style={{ backgroundColor: 'rgba(245,240,232,0.15)' }} />
+          <span
+            className="font-mono text-[10px] tracking-[0.3em] uppercase"
+            style={{ color: 'rgba(245,240,232,0.5)' }}
+          >
+            TEAM
+          </span>
+        </motion.div>
 
-            <h2 className="font-heading text-2xl text-ink-900 mb-md">
-              {locale === 'en' ? 'Team & Copyright' : '团队与版权'}
+        <div className="grid grid-cols-12 gap-6 md:gap-10">
+          {/* Left: Team — Layer 3 scroll parallax */}
+          <ScrollParallaxSection speed={0.15} className="col-span-12 md:col-span-7">
+            <h2
+              className="font-heading leading-[0.95] tracking-[-0.03em] mb-4"
+              style={{
+                fontSize: 'clamp(28px, 5vw, 60px)',
+                fontWeight: 400,
+                color: '#F5F0E8',
+              }}
+            >
+              {t('teamTitle')}
             </h2>
+            <p
+              className="font-body text-sm md:text-base leading-relaxed max-w-xl mb-6"
+              style={{ color: 'rgba(245,240,232,0.45)' }}
+            >
+              {t('teamDesc')}
+            </p>
+            <div
+              className="font-mono text-[11px] tracking-[0.2em] space-y-1"
+              style={{ color: 'rgba(245,240,232,0.25)' }}
+            >
+              <p>{t('copyright')}</p>
+              <p>{t('license')}</p>
+            </div>
+          </ScrollParallaxSection>
 
-            <p className="font-body text-base text-ink-500 leading-relaxed mb-lg">
-              {locale === 'en'
-                ? 'WeiWuWeiXin is an open-source project built with love. We believe subjective experiences deserve better tools for aggregation and consensus.'
-                : '围物为心是一个开源项目，由一群热爱主观体验度量的人共同打造。我们相信，每个人的感受都值得更好的工具来聚合与共识。'}
+          {/* Right: Contact — Layer 6 spring links */}
+          <motion.div
+            className="col-span-12 md:col-span-4 md:col-start-9 md:mt-[4vh]"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.7, ease: monopoEase, delay: 0.2 }}
+          >
+            <p
+              className="font-mono text-[10px] tracking-[0.35em] uppercase mb-6"
+              style={{ color: 'rgba(245,240,232,0.3)' }}
+            >
+              {t('contactLabel')}
             </p>
 
-            <div className="text-sm text-ink-300 space-y-xs">
-              <p>© 2024 围物为心 WeiWuWeiXin</p>
-              <p>MIT License · v0.1.0</p>
+            <div className="space-y-6">
+              {/* Email — underline expand on hover (monopo pattern) */}
+              <motion.a
+                href="mailto:zwk1319206608@163.com"
+                className="block relative font-body text-base md:text-lg py-2 group overflow-hidden"
+                style={{ color: 'rgba(245,240,232,0.6)', fontFamily: 'var(--font-body)' }}
+                whileHover={{ color: '#F5F0E8' }}
+                transition={{ duration: 0.5, ease: monopoEase }}
+              >
+                <span className="relative inline-block">
+                  {t('contactEmail')}
+                  <motion.span
+                    className="absolute bottom-0 left-0 h-[1px]"
+                    style={{ backgroundColor: '#E2553F' }}
+                    initial={{ width: 0 }}
+                    whileHover={{ width: '100%' }}
+                    transition={{ duration: 0.5, ease: monopoEase }}
+                  />
+                </span>
+              </motion.a>
+
+              {/* Press Kit — arrow slide on hover */}
+              <motion.a
+                href="#"
+                className="block font-body text-base md:text-lg py-2 group"
+                style={{ color: 'rgba(245,240,232,0.6)', fontFamily: 'var(--font-body)' }}
+                onClick={(e) => e.preventDefault()}
+                whileHover={{ color: '#F5F0E8' }}
+                transition={{ duration: 0.5, ease: monopoEase }}
+              >
+                <motion.span
+                  className="inline-block"
+                  whileHover={{ x: 6 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                >
+                  {t('downloadPressKit')}
+                </motion.span>
+              </motion.a>
+
+              {/* Decorative vermilion line */}
+              <motion.div
+                className="h-[1px] mt-6"
+                style={{ backgroundColor: 'rgba(226,85,63,0.2)' }}
+                initial={{ scaleX: 0, originX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1.2, ease: monopoEase, delay: 0.6 }}
+              />
             </div>
-          </Card>
-        </motion.div>
+          </motion.div>
+        </div>
       </section>
+
+      {/* ═══════════════════════════════════════════════════════
+         Layer 7: Bottom fade gradient (scroll-driven opacity)
+         ═══════════════════════════════════════════════════════ */}
+      <motion.div
+        className="fixed bottom-0 left-0 right-0 h-[20vh] pointer-events-none z-0"
+        style={{
+          background: 'linear-gradient(to top, #0A0A14 0%, transparent 100%)',
+          opacity: useTransform(scrollYProgress, [0.85, 1], [0, 1]),
+        }}
+      />
     </main>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   🔧 Layer 3 helper: Scroll Parallax Section
+   ═══════════════════════════════════════════════════════ */
+function ScrollParallaxSection({
+  children,
+  speed = 0.15,
+  className,
+}: {
+  children: React.ReactNode;
+  speed?: number;
+  className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const y = useTransform(scrollYProgress, [0, 1], [`${-speed * 100}%`, `${speed * 100}%`]);
+  const springY = useSpring(y, { stiffness: 50, damping: 25 });
+
+  return (
+    <motion.div ref={ref} style={{ y: springY }} className={className}>
+      {children}
+    </motion.div>
   );
 }

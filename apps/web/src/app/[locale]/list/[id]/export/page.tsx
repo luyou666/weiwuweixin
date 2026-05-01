@@ -10,12 +10,12 @@ import { useParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button, Card } from '@weiwuweixin/ui';
+import { Button, Card, ShareCard } from '@weiwuweixin/ui';
 import type { CardTemplateId, CardOrientation } from '@weiwuweixin/ui';
 import { getTemplateList } from '@weiwuweixin/ui';
-// Dynamic import for client-only modules (satori + @resvg/resvg-js have native binaries)
 import { StampAnimation } from '@/components/stamp-animation';
-import { MOCK_FEED_LISTS } from '@/lib/mock-data';
+import { fetchListById } from '@/lib/api';
+import type { ListDetail } from '@/lib/api';
 
 /* ---------- 模板预览缩略图颜色 ---------- */
 
@@ -36,10 +36,49 @@ export default function ExportPage() {
   const t = useTranslations('export');
   const listId = params.id as string;
 
-  // 从 mock 数据获取榜单信息（实际项目走 API）
-  const listData = useMemo(() => {
-    return MOCK_FEED_LISTS.find((l) => l.id === listId) ?? MOCK_FEED_LISTS[0];
+  // 从 API 获取榜单详情
+  const [listData, setListData] = React.useState<ListDetail | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    fetchListById(listId)
+      .then(setListData)
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
   }, [listId]);
+
+  // 构造 ShareCardData — 从 API 数据提取
+  const cardData = useMemo(() => {
+    const fallback = { title: '榜单', subtitle: '', entries: [], author: { nickname: '' }, listUrl: `https://weiwuweixin.app/list/${listId}`, watermark: '心' };
+    if (!listData) return fallback;
+
+    const entries = listData.items.slice(0, 5).map((item, i) => {
+      // 计算每个条目的综合分
+      const weightSum = listData.dimensions.reduce((s, d) => s + d.weight, 0) || 1;
+      let total = 0;
+      for (const dim of listData.dimensions) {
+        const score = item.authorScores.find(s => s.dimensionId === dim.id);
+        total += (score?.value ?? 0) * dim.weight;
+      }
+      const overallScore = Math.round((total / weightSum) * 10) / 10;
+
+      return {
+        rank: item.rank || i + 1,
+        name: item.name,
+        score: String(overallScore),
+        note: item.note ?? '',
+      };
+    });
+
+    return {
+      title: listData.title,
+      subtitle: listData.subtitle,
+      entries,
+      author: { nickname: listData.author.nickname },
+      listUrl: `https://weiwuweixin.app/list/${listId}`,
+      watermark: '心',
+    };
+  }, [listData, listId]);
 
   const templates = useMemo(() => getTemplateList(), []);
 
@@ -50,31 +89,20 @@ export default function ExportPage() {
   const [showStamp, setShowStamp] = useState(false);
   const [previewMode, setPreviewMode] = useState<'portrait' | 'landscape'>('portrait');
   const previewRef = useRef<HTMLDivElement>(null);
-
-  // 构造 ShareCardData
-  const cardData = useMemo(() => ({
-    title: listData.title,
-    subtitle: listData.subtitle,
-    entries: [
-      { rank: 1, name: '绝佳之选', score: '9.2', note: '年度之最' },
-      { rank: 2, name: '上品佳作', score: '8.8', note: '品质出众' },
-      { rank: 3, name: '良品推荐', score: '8.5', note: '值得拥有' },
-      { rank: 4, name: '中上之选', score: '8.0', note: '表现不错' },
-      { rank: 5, name: '稳健之选', score: '7.6', note: '基本达标' },
-    ],
-    author: { nickname: listData.author.nickname },
-    listUrl: `https://weiwuweixin.app/list/${listId}`,
-    watermark: '心',
-  }), [listData, listId]);
+  const cardExportRef = useRef<HTMLDivElement>(null); // 隐藏的 ShareCard 实际渲染 DOM
 
   /* ---------- 导出逻辑 ---------- */
 
   const handleExport = useCallback(async () => {
+    if (!cardExportRef.current) {
+      console.error('[ExportPage] cardExportRef is null');
+      return;
+    }
     setIsExporting(true);
     try {
-      // Dynamic import to avoid bundling native .node binaries at build time
       const { exportCard: doExport, downloadBlob, generateFilename } = await import('@/lib/export-card');
       const result = await doExport({
+        element: cardExportRef.current,
         template: selectedTemplate,
         orientation,
         data: cardData,
@@ -82,11 +110,9 @@ export default function ExportPage() {
         format: 'png',
       });
 
-      // 触发下载
       const filename = generateFilename(cardData.title, selectedTemplate, orientation, 'png');
       downloadBlob(result.data as ArrayBuffer, filename, result.mimeType);
 
-      // 播放印章动画
       setShowStamp(true);
     } catch (err) {
       console.error('[ExportPage] Export failed:', err);
@@ -97,10 +123,15 @@ export default function ExportPage() {
   }, [selectedTemplate, orientation, cardData]);
 
   const handleExportSvg = useCallback(async () => {
+    if (!cardExportRef.current) {
+      console.error('[ExportPage] cardExportRef is null');
+      return;
+    }
     setIsExporting(true);
     try {
       const { exportCard: doExport, downloadBlob, generateFilename } = await import('@/lib/export-card');
       const result = await doExport({
+        element: cardExportRef.current,
         template: selectedTemplate,
         orientation,
         data: cardData,
@@ -129,7 +160,7 @@ export default function ExportPage() {
       {/* ─── 顶部导航 ─── */}
       <header className="sticky top-0 z-sticky bg-paper/80 backdrop-blur-sm border-b border-ink-100">
         <div className="max-w-5xl mx-auto px-lg py-sm flex items-center justify-between">
-          <button
+          <button type="button"
             onClick={() => router.back()}
             className="font-heading text-lg text-ink-900 hover:text-vermilion transition-colors"
           >
@@ -145,7 +176,7 @@ export default function ExportPage() {
         <div className="flex-1 flex flex-col items-center">
           {/* 比例切换 */}
           <div className="flex gap-sm mb-lg">
-            <button
+            <button type="button"
               onClick={() => setOrientation('portrait')}
               className={`
                 px-md py-xs rounded-md text-sm font-medium transition-all border
@@ -157,7 +188,7 @@ export default function ExportPage() {
             >
               📱 {t('portrait')}
             </button>
-            <button
+            <button type="button"
               onClick={() => setOrientation('landscape')}
               className={`
                 px-md py-xs rounded-md text-sm font-medium transition-all border
@@ -338,7 +369,7 @@ export default function ExportPage() {
                 const preview = TEMPLATE_PREVIEW_COLORS[tpl.id];
                 const isSelected = selectedTemplate === tpl.id;
                 return (
-                  <button
+                  <button type="button"
                     key={tpl.id}
                     onClick={() => setSelectedTemplate(tpl.id)}
                     className={`
@@ -428,6 +459,29 @@ export default function ExportPage() {
           </div>
         </div>
       </main>
+
+      {/* 隐藏的 ShareCard 实际渲染 DOM — 用于 html-to-image 截图导出 */}
+      <div
+        ref={cardExportRef}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: orientation === 'portrait' ? 1080 : 1200,
+          height: orientation === 'portrait' ? 1920 : 675,
+          zIndex: -9999,
+          pointerEvents: 'none',
+          opacity: 1,
+        }}
+      >
+        {cardData.entries.length > 0 && (
+          <ShareCard
+            template={selectedTemplate}
+            orientation={orientation}
+            data={cardData}
+          />
+        )}
+      </div>
 
       {/* 印章盖下动画 */}
       <StampAnimation isActive={showStamp} onFinished={handleStampFinished} />

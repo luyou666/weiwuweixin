@@ -29,13 +29,35 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   sports: ['运动', '跑步', '健身', '居家'],
 };
 
+/**
+ * 计算置信度（0-1），与前端 enrichList() 保持完全一致
+ * 公式: base(0.2/0.05) + participationBoost(≤0.4) + consensusBoost(≤0.3)
+ */
+function calcConfidence(item: {
+  _count: { communityScores: number };
+  upvoteCount?: number | null;
+  downvoteCount?: number | null;
+}): number {
+  const scoreCount = item._count.communityScores ?? 0;
+  const upvotes = item.upvoteCount ?? 0;
+  const downvotes = item.downvoteCount ?? 0;
+  const totalVotes = upvotes + downvotes;
+  const voteRatio = totalVotes > 0 ? upvotes / totalVotes : 0;
+
+  const base = scoreCount > 0 ? 0.2 : 0.05;
+  const participationBoost = Math.min(0.4, (scoreCount / 30) * 0.2);
+  const consensusBoost = totalVotes > 0 ? Math.min(0.3, voteRatio * 0.3) : 0;
+
+  return Math.min(0.99, Math.max(0.05, base + participationBoost + consensusBoost));
+}
+
 export const exploreRoutes: FastifyPluginAsync = async (app) => {
   // ── GET /explore — 发现页 ────────────────────────────
   app.get('/', async (req, _reply) => {
     const result = await cache.withCache(
       'explore:home',
       async () => {
-        // 1. 话题聚合：找到同类榜单最多的标题模式
+        // 1. 全量公开榜单（用于话题聚合 + 分类浏览）
         const allLists = await app.prisma.list.findMany({
           where: { visibility: 'PUBLIC' },
           orderBy: { voteCount: 'desc' },
@@ -45,9 +67,12 @@ export const exploreRoutes: FastifyPluginAsync = async (app) => {
             title: true,
             subtitle: true,
             voteCount: true,
+            upvoteCount: true,
+            downvoteCount: true,
             viewCount: true,
             createdAt: true,
             algorithmId: true,
+            coverUrl: true,
             author: { select: { id: true, nickname: true, handle: true, avatarUrl: true } },
             _count: { select: { items: true, communityScores: true, comments: true } },
             dimensions: { select: { id: true, name: true, weight: true } },
@@ -69,9 +94,13 @@ export const exploreRoutes: FastifyPluginAsync = async (app) => {
             createdAt: true,
             viewCount: true,
             voteCount: true,
+            upvoteCount: true,
+            downvoteCount: true,
             algorithmId: true,
+            coverUrl: true,
             author: { select: { id: true, nickname: true, handle: true, avatarUrl: true } },
-            _count: { select: { items: true, comments: true } },
+            _count: { select: { items: true, communityScores: true, comments: true } },
+            dimensions: { select: { id: true, name: true, weight: true } },
           },
         });
 
@@ -85,10 +114,9 @@ export const exploreRoutes: FastifyPluginAsync = async (app) => {
           });
         }
 
-        // 5. 话题聚合：找出同名或相近标题的榜单组
+        // 5. 话题聚合（使用 calcConfidence 与前端 enrichList 保持一致）
         const topicMap = new Map<string, typeof allLists>();
         for (const list of allLists) {
-          // 以标题作为分组 key（简化版：实际可用编辑距离）
           const key = list.title.trim();
           if (!topicMap.has(key)) {
             topicMap.set(key, []);
@@ -106,14 +134,18 @@ export const exploreRoutes: FastifyPluginAsync = async (app) => {
             items: items.slice(0, 5).map(item => ({
               id: item.id,
               title: item.title,
-              confidence: 0, // 需要单独计算，这里置0
+              confidence: calcConfidence(item),
               authorName: item.author.nickname,
               authorHandle: item.author.handle,
               itemCount: item._count.items,
+              // 传递原始投票数据给前端用于乐观重算
+              upvoteCount: item.upvoteCount ?? 0,
+              downvoteCount: item.downvoteCount ?? 0,
+              scoreCount: item._count.communityScores,
             })),
           }));
 
-        // 6. 热门搜索关键词（从榜单标题提取高频词）
+        // 6. 热门搜索关键词
         const wordCount = new Map<string, number>();
         for (const list of allLists) {
           const words = list.title.split(/[\s·：:，,、]+/).filter(w => w.length > 1);
@@ -122,7 +154,7 @@ export const exploreRoutes: FastifyPluginAsync = async (app) => {
           }
         }
         const hotSearches = [...wordCount.entries()]
-          .sort((a, b) => b[1] - a[1])
+          .sort((a, b) => b[1] - a[1]!)
           .slice(0, 10)
           .map(([word]) => word);
 

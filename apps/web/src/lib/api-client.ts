@@ -10,7 +10,7 @@
 
 import { useAuthStore } from '@/stores/auth-store';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 // 刷新锁 — 防止并发刷新
 let isRefreshing = false;
@@ -224,3 +224,34 @@ export async function updateMe(payload: UpdateMePayload) {
   return res.json();
 }
 
+/* ============================================================
+   榜单投票 API
+   ============================================================ */
+
+export interface ListVoteResult {
+  direction: 'up' | 'down' | null;
+  upvoteCount: number;
+  downvoteCount: number;
+}
+
+export async function voteList(listId: string, direction: 'up' | 'down'): Promise<ListVoteResult> {
+  const deviceId = typeof window !== 'undefined'
+    ? localStorage.getItem('wwx-device-id') ?? undefined
+    : undefined;
+  const res = await post(`/api/lists/${listId}/vote`, { direction, deviceId });
+  return res.json();
+}
+
+export async function getListVoteStatus(listId: string): Promise<ListVoteResult> {
+  const deviceId = typeof window !== 'undefined'
+    ? localStorage.getItem('wwx-device-id') ?? undefined
+    : undefined;
+  const res = await get(`/api/lists/${listId}/votes?deviceId=${deviceId ?? ''}`);
+  const data = await res.json();
+  // 后端返回 myVote，前端统一用 direction
+  return {
+    direction: data.myVote ?? data.direction ?? null,
+    upvoteCount: data.upvoteCount,
+    downvoteCount: data.downvoteCount,
+  };
+}

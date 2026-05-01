@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ALGORITHM_METAS } from '@/lib/mock-data';
+import { ALGORITHM_METAS } from '@/lib/api';
 
 /* ============================================================
    算法对比推荐面板
@@ -126,7 +126,7 @@ export function AlgoComparison({
                     根据你的场景，选择最合适的聚合方式
                   </p>
                 </div>
-                <button
+                <button type="button"
                   onClick={onClose}
                   className="text-ink-300 hover:text-ink-900 transition-colors text-xl leading-none p-xs"
                 >
@@ -163,10 +163,10 @@ export function AlgoComparison({
                         </p>
                         <div className="flex flex-wrap gap-xs">
                           <span className="text-xs px-xs py-3xs rounded bg-celadon/10 text-celadon-dark">
-                            适合：{algo.recommendation.slice(0, 15)}…
+                            适合：{(algo.recommendation ?? '').slice(0, 15)}…
                           </span>
                           <span className="text-xs px-xs py-3xs rounded bg-apricot/10 text-apricot-dark">
-                            短板：{algo.cons[0]}
+                            短板：{(algo.cons ?? [])[0] ?? '—'}
                           </span>
                         </div>
                       </div>
@@ -182,7 +182,7 @@ export function AlgoComparison({
                 </h4>
                 <div className="grid grid-cols-2 gap-sm">
                   {SCENES.map((scene) => (
-                    <button
+                    <button type="button"
                       key={scene.id}
                       onClick={() => setSelectedScene(scene.id === selectedScene ? null : scene.id)}
                       className={`
@@ -231,7 +231,7 @@ export function AlgoComparison({
                       这只是参考建议——你比算法更了解你的榜单。
                     </p>
                     <div className="mt-sm flex gap-sm">
-                      <button
+                      <button type="button"
                         onClick={() => {
                           onSelectAlgo?.(selectedSceneData.recommendedAlgoId);
                           onClose?.();
@@ -240,7 +240,7 @@ export function AlgoComparison({
                       >
                         采用此算法
                       </button>
-                      <button
+                      <button type="button"
                         onClick={onClose}
                         className="px-md py-xs rounded-md border border-ink-100 text-ink-500 text-sm hover:bg-rice transition-colors"
                       >

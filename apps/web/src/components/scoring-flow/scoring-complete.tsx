@@ -9,6 +9,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
+import { useRouter } from '@/i18n/navigation';
 import { Button } from '@weiwuweixin/ui';
 import { RaporButton } from './rapor-button';
 
@@ -110,9 +111,10 @@ export function ScoringComplete({
     done: { scale: 1, opacity: 0.2 },
   };
 
+  const router = useRouter();
   const handleBack = useCallback(() => {
-    window.location.href = `/list/${listId}`;
-  }, [listId]);
+    router.push(`/list/${listId}`);
+  }, [router, listId]);
 
   return (
     <div className="flex flex-col items-center gap-8 py-12">

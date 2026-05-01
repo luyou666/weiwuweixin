@@ -56,6 +56,16 @@ export const scoreRoutes: FastifyPluginAsync = async (app) => {
       return _reply.code(404).send({ error: 'List not found' });
     }
 
+    // 验证 itemId 属于此榜单
+    const item = await app.prisma.item.findUnique({
+      where: { id: body.itemId },
+      select: { listId: true },
+    });
+
+    if (!item || item.listId !== listId) {
+      return _reply.code(400).send({ error: 'Item does not belong to this list' });
+    }
+
     // 获取同设备同榜单的24h评分数
     const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const sameDeviceVotes24h = deviceId

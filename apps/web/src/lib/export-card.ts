@@ -1,14 +1,11 @@
 /* ============================================================
-   围物为心 — PNG 分享卡导出引擎
-   satori + @resvg/resvg-js 纯客户端渲染
-   
-   ⚠️ 此文件必须仅在客户端动态导入！
-   使用 dynamic import: const { exportCard } = await import('@/lib/export-card')
-   ============================================================ */
+  围物为心 — PNG 分享卡导出引擎
+  使用 html-to-image (DOM 截图) 纯客户端渲染
+  ⚠️ 此文件必须仅在客户端动态导入！
+  使用 dynamic import: const { exportCard } = await import('@/lib/export-card')
+  ============================================================ */
 
-import satori from 'satori';
 import type { CardTemplateId, CardOrientation, ShareCardData } from '@weiwuweixin/ui';
-import React from 'react';
 
 /* ---------- 常量 ---------- */
 
@@ -20,6 +17,8 @@ export const CARD_SIZES: Record<CardOrientation, { w: number; h: number }> = {
 /* ---------- 类型 ---------- */
 
 export interface ExportCardOptions {
+  /** 要截图的 DOM 元素 ref */
+  element: HTMLElement;
   template: CardTemplateId;
   orientation: CardOrientation;
   data: ShareCardData;
@@ -35,84 +34,16 @@ export interface ExportCardResult {
   extension: string;
 }
 
-/* ---------- 字体加载 ---------- */
-
-const FONT_CACHE = new Map<string, ArrayBuffer>();
-
-async function loadFont(url: string, cacheKey: string): Promise<ArrayBuffer> {
-  if (FONT_CACHE.has(cacheKey)) {
-    return FONT_CACHE.get(cacheKey)!;
-  }
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Failed to load font from ${url}: ${res.status}`);
-  }
-  const buffer = await res.arrayBuffer();
-  FONT_CACHE.set(cacheKey, buffer);
-  return buffer;
-}
-
-type FontWeight = 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900;
-type FontStyle = 'normal' | 'italic';
-type SatoriFont = { name: string; data: ArrayBuffer; weight?: FontWeight; style?: FontStyle };
-
-async function loadFonts(): Promise<SatoriFont[]> {
-  const fonts: SatoriFont[] = [];
-  const fontPairs: Array<{ name: string; url: string; weight: FontWeight; style: FontStyle }> = [
-    {
-      name: 'Noto Sans SC',
-      url: 'https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-sc@400/chinese-simplified-400-normal.woff2',
-      weight: 400,
-      style: 'normal',
-    },
-    {
-      name: 'Noto Sans SC',
-      url: 'https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-sc@700/chinese-simplified-700-normal.woff2',
-      weight: 700,
-      style: 'normal',
-    },
-    {
-      name: 'Noto Serif SC',
-      url: 'https://cdn.jsdelivr.net/fontsource/fonts/noto-serif-sc@400/chinese-simplified-400-normal.woff2',
-      weight: 400,
-      style: 'normal',
-    },
-    {
-      name: 'Noto Serif SC',
-      url: 'https://cdn.jsdelivr.net/fontsource/fonts/noto-serif-sc@700/chinese-simplified-700-normal.woff2',
-      weight: 700,
-      style: 'normal',
-    },
-  ];
-
-  const results = await Promise.allSettled(
-    fontPairs.map(async (fp) => {
-      const data = await loadFont(fp.url, `${fp.name}-${fp.weight}`);
-      return { name: fp.name, data, weight: fp.weight, style: fp.style } as SatoriFont;
-    })
-  );
-
-  for (const result of results) {
-    if (result.status === 'fulfilled') {
-      fonts.push(result.value);
-    }
-  }
-
-  if (fonts.length === 0) {
-    console.warn('[export-card] All fonts failed to load, satori will use system fonts as fallback');
-  }
-
-  return fonts;
-}
-
 /* ---------- 主渲染函数 ---------- */
 
 /**
- * 将 ShareCard JSX 渲染为 PNG / SVG
+ * 将 ShareCard DOM 节点导出为 PNG / SVG
  * ⚠️ 必须在客户端调用，通过 dynamic import 加载此模块
+ * element 是已渲染好的 ShareCard DOM 元素（需在页面中渲染，可设为隐藏）
  */
 export async function exportCard(options: ExportCardOptions): Promise<ExportCardResult> {
   const {
+    element,
     template,
     orientation,
     data,
@@ -124,37 +55,19 @@ export async function exportCard(options: ExportCardOptions): Promise<ExportCard
   const w = Math.round(size.w * scale);
   const h = Math.round(size.h * scale);
 
-  // 1. 加载字体
-  const fonts = await loadFonts();
+  // Dynamic import html-to-image (client-only, avoids SSR issues)
+  const { toPng, toSvg } = await import('html-to-image');
 
-  // 2. 动态导入 ShareCard + @resvg/resvg-js
-  const [{ ShareCard }, { Resvg }] = await Promise.all([
-    import('@weiwuweixin/ui'),
-    // Dynamic import to avoid webpack bundling the native .node file
-    import('@resvg/resvg-js') as Promise<typeof import('@resvg/resvg-js')>,
-  ]);
-
-  // 3. 构造 JSX
-  const element = React.createElement(ShareCard, {
-    template,
-    orientation,
-    data,
-    width: size.w,
-    height: size.h,
-  });
-
-  // 4. satori 渲染为 SVG
-  const svgString = await satori(element, {
-    width: size.w,
-    height: size.h,
-    fonts,
-    embedFont: true,
-  });
-
-  // 如果请求 SVG，直接返回
   if (format === 'svg') {
+    const dataUrl = await toSvg(element, {
+      pixelRatio: scale,
+      width: size.w,
+      height: size.h,
+      cacheBust: true,
+    });
+
     return {
-      data: svgString,
+      data: dataUrl,
       mimeType: 'image/svg+xml',
       width: w,
       height: h,
@@ -162,20 +75,17 @@ export async function exportCard(options: ExportCardOptions): Promise<ExportCard
     };
   }
 
-  // 5. resvg 渲染为 PNG
-  const resvg = new Resvg(svgString, {
-    fitTo: {
-      mode: 'width' as const,
-      value: w,
-    },
+  // PNG 导出
+  const dataUrl = await toPng(element, {
+    pixelRatio: scale,
+    width: size.w,
+    height: size.h,
+    cacheBust: true,
   });
 
-  const pngData = resvg.render();
-  const pngUint8 = pngData.asPng();
-  const arrayBuffer: ArrayBuffer = pngUint8.buffer.slice(
-    pngUint8.byteOffset,
-    pngUint8.byteOffset + pngUint8.byteLength
-  ) as ArrayBuffer;
+  // dataUrl -> ArrayBuffer
+  const resp = await fetch(dataUrl);
+  const arrayBuffer = await resp.arrayBuffer();
 
   return {
     data: arrayBuffer,

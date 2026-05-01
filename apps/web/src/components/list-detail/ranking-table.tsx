@@ -1,12 +1,12 @@
 'use client';
 
 /**
- * 围物为心 — 排名表格组件（带 FLIP 动画 + 点赞/点踩）
- * 展示条目名 + 综合分 + 各维度分 + 共识度标签 + 👍👎 按钮
- * 点赞/点踩会影响 confidence 并触发排名重排
+ * 围物为心 — 排名表格组件（带 FLIP 动画）
+ * 展示条目名 + 综合分 + 各维度分 + 共识度标签
+ * 点赞/点踩已移至榜单级别（不在条目级别）
  */
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { Card } from '@weiwuweixin/ui';
 import { useTranslations } from 'next-intl';
@@ -26,7 +26,6 @@ export interface RankingItem {
 export interface RankingTableProps {
   items: RankingItem[];
   onItemClick?: (item: RankingItem) => void;
-  onVote?: (itemId: string, direction: 'up' | 'down') => void;
   className?: string;
 }
 
@@ -191,90 +190,16 @@ function DimensionScores({ dimensions }: { dimensions: { name: string; score: nu
 }
 
 /* ============================================================
-   👍👎 点赞/点踩按钮
-   ============================================================ */
-
-function VoteButtons({
-  itemId,
-  onVote,
-}: {
-  itemId: string;
-  onVote?: (itemId: string, direction: 'up' | 'down') => void;
-}) {
-  const [vote, setVote] = useState<'up' | 'down' | null>(null);
-  const [animating, setAnimating] = useState(false);
-
-  const handleVote = useCallback((direction: 'up' | 'down') => {
-    if (animating) return;
-    // 再次点击同一方向 = 取消
-    const newVote = vote === direction ? null : direction;
-    setVote(newVote);
-    setAnimating(true);
-    onVote?.(itemId, newVote || direction);
-    setTimeout(() => setAnimating(false), 400);
-  }, [itemId, vote, animating, onVote]);
-
-  return (
-    <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
-      <button
-        onClick={(e) => { e.stopPropagation(); handleVote('up'); }}
-        className={[
-          'p-1.5 rounded-lg transition-all duration-200 focus:outline-none',
-          vote === 'up' ? 'text-[var(--celadon)] bg-[var(--celadon-bg,rgba(127,179,163,0.15))] scale-110' : 'text-[var(--ink-300)] hover:text-[var(--celadon)] hover:bg-[var(--rice)]',
-        ].join(' ')}
-        aria-label="赞同"
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill={vote === 'up' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
-          <path d="M5 10V7a1 1 0 011-1h1.5l1.5-3.5a.5.5 0 01.5-.3c.8 0 1.5.7 1.5 1.5V7h2.5a1 1 0 011 1.1l-.7 4.5a1 1 0 01-1 .9H6" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M3 7h2v6H3a1 1 0 01-1-1V8a1 1 0 011-1z" strokeLinecap="round" strokeLinejoin="round" fill={vote === 'up' ? 'currentColor' : 'none'} />
-        </svg>
-      </button>
-      <button
-        onClick={(e) => { e.stopPropagation(); handleVote('down'); }}
-        className={[
-          'p-1.5 rounded-lg transition-all duration-200 focus:outline-none',
-          vote === 'down' ? 'text-[var(--vermilion)] bg-[var(--vermilion-bg,rgba(226,85,63,0.1))] scale-110' : 'text-[var(--ink-300)] hover:text-[var(--vermilion)] hover:bg-[var(--rice)]',
-        ].join(' ')}
-        aria-label="存疑"
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill={vote === 'down' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5">
-          <path d="M13 8v3a1 1 0 01-1 1h-1.5l-1.5 3.5a.5.5 0 01-.5.3c-.8 0-1.5-.7-1.5-1.5V11H4.5a1 1 0 01-1-1.1l.7-4.5a1 1 0 011-.9H12" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M15 11h-2V5h2a1 1 0 011 1v4a1 1 0 01-1 1z" strokeLinecap="round" strokeLinejoin="round" fill={vote === 'down' ? 'currentColor' : 'none'} />
-        </svg>
-      </button>
-    </div>
-  );
-}
-
-/* ============================================================
    RankingTable 主组件
    ============================================================ */
 
-export function RankingTable({ items, onItemClick, onVote, className = '' }: RankingTableProps) {
+export function RankingTable({ items, onItemClick, className = '' }: RankingTableProps) {
   const t = useTranslations('listDetail');
-  // 本地 state 管理投票后的 confidence 变化
-  const [voteOverrides, setVoteOverrides] = useState<Record<string, number>>({});
 
-  const handleVote = useCallback((itemId: string, direction: 'up' | 'down') => {
-    setVoteOverrides(prev => {
-      const base = items.find(i => i.id === itemId)?.confidence ?? 50;
-      const current = prev[itemId] ?? base;
-      // 点赞 +5~8，点踩 -5~8，取消恢复 base
-      const delta = direction === 'up' ? 5 + Math.floor(Math.random() * 4) : -(5 + Math.floor(Math.random() * 4));
-      const next = Math.max(0, Math.min(100, current + delta));
-      return { ...prev, [itemId]: next };
-    });
-    onVote?.(itemId, direction);
-  }, [items, onVote]);
-
-  // 合并 voteOverrides 到 items，并按综合分降序排列
+  // 按综合分降序排列
   const sorted = useMemo(() => {
-    const merged = items.map(item => ({
-      ...item,
-      confidence: voteOverrides[item.id] ?? item.confidence,
-    }));
-    return [...merged].sort((a, b) => b.overallScore - a.overallScore);
-  }, [items, voteOverrides]);
+    return [...items].sort((a, b) => b.overallScore - a.overallScore);
+  }, [items]);
 
   return (
     <div className={className}>
@@ -363,9 +288,6 @@ export function RankingTable({ items, onItemClick, onVote, className = '' }: Ran
                         <DimensionScores dimensions={item.dimensions} />
                       )}
                     </div>
-
-                    {/* 👍👎 点赞/点踩 */}
-                    <VoteButtons itemId={item.id} onVote={handleVote} />
                   </Card>
                 </motion.div>
               );

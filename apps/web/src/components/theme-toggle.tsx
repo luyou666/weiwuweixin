@@ -56,7 +56,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
   const isDark = theme === 'dark';
 
   return (
-    <button
+    <button type="button"
       onClick={toggleTheme}
       className={[
         'relative inline-flex items-center justify-center',

@@ -200,12 +200,19 @@ function QRSvg({ value, size = 200, fgColor, bgColor }: { value: string; size?: 
   const actualSize = cellSize * 25;
   const modules = generateQRModules(value);
   
-  let rects: string[] = [];
+  const rects: React.ReactElement[] = [];
   for (let y = 0; y < 25; y++) {
     for (let x = 0; x < 25; x++) {
       if (modules[y * 25 + x]) {
         rects.push(
-          `<rect x="${x * cellSize}" y="${y * cellSize}" width="${cellSize}" height="${cellSize}" fill="${fgColor || '#1A1A24'}" />`
+          <rect
+            key={`qr-${y}-${x}`}
+            x={x * cellSize}
+            y={y * cellSize}
+            width={cellSize}
+            height={cellSize}
+            fill={fgColor || '#1A1A24'}
+          />
         );
       }
     }
@@ -217,13 +224,10 @@ function QRSvg({ value, size = 200, fgColor, bgColor }: { value: string; size?: 
       height={actualSize}
       viewBox={`0 0 ${actualSize} ${actualSize}`}
       style={{ display: 'block' }}
-      dangerouslySetInnerHTML={{
-        __html: `
-          <rect width="${actualSize}" height="${actualSize}" fill="${bgColor || '#FFFFFF'}" rx="4" />
-          ${rects.join('\n')}
-        `,
-      }}
-    />
+    >
+      <rect width={actualSize} height={actualSize} fill={bgColor || '#FFFFFF'} rx="4" />
+      {rects}
+    </svg>
   );
 }
 
@@ -608,7 +612,7 @@ function MorandiCard({ data, orientation }: { data: ShareCardData; orientation: 
       }} />
 
       {/* 标题 */}
-      <div style={{ marginBottom: isPortrait ? 40 : 20 }}>
+      <div style={{ marginBottom: isPortrait ? 40 : 20, display: 'flex', flexDirection: 'column' }}>
         <div style={{
           fontSize: isPortrait ? 16 : 11,
           color: t.accent,
@@ -784,7 +788,7 @@ function CyberNeonCard({ data, orientation }: { data: ShareCardData; orientation
       }} />
 
       {/* 标题区域 */}
-      <div style={{ marginBottom: isPortrait ? 32 : 16 }}>
+      <div style={{ marginBottom: isPortrait ? 32 : 16, display: 'flex', flexDirection: 'column' }}>
         <div style={{
           fontSize: isPortrait ? 14 : 10,
           color: t.accent,
@@ -975,7 +979,7 @@ function RetroMagazineCard({ data, orientation }: { data: ShareCardData; orienta
       </div>
 
       {/* 标题 — 大号衬线体 */}
-      <div style={{ marginBottom: isPortrait ? 36 : 18 }}>
+      <div style={{ marginBottom: isPortrait ? 36 : 18, display: 'flex', flexDirection: 'column' }}>
         <h1 style={{
           fontSize: isPortrait ? 56 : 34,
           fontWeight: 700,
@@ -1029,7 +1033,7 @@ function RetroMagazineCard({ data, orientation }: { data: ShareCardData; orienta
             }}>
               {entry.rank}.
             </span>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
               <span style={{
                 fontSize: isPortrait ? 24 : 16,
                 fontWeight: 600,
@@ -1094,7 +1098,7 @@ function RetroMagazineCard({ data, orientation }: { data: ShareCardData; orienta
           }}>
             {data.author.nickname.charAt(0)}
           </div>
-          <div>
+          <div style={{ display: 'flex' }}>
             <span style={{ fontSize: isPortrait ? 16 : 12, color: t.text, fontWeight: 600 }}>
               {data.author.nickname}
             </span>
@@ -1154,6 +1158,8 @@ function MinimalWhiteCard({ data, orientation }: { data: ShareCardData; orientat
       <div style={{
         marginTop: isPortrait ? 60 : 30,
         marginBottom: isPortrait ? 48 : 24,
+        display: 'flex',
+        flexDirection: 'column',
       }}>
         <h1 style={{
           fontSize: isPortrait ? 44 : 28,
@@ -1320,7 +1326,7 @@ function StickerJournalCard({ data, orientation }: { data: ShareCardData; orient
       </div>
 
       {/* 标题 — 手写风格感 */}
-      <div style={{ marginBottom: isPortrait ? 32 : 16 }}>
+      <div style={{ marginBottom: isPortrait ? 32 : 16, display: 'flex', flexDirection: 'column' }}>
         <div style={{
           display: 'inline-block',
           padding: '4px 16px',
@@ -1443,7 +1449,7 @@ function StickerJournalCard({ data, orientation }: { data: ShareCardData; orient
           }}>
             {data.author.nickname.charAt(0)}
           </div>
-          <div>
+          <div style={{ display: 'flex' }}>
             <span style={{ fontSize: isPortrait ? 16 : 12, color: t.text, fontWeight: 600 }}>
               {data.author.nickname}
             </span>
@@ -1491,7 +1497,7 @@ export function ShareCard({ template, orientation, data, width, height }: ShareC
   const Template = TEMPLATE_MAP[template];
 
   return (
-    <div style={{ width: w, height: h }}>
+    <div style={{ width: w, height: h, display: 'flex', flexDirection: 'column' }}>
       <Template data={data} orientation={orientation} />
     </div>
   );

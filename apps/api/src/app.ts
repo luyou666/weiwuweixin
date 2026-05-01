@@ -2,7 +2,7 @@
  * 围物为心 — Fastify 应用配置
  */
 
-import Fastify from 'fastify';
+import Fastify, { FastifyServerOptions } from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
@@ -17,13 +17,16 @@ import { commentRoutes } from './routes/comments';
 import { userRoutes } from './routes/users';
 import { exploreRoutes } from './routes/explore';
 import { authRoutes } from './routes/auth';
+import { voteRoutes } from './routes/votes';
+import { leaderboardRoutes } from './routes/leaderboard';
 import { jwtAuthMiddleware } from './middleware/jwt-auth';
 
-export async function buildApp() {
+export async function buildApp(opts: FastifyServerOptions = {}) {
   const app = Fastify({
     logger: {
       level: process.env.LOG_LEVEL ?? 'info',
     },
+    ...opts, // 允许调用方覆盖连接限制、keepAlive 等
   });
 
   // ── JWT ──────────────────────────────────────────────
@@ -54,7 +57,7 @@ export async function buildApp() {
         version: '0.0.1',
       },
       servers: [
-        { url: 'http://localhost:4000', description: '本地开发' },
+        { url: 'http://localhost:3001', description: '本地开发' },
       ],
     },
   });
@@ -78,7 +81,6 @@ export async function buildApp() {
   });
 
   // ── 写操作认证（JWT 优先，降级到 device-auth）──────
-  // 认证路由（/api/auth/register, /api/auth/login）不需要 preHandler
   app.addHook('preHandler', async (req, reply) => {
     const method = req.method.toUpperCase();
     if (!['POST', 'PATCH', 'PUT', 'DELETE'].includes(method)) return;
@@ -97,6 +99,16 @@ export async function buildApp() {
   await app.register(commentRoutes, { prefix: '/api/lists' });
   await app.register(userRoutes, { prefix: '/api/users' });
   await app.register(exploreRoutes, { prefix: '/api/explore' });
+  await app.register(voteRoutes, { prefix: '/api/lists' });
+  await app.register(leaderboardRoutes, { prefix: '/api/leaderboard' });
+
+  // ── 全局错误处理：P2002 唯一约束冲突 → 409 ──────────
+  app.setErrorHandler((error, _request, reply) => {
+    if ((error as any).code === 'P2002') {
+      return reply.code(409).send({ error: '资源已存在' });
+    }
+    reply.send(error);
+  });
 
   return app;
 }

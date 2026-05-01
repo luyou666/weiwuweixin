@@ -1,58 +1,268 @@
 /**
- * 围物为心 — API 请求抽象层（当前为 mock）
+ * 围物为心 — API 请求层（真实后端 v2）
+ *
+ * 直接调用 localhost:3001 的真实 API，不再依赖 mock-data。
+ * 类型定义与后端响应结构对齐。
  */
 
-import { MOCK_FEED_LISTS, ALGORITHM_METAS, MOCK_EXPLORE_LISTS, MOCK_TOPIC_AGGREGATIONS, MOCK_HOT_SEARCHES, MOCK_RECENT_SEARCHES, MOCK_PROFILES } from './mock-data';
-import type { FeedList, AlgorithmMeta, TopicAggregation, ProfileData } from './mock-data';
-
-/** 模拟网络延迟 */
-function delay(ms: number = 600): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/** 获取首页 Feed 列表 */
-export async function fetchFeedLists(): Promise<FeedList[]> {
-  await delay(800);
-  return MOCK_FEED_LISTS;
-}
-
-/** 获取单个榜单详情（mock） */
-export async function fetchListById(id: string): Promise<FeedList | undefined> {
-  await delay(400);
-  return MOCK_FEED_LISTS.find(list => list.id === id);
-}
-
-/** 获取所有算法元数据 */
-export async function fetchAlgorithmMetas(): Promise<AlgorithmMeta[]> {
-  await delay(300);
-  return ALGORITHM_METAS;
-}
-
-/** 创建新榜单（mock） */
-export async function createList(_payload: unknown): Promise<{ id: string }> {
-  await delay(1000);
-  return { id: `list-${Date.now()}` };
-}
+import { get, post } from './api-client';
 
 /* ============================================================
-   发现页 API
+   类型定义
    ============================================================ */
-
-/** 分类 ID → 标签关键词映射 */
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  movie: ['电影', '影视', '剧集'],
-  music: ['音乐', '华语', '专辑'],
-  food: ['美食', '咖啡', '器具', '暖食'],
-  travel: ['旅行', '京都', '散步', '红叶'],
-  tech: ['技术', '前端', '框架', '数码'],
-  book: ['书籍', '推理', '文学', '宋词', '选本'],
-  sports: ['运动', '健身', '居家'],
-};
 
 /** 排序模式 */
 export type SortMode = 'diversity' | 'consensus' | 'newest';
 
-/** 获取发现页榜单 */
+/** 个人主页排序模式 */
+export type ProfileSortMode = 'consensus' | 'hot' | 'time';
+
+/** 榜单列表项（GET /api/lists 返回） */
+export interface FeedList {
+  id: string;
+  title: string;
+  subtitle: string;
+  algorithmId: string;
+  voteCount: number;
+  upvoteCount?: number;
+  downvoteCount?: number;
+  viewCount: number;
+  createdAt: string;
+  updatedAt?: string;
+  author: {
+    id: string;
+    nickname: string;
+    handle: string;
+    avatarUrl: string | null;
+  };
+  _count?: {
+    items: number;
+    comments: number;
+    communityScores: number;
+  };
+  dimensions?: {
+    id: string;
+    name: string;
+    weight: number;
+  }[];
+  coverUrl?: string | null;
+  note?: string | null;
+  scale?: string;
+  visibility?: string;
+  /** 置信度 (0-1)，优先使用后端返回 */
+  confidence?: number;
+  /** 前端计算字段 — 等价于 _count.items */
+  itemCount: number;
+  /** 前端计算字段 — 从 dimensions 提取的标签名 */
+  tags: string[];
+}
+
+/** 话题聚合项 */
+export interface TopicAggregationItem {
+  id: string;
+  title: string;
+  confidence: number;
+  authorName: string;
+  itemCount: number;
+  tags?: string[];
+  upvoteCount?: number;
+  downvoteCount?: number;
+  myVote?: 'up' | 'down' | null;
+  scoreCount?: number;
+}
+
+/** 话题聚合 */
+export interface TopicAggregation {
+  topicId?: string;
+  topicName: string;
+  categoryIcon?: string;
+  mergedCount: number;
+  items: TopicAggregationItem[];
+}
+
+/** 算法元数据 */
+export interface AlgorithmMeta {
+  id: string;
+  name: string;
+  description: string;
+  formula: string;
+  recommendation: string;
+  pros: string[];
+  cons: string[];
+}
+
+/** 榜单详情 (GET /api/lists/:id) */
+export interface ListDetail {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  algorithmId: string;
+  scale: string | null;
+  visibility: string;
+  coverUrl: string | null;
+  note: string | null;
+  viewCount: number;
+  voteCount: number;
+  upvoteCount: number;
+  downvoteCount: number;
+  createdAt: string;
+  updatedAt: string;
+  authorId: string;
+  author: {
+    id: string;
+    nickname: string;
+    handle: string;
+    avatarUrl: string | null;
+  };
+  dimensions: {
+    id: string;
+    name: string;
+    weight: number;
+  }[];
+  items: {
+    id: string;
+    name: string;
+    note: string | null;
+    url: string | null;
+    rank: number;
+    listId: string;
+    authorScores: { dimensionId: string; value: number }[];
+    communityScores: { id: string; confidence: number; voterFingerprint: string }[];
+  }[];
+  communityScores: { id: string; confidence: number; voterFingerprint: string }[];
+  comments: any[];
+  confidence: number | null;
+  engineConfidence: number | null;
+  confidenceParams: any;
+  voteConsensus: number | null;
+  stats: any;
+}
+
+/** 评论项 (GET /api/lists/:id/comments) */
+export interface CommentItem {
+  id: string;
+  content: string;
+  sentiment: number;
+  listId: string;
+  authorId: string;
+  createdAt: string;
+  updatedAt: string;
+  author: {
+    id: string;
+    nickname: string;
+    handle: string;
+    avatarUrl: string | null;
+  };
+}
+
+/** 用户档案 */
+export interface ProfileData {
+  id: string;
+  nickname: string;
+  handle: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  createdAt: string;
+  stats: {
+    listCount: number;
+    totalVotes: number;
+    avgConfidence: number;
+    rapportCount?: number;
+    bookmarkedCount?: number;
+  };
+  badges: any[];
+}
+
+/* ============================================================
+   常量
+   ============================================================ */
+
+/** 分类定义（与后端 /api/explore 对齐） */
+export const EXPLORE_CATEGORIES: { id: string; label: string; icon: string }[] = [
+  { id: 'movie', label: '影视', icon: '🎬' },
+  { id: 'music', label: '音乐', icon: '🎵' },
+  { id: 'food', label: '美食', icon: '🍜' },
+  { id: 'travel', label: '旅行', icon: '🗺️' },
+  { id: 'tech', label: '科技', icon: '💻' },
+  { id: 'book', label: '读书', icon: '📖' },
+  { id: 'sports', label: '运动', icon: '⚽' },
+];
+
+/** 分类标签列表（新建榜单页使用） */
+export const CATEGORY_TAGS = [
+  '音乐', '电影', '书籍', '游戏', '技术',
+  '旅行', '美食', '数码', '生活', '文学',
+  '设计', '运动', '教育', '艺术', '其他',
+];
+
+/* ============================================================
+   工具函数
+   ============================================================ */
+
+/** 置信度计算（与后端 calcConfidence 保持完全一致） */
+function calcConfidence(item: {
+  upvoteCount?: number | null;
+  downvoteCount?: number | null;
+  scoreCount?: number;
+}): number {
+  const scoreCount = item.scoreCount ?? 0;
+  const upvotes = item.upvoteCount ?? 0;
+  const downvotes = item.downvoteCount ?? 0;
+  const totalVotes = upvotes + downvotes;
+  const voteRatio = totalVotes > 0 ? upvotes / totalVotes : 0;
+  const base = scoreCount > 0 ? 0.2 : 0.05;
+  const participationBoost = Math.min(0.4, (scoreCount / 30) * 0.2);
+  const consensusBoost = totalVotes > 0 ? Math.min(0.3, voteRatio * 0.3) : 0;
+  return Math.min(0.99, Math.max(0.05, base + participationBoost + consensusBoost));
+}
+
+/** 将后端原始数据补全为 FeedList */
+function enrichList(raw: any): FeedList {
+  const confidence =
+    typeof raw.confidence === 'number' && raw.confidence > 0
+      ? raw.confidence
+      : calcConfidence({
+          upvoteCount: raw.upvoteCount ?? 0,
+          downvoteCount: raw.downvoteCount ?? 0,
+          scoreCount: raw._count?.communityScores ?? 0,
+        });
+
+  return {
+    id: raw.id,
+    title: raw.title,
+    subtitle: raw.subtitle ?? '',
+    algorithmId: raw.algorithmId ?? 'weighted-mean',
+    voteCount: raw.voteCount ?? 0,
+    upvoteCount: raw.upvoteCount ?? 0,
+    downvoteCount: raw.downvoteCount ?? 0,
+    viewCount: raw.viewCount ?? 0,
+    createdAt: raw.createdAt ?? '',
+    updatedAt: raw.updatedAt,
+    author: raw.author ?? { id: '', nickname: '', handle: '', avatarUrl: null },
+    _count: raw._count ?? { items: 0, comments: 0, communityScores: 0 },
+    dimensions: raw.dimensions ?? [],
+    coverUrl: raw.coverUrl ?? null,
+    note: raw.note ?? null,
+    scale: raw.scale,
+    visibility: raw.visibility,
+    confidence,
+    itemCount: raw._count?.items ?? raw.itemCount ?? 0,
+    tags: raw.dimensions?.map((d: any) => d.name) ?? [],
+  };
+}
+
+/* ============================================================
+   API 方法
+   ============================================================ */
+
+/** 获取首页 Feed 列表 */
+export async function fetchFeedLists(): Promise<FeedList[]> {
+  const res = await get('/api/lists?sort=popular&pageSize=10');
+  const data = await res.json();
+  return (data.data ?? []).map(enrichList);
+}
+
+/** 获取发现页榜单（带分类筛选和排序） */
 export async function fetchExploreLists(params?: {
   categories?: string[];
   sort?: SortMode;
@@ -60,63 +270,28 @@ export async function fetchExploreLists(params?: {
   page?: number;
   pageSize?: number;
 }): Promise<{ lists: FeedList[]; hasMore: boolean }> {
-  await delay(600);
+  const { sort = 'diversity', query = '', page = 1, pageSize = 8 } = params ?? {};
 
-  const { categories = [], sort = 'diversity', query = '', page = 1, pageSize = 8 } = params ?? {};
+  const sortMap: Record<string, string> = {
+    diversity: 'popular',
+    consensus: 'popular',
+    newest: 'latest',
+  };
 
-  let filtered = [...MOCK_EXPLORE_LISTS];
+  const apiSort = sortMap[sort] ?? 'latest';
+  const qs = query
+    ? `&search=${encodeURIComponent(query)}`
+    : '';
 
-  // 分类筛选
-  if (categories.length > 0) {
-    const keywords = categories.flatMap((c) => CATEGORY_KEYWORDS[c] ?? []);
-    if (keywords.length > 0) {
-      filtered = filtered.filter((list) =>
-        keywords.some((kw) => list.tags.some((tag) => tag.includes(kw)) || list.title.includes(kw))
-      );
-    }
-  }
+  const res = await get(
+    `/api/lists?sort=${apiSort}&page=${page}&pageSize=${pageSize}${qs}`
+  );
+  const data = await res.json();
 
-  // 搜索筛选
-  if (query.trim()) {
-    const q = query.trim().toLowerCase();
-    filtered = filtered.filter(
-      (list) =>
-        list.title.toLowerCase().includes(q) ||
-        list.subtitle.toLowerCase().includes(q) ||
-        list.tags.some((tag) => tag.toLowerCase().includes(q)) ||
-        list.author.nickname.toLowerCase().includes(q)
-    );
-  }
-
-  // 排序
-  switch (sort) {
-    case 'diversity':
-      // 多样性优先 — 较低置信度 + 较多条目优先（保护主观性）
-      filtered.sort((a, b) => {
-        const diversityA = a.itemCount / (a.confidence + 0.1);
-        const diversityB = b.itemCount / (b.confidence + 0.1);
-        return diversityB - diversityA;
-      });
-      break;
-    case 'consensus':
-      // 高共识度优先
-      filtered.sort((a, b) => b.confidence - a.confidence);
-      break;
-    case 'newest':
-      // 最新创建
-      filtered.sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      break;
-  }
-
-  // 分页
-  const start = (page - 1) * pageSize;
-  const end = start + pageSize;
-  const paged = filtered.slice(start, end);
-  const hasMore = end < filtered.length;
-
-  return { lists: paged, hasMore };
+  return {
+    lists: (data.data ?? []).map(enrichList),
+    hasMore: page * pageSize < (data.total ?? 0),
+  };
 }
 
 /** 获取话题聚合 */
@@ -124,51 +299,169 @@ export async function fetchTopicAggregations(_params?: {
   categories?: string[];
   query?: string;
 }): Promise<TopicAggregation[]> {
-  await delay(400);
-  return MOCK_TOPIC_AGGREGATIONS;
+  const res = await get('/api/explore');
+  const data = await res.json();
+  const topicAggs = data.topicAggregations ?? [];
+  return topicAggs.map((agg: any, i: number) => ({
+    topicId: agg.topicId ?? `topic-${i}`,
+    topicName: agg.topicName ?? '',
+    categoryIcon: agg.categoryIcon ?? '📋',
+    mergedCount: agg.mergedCount ?? 1,
+    items: (agg.items ?? []).map((item: any) => ({
+      id: item.id,
+      title: item.title,
+      confidence: item.confidence ?? 0.1,
+      authorName: item.authorName ?? '',
+      itemCount: item.itemCount ?? 0,
+      tags: item.tags ?? [],
+      upvoteCount: item.upvoteCount ?? 0,
+      downvoteCount: item.downvoteCount ?? 0,
+      myVote: null,
+      scoreCount: item.scoreCount ?? 0,
+    })),
+  }));
 }
 
 /** 获取热门搜索 */
 export async function fetchHotSearches(): Promise<string[]> {
-  await delay(200);
-  return MOCK_HOT_SEARCHES;
+  const res = await get('/api/explore');
+  const data = await res.json();
+  return data.hotSearches ?? [];
 }
 
 /** 获取最近搜索 */
 export async function fetchRecentSearches(): Promise<string[]> {
-  await delay(200);
-  return MOCK_RECENT_SEARCHES;
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem('wwx-recent-searches');
+  return stored ? JSON.parse(stored) : [];
 }
 
 /* ============================================================
-   个人主页 API
+   静态常量（算法元数据 + 类型）
    ============================================================ */
 
-/** 个人主页排序模式 */
-export type ProfileSortMode = 'consensus' | 'hot' | 'time';
-
-/** 获取用户档案 */
-export async function fetchProfile(handle: string): Promise<ProfileData | undefined> {
-  await delay(500);
-  return MOCK_PROFILES[handle];
+/** 算法元信息 */
+export interface AlgorithmMeta {
+  id: string;
+  name: string;
+  formula: string;
+  description: string;
+  recommendation: string;
+  pros: string[];
+  cons: string[];
 }
 
-/** 获取用户的榜单列表 */
-export async function fetchUserLists(userId: string, sort: ProfileSortMode = 'consensus'): Promise<FeedList[]> {
-  await delay(600);
-  const lists = MOCK_FEED_LISTS.filter(list => list.author.id === userId);
+/* ============================================================
+   榜单详情 + 评论
+   ============================================================ */
 
-  switch (sort) {
-    case 'consensus':
-      lists.sort((a, b) => b.confidence - a.confidence);
-      break;
-    case 'hot':
-      lists.sort((a, b) => b.voteCount - a.voteCount);
-      break;
-    case 'time':
-      lists.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      break;
-  }
-
-  return lists;
+/** 获取榜单详情 */
+export async function fetchListById(id: string): Promise<ListDetail> {
+  const res = await get(`/api/lists/${id}`);
+  return res.json();
 }
+
+/** 获取评论列表 */
+export async function fetchComments(listId: string, params?: {
+  page?: number;
+  pageSize?: number;
+  sentiment?: string;
+}): Promise<{ data: CommentItem[]; total: number; page: number; pageSize: number; sentimentCounts: Record<string, number> }> {
+  const { page = 1, pageSize = 50, sentiment = 'all' } = params ?? {};
+  const qs = `page=${page}&pageSize=${pageSize}&sentiment=${sentiment}`;
+  const res = await get(`/api/lists/${listId}/comments?${qs}`);
+  return res.json();
+}
+
+/** 发布评论 */
+export async function postComment(listId: string, content: string): Promise<CommentItem> {
+  const res = await post(`/api/lists/${listId}/comments`, { content });
+  return res.json();
+}
+
+/* ============================================================
+   排行榜
+   ============================================================ */
+
+/** 排行榜响应 */
+export interface LeaderboardResponse {
+  leaderboard: Array<{
+    id: string;
+    title: string;
+    subtitle: string | null;
+    upvoteCount: number;
+    downvoteCount: number;
+    viewCount: number;
+    voteCount: number;
+    hotness: number;
+    createdAt: string;
+    algorithmId: string;
+    coverUrl: string | null;
+    author: {
+      id: string;
+      nickname: string;
+      handle: string;
+      avatarUrl: string | null;
+    };
+    _count: {
+      items: number;
+      communityScores: number;
+      comments: number;
+    };
+  }>;
+  generatedAt: string;
+}
+
+/** 获取热度排行榜 */
+export async function fetchLeaderboard(): Promise<LeaderboardResponse> {
+  const res = await get('/api/leaderboard');
+  return res.json();
+}
+
+export const ALGORITHM_METAS: AlgorithmMeta[] = [
+  {
+    id: 'weighted-mean',
+    name: '加权平均',
+    formula: '\\text{Score} = \\frac{\\sum_{i} w_i \\cdot D_i}{\\sum_{i} w_i}',
+    description: '各维度按权重加权求平均，最直观的聚合方式。',
+    recommendation: '适合各维度独立贡献、互不牵制的场景。',
+    pros: ['简单直观', '权重灵活', '计算高效'],
+    cons: ['无法惩罚短板', '极端值影响大'],
+  },
+  {
+    id: 'geometric-mean',
+    name: '几何平均',
+    formula: '\\left(\\prod_{i} s_i^{w_i}\\right)^{1/\\sum w_i}',
+    description: '各维度加权几何平均，任何一项极低都会拉低总分。',
+    recommendation: '适合需要惩罚短板、强调均衡的场景。',
+    pros: ['惩罚短板', '均衡导向', '不受极端高值影响'],
+    cons: ['不支持零分', '对低值敏感', '直觉理解稍难'],
+  },
+  {
+    id: 'borda-count',
+    name: 'Borda 排位分',
+    formula: '\\sum_{i} \\text{rank}_i \\times w_i',
+    description: '按每维度排名给分，第1名得最高分，依序递减。',
+    recommendation: '适合不需要绝对分数、只关心相对排名的场景。',
+    pros: ['无需绝对分数', '抗极端值', '排名直觉'],
+    cons: ['信息损失', '并列处理复杂', '依赖候选集'],
+  },
+  {
+    id: 'topsis',
+    name: 'TOPSIS 理想解',
+    formula: 'C_i = \\frac{d_i^-}{d_i^+ + d_i^-}',
+    description: '计算正理想解和负理想解的距离，取相对接近度评分。',
+    recommendation: '适合多维度综合比较、需要兼顾全局优化的场景。',
+    pros: ['全局视角', '多准则决策', '数学完备'],
+    cons: ['归一化依赖', '计算稍复杂', '对维度选择敏感'],
+  },
+  {
+    id: 'bayesian-shrinkage',
+    name: '贝叶斯收缩',
+    formula: '\\hat{S} = \\frac{n}{n+m}\\bar{S} + \\frac{m}{n+m}\\mu',
+    description: '向全局均值收缩，有效抵抗小样本波动，评分越多人收缩越少。',
+    recommendation: '适合评分人数不一、需要公平比较的场景。',
+    pros: ['小样本稳健', '抗刷票', '公平比较'],
+    cons: ['需要先验参数', '收敛于均值', '计算稍复杂'],
+  },
+];

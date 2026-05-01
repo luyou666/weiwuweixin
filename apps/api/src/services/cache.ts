@@ -21,12 +21,15 @@ export const CACHE_TTL = {
   EXPLORE: 5 * 60,
   /** 评分汇总缓存 3 分钟 */
   SCORE_STATS: 3 * 60,
+  /** 榜单详情缓存 2 分钟 */
+  LIST_DETAIL: 2 * 60,
 } as const;
 
 // ── 缓存 Key 生成器 ────────────────────────────────────
 
 export const CacheKeys = {
   confidence: (listId: string) => `confidence:${listId}`,
+  listDetail: (listId: string) => `list:detail:${listId}`,
   profile: (handle: string) => `profile:${handle}`,
   userList: (userId: string, page: number) => `user:${userId}:lists:${page}`,
   explore: () => 'explore:home',

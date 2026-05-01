@@ -141,8 +141,7 @@ function AuthInput({
           `}
         />
         {showPasswordToggle && (
-          <button
-            type="button"
+          <button type="button"
             onClick={onTogglePassword}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors"
             tabIndex={-1}
@@ -252,7 +251,7 @@ export default function AuthPage() {
         if (err instanceof ApiError) {
           setServerError(err.message);
         } else {
-          setServerError('操作失败，请稍后再试');
+          setServerError(t('operationFailed'));
         }
       } finally {
         setLoading(false);
@@ -430,8 +429,7 @@ export default function AuthPage() {
 
                 {mode === 'login' && (
                   <div className="text-right mb-4">
-                    <button
-                      type="button"
+                    <button type="button"
                       className="text-vermilion/70 text-xs hover:text-vermilion transition-colors"
                     >
                       {t('forgotPassword')}
@@ -473,8 +471,7 @@ export default function AuthPage() {
 
               {/* 第三方登录占位 */}
               <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
+                <button type="button"
                   disabled
                   className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 hover:text-white/60 transition-all duration-200 opacity-60 cursor-not-allowed"
                 >
@@ -486,8 +483,7 @@ export default function AuthPage() {
                   </svg>
                   Google
                 </button>
-                <button
-                  type="button"
+                <button type="button"
                   disabled
                   className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 hover:text-white/60 transition-all duration-200 opacity-60 cursor-not-allowed"
                 >
@@ -501,8 +497,7 @@ export default function AuthPage() {
               {/* 切换模式 */}
               <div className="text-center mt-6 text-sm text-white/50">
                 {mode === 'login' ? t('noAccount') : t('hasAccount')}{' '}
-                <button
-                  type="button"
+                <button type="button"
                   onClick={switchMode}
                   className="text-vermilion hover:text-vermilion-light transition-colors font-medium"
                 >
@@ -520,12 +515,12 @@ export default function AuthPage() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
         >
-          <button
-            onClick={() => router.push('/')}
+          <Link
+            href="/"
             className="text-white/40 text-sm hover:text-white/70 transition-colors"
           >
             {t('orContinueAsGuest')} →
-          </button>
+          </Link>
         </motion.div>
       </motion.div>
     </div>

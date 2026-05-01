@@ -83,6 +83,31 @@ const DIMENSION_POOLS: Record<string, string[][]> = {
   '纪录片': [['画面质量', '故事性', '文化深度', '节奏感'], ['声音设计', '人文关怀']],
 };
 
+const ITEM_POOLS: Record<string, string[]> = {
+  '音乐': ['《山丘》', '《年少有为》', '《光年之外》', '《起风了》', '《平凡之路》', '《演员》', '《消愁》', '《大鱼》'],
+  '咖啡': ['V60手冲壶', 'AeroPress爱乐压', '法压壶', '摩卡壶', 'Chemex六人壶', '虹吸壶', '冷萃瓶', '意式咖啡机'],
+  '旅行': ['清水寺', '岚山竹林', '金阁寺', '伏见稻荷大社', '永观堂', '南禅寺', '东福寺', '三千院'],
+  '技术': ['React', 'Vue', 'Svelte', 'Solid', 'Angular', 'Next.js', 'Nuxt', 'Astro'],
+  '游戏': ['《哈迪斯》', '《空洞骑士》', '《星露谷物语》', '《蔚蓝》', '《死亡细胞》', '《以撒的结合》', '《undertale》', '《茶杯头》'],
+  '文学': ['《人间词话》', '《宋词三百首》', '《沧浪诗话》', '《随园诗话》', '《诗品》', '《词选》', '《唐宋词简释》'],
+  '数码': ['Sony WH-1000XM5', 'AirPods Pro 2', 'Bose QC45', '森海塞尔 Momentum 4', 'B&W Px7 S2', 'AKG N700NC M2'],
+  '生活': ['玉渊潭樱花道', '武康路梧桐区', '杭州西湖环线', '南京明城墙步道', '苏州平江路', '厦门环岛路'],
+  '书籍': ['《嫌疑人X的献身》', '《恶意》', '《白夜行》', '《告白》', '《消失的13级台阶》', '《六个说谎的大学生》'],
+  '美食': ['杨枝甘露', '柠檬薄荷冰饮', '西瓜冰沙', '莫吉托冰茶', '蜜桃乌龙冰茶', '椰子冰咖啡', '蓝莓香蕉奶昔'],
+  '设计': ['MUJI PP收纳盒', 'IKEA洞洞板', 'Nitori硅藻土垫', '山崎实业磁吸架', '霜山不锈钢挂钩', 'Like-it收纳箱'],
+  '运动': ['Nike Pegasus', 'Asics Gel-Nimbus', 'Adidas Ultraboost', 'Hoka Clifton', 'New Balance 1080', '索康尼 Triumph'],
+  '电影': ['《哪吒之魔童降世》', '《大鱼海棠》', '《大护法》', '《罗小黑战记》', '《白蛇：缘起》', '《长安三万里》'],
+  'AI': ['PyTorch', 'TensorFlow', 'JAX', 'PaddlePaddle', 'MindSpore', 'OneFlow', 'MegEngine'],
+  '文具': ['MD Notebook', 'Midori MD手帐', "Traveler's Notebook", '灯塔1917', 'Rhoda笔记本', '国誉 Campus'],
+  '纪录片': ['《深夜食堂》', '《寿司之神》', '《街头美食斗士》', '《人生一串》', '《舌尖上的中国》', '《风味人间》'],
+};
+
+function getItemName(tag: string, index: number): string {
+  const pool = ITEM_POOLS[tag];
+  if (pool && index < pool.length) return pool[index];
+  return `${tag}条目-${index + 1}`;
+}
+
 function getDimensionsForTags(tags: string[]): string[] {
   for (const tag of tags) {
     const pool = DIMENSION_POOLS[tag];
@@ -143,9 +168,9 @@ async function seed() {
           })),
         },
         items: {
-          create: Array.from({ length: randomInt(4, 12) }, (_, itemIdx) => ({
-            name: `${listData.tags[0]}条目-${itemIdx + 1}`,
-            note: itemIdx % 3 === 0 ? `关于第${itemIdx + 1}条目的备注` : undefined,
+          create: Array.from({ length: randomInt(4, 8) }, (_, itemIdx) => ({
+            name: getItemName(listData.tags[0], itemIdx),
+            note: itemIdx % 3 === 0 ? `关于${getItemName(listData.tags[0], itemIdx)}的备注` : undefined,
           })),
         },
       },

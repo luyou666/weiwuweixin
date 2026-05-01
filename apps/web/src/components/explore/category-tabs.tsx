@@ -1,13 +1,13 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 
 /* ============================================================
    分类标签 — 水墨风贴纸感
    选中态：朱砂红底白字
-   hover：轻微 2° 倾斜（贴纸感）
+   hover：轻微 2° 倾斜（贴纸感）+ 上浮 1px
+   press：缩小到 96%
    支持多选筛选
    ============================================================ */
 
@@ -93,7 +93,8 @@ function CategoryPill({
   onClick: () => void;
 }) {
   return (
-    <motion.button
+    <button
+      type="button"
       role="tab"
       aria-selected={active}
       aria-controls={`panel-${id}`}
@@ -102,43 +103,28 @@ function CategoryPill({
         'relative inline-flex items-center gap-1 px-sm py-xs',
         'rounded-[var(--radius-lg)] font-[var(--font-body)]',
         'text-sm border cursor-pointer select-none',
-        'transition-colors duration-[var(--duration-normal)]',
+        'transition-all duration-200 ease-out',
+        'hover:-translate-y-px hover:rotate-[2deg]',
+        'active:scale-[0.96]',
         active
-          ? 'bg-vermilion text-paper border-vermilion-dark'
-          : 'bg-paper text-ink-700 border-ink-100 hover:bg-rice',
+          ? 'bg-vermilion text-paper border-vermilion-dark shadow-md scale-100'
+          : 'bg-paper text-ink-700 border-ink-100 hover:bg-rice shadow-sm',
       ].join(' ')}
-      style={{
-        boxShadow: active
-          ? 'var(--shadow-md)'
-          : 'var(--shadow-sm)',
-      }}
-      whileHover={{
-        rotate: 2,
-        y: -1,
-        transition: { type: 'spring', stiffness: 300, damping: 15 },
-      }}
-      whileTap={{
-        scale: 0.96,
-        transition: { type: 'spring', stiffness: 500, damping: 20 },
-      }}
     >
       {/* 水墨晕染装饰 — 选中态 */}
       {active && (
-        <motion.span
-          className="absolute inset-0 rounded-[var(--radius-lg)] pointer-events-none"
+        <span
+          className="absolute inset-0 rounded-[var(--radius-lg)] pointer-events-none animate-in fade-in duration-300"
           style={{
             background:
               'radial-gradient(ellipse at 30% 30%, var(--vermilion-light) 0%, transparent 60%)',
             opacity: 0.2,
           }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.2 }}
-          transition={{ duration: 0.3 }}
         />
       )}
       <span className="relative z-10 text-xs">{icon}</span>
       <span className="relative z-10 whitespace-nowrap">{label}</span>
-    </motion.button>
+    </button>
   );
 }
 

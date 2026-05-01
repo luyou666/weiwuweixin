@@ -1,13 +1,14 @@
 /**
  * 置信度算法引擎
  *
- * 公式：Confidence = 100 × sigmoid(α·log(1+N) + β·τ + γ·sentiment) × time_decay(t)
+ * 公式：Confidence = 100 × sigmoid(α·log(1+N) + β·τ + γ·sentiment + δ·voteConsensus) × time_decay(t)
  *
  * - N: 参与评分的独立用户数
  * - τ: 他人打分排序与作者排序的 Kendall Tau 相关系数
  * - sentiment: 评论情感倾向 (-1..+1)
+ * - voteConsensus: 榜单投票共识度 (upvoteRatio)，upvotes/totalVotes，范围 0-1
  * - time_decay(t) = 0.5^(t/30)，半衰期30天
- * - 默认参数: α=0.6, β=1.2, γ=0.4
+ * - 默认参数: α=0.6, β=1.2, γ=0.4, δ=0.8
  */
 
 import type { ExplanationNode } from '../types';
@@ -17,6 +18,7 @@ import type { ExplanationNode } from '../types';
 const DEFAULT_ALPHA = 0.6;
 const DEFAULT_BETA = 1.2;
 const DEFAULT_GAMMA = 0.4;
+const DEFAULT_DELTA = 0.8; // 投票共识因子权重
 const DEFAULT_HALFLIFE = 30;
 
 // ─── 辅助函数 ───────────────────────────────────────────
@@ -38,12 +40,16 @@ export interface ConfidenceParams {
   sentiment: number;
   /** 距最后一次投票的天数 */
   daysSinceLastVote: number;
+  /** 榜单投票共识度（upvoteRatio），upvotes/totalVotes，范围 0-1。默认 0（无投票时） */
+  voteConsensus?: number;
   /** 用户规模因子，默认 0.6 */
   alpha?: number;
   /** Kendall Tau 因子，默认 1.2 */
   beta?: number;
   /** 情感因子，默认 0.4 */
   gamma?: number;
+  /** 投票共识因子权重，默认 0.8 */
+  delta?: number;
   /** 时间衰减半衰期（天），默认 30 */
   halfLife?: number;
 }
@@ -132,17 +138,20 @@ export function computeConfidence(params: ConfidenceParams): number {
     tau,
     sentiment,
     daysSinceLastVote,
+    voteConsensus = 0,
     alpha = DEFAULT_ALPHA,
     beta = DEFAULT_BETA,
     gamma = DEFAULT_GAMMA,
+    delta = DEFAULT_DELTA,
     halfLife,
   } = params;
 
   const logFactor = alpha * Math.log(1 + N);
   const tauFactor = beta * tau;
   const sentimentFactor = gamma * sentiment;
+  const voteConsensusFactor = delta * voteConsensus;
 
-  const sigmoidInput = logFactor + tauFactor + sentimentFactor;
+  const sigmoidInput = logFactor + tauFactor + sentimentFactor + voteConsensusFactor;
   const sigmoidValue = sigmoid(sigmoidInput);
   const decay = timeDecay(daysSinceLastVote, halfLife);
 
@@ -160,17 +169,20 @@ export function explainConfidence(params: ConfidenceParams): ExplanationNode {
     tau,
     sentiment,
     daysSinceLastVote,
+    voteConsensus = 0,
     alpha = DEFAULT_ALPHA,
     beta = DEFAULT_BETA,
     gamma = DEFAULT_GAMMA,
+    delta = DEFAULT_DELTA,
     halfLife = DEFAULT_HALFLIFE,
   } = params;
 
   const logFactor = alpha * Math.log(1 + N);
   const tauFactor = beta * tau;
   const sentimentFactor = gamma * sentiment;
+  const voteConsensusFactor = delta * voteConsensus;
 
-  const sigmoidInput = logFactor + tauFactor + sentimentFactor;
+  const sigmoidInput = logFactor + tauFactor + sentimentFactor + voteConsensusFactor;
   const sigmoidValue = sigmoid(sigmoidInput);
   const decay = timeDecay(daysSinceLastVote, halfLife);
   const confidence = 100 * sigmoidValue * decay;
@@ -206,6 +218,15 @@ export function explainConfidence(params: ConfidenceParams): ExplanationNode {
         children: [
           { type: 'sentiment', label: '情感倾向', value: sentiment },
           { type: 'gamma', label: 'γ', value: gamma },
+        ],
+      },
+      {
+        type: 'vote-consensus-factor',
+        label: '投票共识因子',
+        value: voteConsensusFactor,
+        children: [
+          { type: 'vote-consensus', label: '投票共识度', value: voteConsensus },
+          { type: 'delta', label: 'δ', value: delta },
         ],
       },
       {

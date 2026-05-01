@@ -130,6 +130,8 @@ export async function computeListConfidence(
     select: {
       id: true,
       updatedAt: true,
+      upvoteCount: true,
+      downvoteCount: true,
       communityScores: {
         select: { userId: true, createdAt: true },
       },
@@ -140,7 +142,7 @@ export async function computeListConfidence(
     throw new Error(`List ${listId} not found`);
   }
 
-  // 3. 计算参数
+  // 4. 计算参数
   // N: 独立用户数
   const uniqueUserIds = new Set(list.communityScores.map(s => s.userId).filter(Boolean));
   const N = uniqueUserIds.size;
@@ -161,12 +163,17 @@ export async function computeListConfidence(
     : list.updatedAt;
   const daysSinceLastVote = daysSince(lastVoteDate);
 
-  // 4. 计算
+  // voteConsensus: 投票共识度 upvoteRatio = upvotes / (upvotes + downvotes)
+  const totalVotes = list.upvoteCount + list.downvoteCount;
+  const voteConsensus = totalVotes > 0 ? list.upvoteCount / totalVotes : 0;
+
+  // 4.5 计算置信度
   const params: ConfidenceParams = {
     N,
     tau,
     sentiment,
     daysSinceLastVote,
+    voteConsensus,
   };
 
   const confidence = computeConfidence(params);

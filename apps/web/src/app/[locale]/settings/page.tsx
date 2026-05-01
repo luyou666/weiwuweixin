@@ -28,8 +28,7 @@ function Toggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <button
-      type="button"
+    <button type="button"
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
@@ -64,7 +63,7 @@ function StampToast({ visible }: { visible: boolean }) {
           transition={{ duration: 0.25 }}
         >
           {/* 半透明遮罩 */}
-          <div className="absolute inset-0 bg-[rgba(26,26,36,0.25)]" />
+          <div className="absolute inset-0 bg-[rgba(26,26,36,0.25)] pointer-events-none" />
 
           {/* 墨迹扩散 */}
           <motion.div
@@ -219,7 +218,7 @@ export default function SettingsPage() {
         <nav className="mb-xl">
           <div className="flex gap-sm">
             {tabs.map((tab) => (
-              <button
+              <button type="button"
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={[
@@ -258,8 +257,7 @@ export default function SettingsPage() {
                   </Sticker>
                   <div>
                     <p className="text-sm text-ink-500">{t('avatarHint')}</p>
-                    <button
-                      type="button"
+                    <button type="button"
                       className="text-sm text-[var(--vermilion)] hover:underline mt-2xs cursor-pointer"
                     >
                       {t('avatarChange')}
@@ -422,8 +420,7 @@ export default function SettingsPage() {
 
                 <div className="flex gap-lg mb-xl">
                   {/* 中文 */}
-                  <button
-                    type="button"
+                  <button type="button"
                     onClick={() => setLang('zh')}
                     className={[
                       'relative flex-1 p-lg rounded-[var(--radius-md)]',
@@ -446,8 +443,7 @@ export default function SettingsPage() {
                   </button>
 
                   {/* English */}
-                  <button
-                    type="button"
+                  <button type="button"
                     onClick={() => setLang('en')}
                     className={[
                       'relative flex-1 p-lg rounded-[var(--radius-md)]',

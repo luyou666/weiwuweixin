@@ -236,7 +236,7 @@ function CommentItem({ comment, depth = 0, onReply, replyingTo }: CommentItemPro
 
           {/* 操作栏：回复按钮 */}
           <div className="flex items-center gap-3">
-            <button
+            <button type="button"
               className="text-[11px] font-medium transition-colors duration-150 hover:opacity-80"
               style={{ color: 'var(--ink-400, #999)' }}
               onClick={() => onReply(comment.id, comment.nickname)}
@@ -315,7 +315,7 @@ function ReplyEditor({ parentId, nickname, onSubmit, onCancel }: ReplyEditorProp
           if (e.key === 'Enter') handleSubmit();
         }}
       />
-      <button
+      <button type="button"
         onClick={handleSubmit}
         disabled={!text.trim()}
         className="text-xs px-2.5 py-1.5 rounded-[var(--radius-md, 8px)] font-medium transition-colors"
@@ -326,7 +326,7 @@ function ReplyEditor({ parentId, nickname, onSubmit, onCancel }: ReplyEditorProp
       >
         {t('submitReply') ?? '回复'}
       </button>
-      <button
+      <button type="button"
         onClick={onCancel}
         className="text-xs"
         style={{ color: 'var(--ink-400)' }}
@@ -454,7 +454,7 @@ export function CommentSection({
             style={{ fontFamily: 'var(--font-body)' }}
           />
           <div className="flex flex-col justify-end">
-            <button
+            <button type="button"
               onClick={handleSubmitComment}
               disabled={!newComment.trim() || isSubmitting}
               className="px-4 py-2 rounded-[var(--radius-md, 8px)] text-sm font-medium transition-colors"
@@ -517,7 +517,7 @@ export function CommentSection({
       {/* 加载更多 */}
       {hasMore && (
         <div className="text-center mt-4">
-          <button
+          <button type="button"
             onClick={() => setVisibleCount((c) => c + pageSize)}
             className="text-sm font-medium px-4 py-2 rounded-[var(--radius-md, 8px)] transition-colors"
             style={{

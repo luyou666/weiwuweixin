@@ -3,9 +3,9 @@
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { Card, ConfidenceSeal } from '@weiwuweixin/ui';
-import type { FeedList } from '@/lib/mock-data';
+import type { FeedList } from '@/lib/api';
 import type { ProfileSortMode } from '@/lib/api';
 
 /* ============================================================
@@ -35,7 +35,7 @@ export function ProfileLists({ lists, sortMode, onSortChange }: ProfileListsProp
         {SORT_OPTIONS.map((opt) => {
           const isActive = sortMode === opt.key;
           return (
-            <button
+            <button type="button"
               key={opt.key}
               onClick={() => onSortChange(opt.key)}
               className={[
@@ -140,7 +140,7 @@ function ProfileListCard({ list, index }: { list: FeedList; index: number }) {
         {/* 右侧操作区 */}
         <div className="flex-shrink-0 flex flex-col items-center justify-center gap-sm relative z-10">
           {/* 收藏按钮 */}
-          <button
+          <button type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBookmarked(!bookmarked); }}
             className={[
               'p-xs rounded-lg transition-all',

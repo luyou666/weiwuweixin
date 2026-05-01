@@ -3,66 +3,94 @@
 /* ============================================================
    围物为心 — 他人打分页 /list/[id]/score
    沉浸式打分体验：一次一屏，维度选择 + 同好按钮 + 反刷分
+   数据从真实 API 加载
    ============================================================ */
 
 import React from 'react';
 import { useParams } from 'next/navigation';
-import { ScoringFlow } from '@/components/scoring-flow/scoring-flow';
+import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
+import { ScoringFlow, type ScoringListData } from '@/components/scoring-flow/scoring-flow';
+import type { Dimension } from '@weiwuweixin/scoring';
+import { fetchListById, type ListDetail } from '@/lib/api';
 
-/* ── Mock 数据（后续替换为 API） ── */
-const mockScoringList = {
-  id: 'demo-list-1',
-  title: '2024年度最佳前端框架',
-  author: { id: 'u-author', nickname: '码上花开' },
-  items: [
-    { id: 'item-1', name: 'React' },
-    { id: 'item-2', name: 'Vue' },
-    { id: 'item-3', name: 'Svelte' },
-    { id: 'item-4', name: 'Solid' },
-    { id: 'item-5', name: 'Angular' },
-    { id: 'item-6', name: 'Astro' },
-    { id: 'item-7', name: 'Next.js' },
-    { id: 'item-8', name: 'Nuxt' },
-    { id: 'item-9', name: 'Remix' },
-    { id: 'item-10', name: 'Qwik' },
-  ],
-  authorDimensions: [
-    { id: 'ad-1', name: '开发体验', weight: 1, scale: 100 },
-    { id: 'ad-2', name: '生态成熟度', weight: 1, scale: 100 },
-    { id: 'ad-3', name: '性能表现', weight: 1, scale: 100 },
-  ],
-  standardDimensions: [
-    { id: 'sd-1', name: '实用性', weight: 1, scale: 100 },
-    { id: 'sd-2', name: '美感', weight: 1, scale: 100 },
-    { id: 'sd-3', name: '创新性', weight: 1, scale: 100 },
-    { id: 'sd-4', name: '易获得性', weight: 1, scale: 100 },
-    { id: 'sd-5', name: '耐久度', weight: 1, scale: 100 },
-  ],
-  // 作者对每个条目的打分（用于计算共识度）
-  authorScores: {
-    'item-1': { 'ad-1': 85, 'ad-2': 95, 'ad-3': 70 },
-    'item-2': { 'ad-1': 90, 'ad-2': 85, 'ad-3': 80 },
-    'item-3': { 'ad-1': 92, 'ad-2': 40, 'ad-3': 95 },
-    'item-4': { 'ad-1': 88, 'ad-2': 30, 'ad-3': 93 },
-    'item-5': { 'ad-1': 60, 'ad-2': 90, 'ad-3': 55 },
-    'item-6': { 'ad-1': 85, 'ad-2': 50, 'ad-3': 90 },
-    'item-7': { 'ad-1': 80, 'ad-2': 88, 'ad-3': 75 },
-    'item-8': { 'ad-1': 82, 'ad-2': 78, 'ad-3': 77 },
-    'item-9': { 'ad-1': 78, 'ad-2': 45, 'ad-3': 82 },
-    'item-10': { 'ad-1': 88, 'ad-2': 20, 'ad-3': 96 },
-  } as Record<string, Record<string, number>>,
-};
+/* ── 将 API 响应转为 ScoringFlow 所需格式 ── */
+function adaptListToScoring(list: ListDetail): ScoringListData {
+  /* 所有维度都作为"作者维度"；"标准维度"暂用固定通用维度 */
+  const authorDimensions: Dimension[] = list.dimensions.map((d) => ({
+    id: d.id,
+    name: d.name,
+    weight: d.weight,
+    scale: d.scale ?? 100,
+  }));
+
+  const standardDimensions: Dimension[] = [
+    { id: 'sd-practicality', name: '实用性', weight: 1, scale: 100 },
+    { id: 'sd-beauty', name: '美感', weight: 1, scale: 100 },
+    { id: 'sd-innovation', name: '创新性', weight: 1, scale: 100 },
+    { id: 'sd-accessibility', name: '易获得性', weight: 1, scale: 100 },
+    { id: 'sd-durability', name: '耐久度', weight: 1, scale: 100 },
+  ];
+
+  /* 将 items[].authorScores 转换为 Record<itemId, Record<dimId, value>> */
+  const authorScores: Record<string, Record<string, number>> = {};
+  for (const item of list.items) {
+    const itemScores: Record<string, number> = {};
+    for (const s of item.authorScores) {
+      itemScores[s.dimensionId] = s.value;
+    }
+    authorScores[item.id] = itemScores;
+  }
+
+  return {
+    id: list.id,
+    title: list.title,
+    author: { id: list.author.id, nickname: list.author.nickname },
+    items: list.items.map((i) => ({ id: i.id, name: i.name })),
+    authorDimensions,
+    standardDimensions,
+    authorScores,
+  };
+}
 
 export default function ScorePage() {
   const params = useParams();
   const listId = params.id as string;
+  const t = useTranslations('scoring');
 
-  // TODO: 根据 listId 从 API 加载榜单数据
-  void listId;
+  const { data: list, isLoading, error } = useQuery({
+    queryKey: ['list', listId],
+    queryFn: () => fetchListById(listId),
+    enabled: !!listId,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--paper)' }}>
+        <p className="text-[var(--ink-500)]">{t('guide')}</p>
+      </div>
+    );
+  }
+
+  if (error || !list) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: 'var(--paper)' }}>
+        <p className="text-[var(--vermilion)]">加载失败</p>
+        <button type="button"
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 rounded bg-[var(--ink-900)] text-white"
+        >
+          重试
+        </button>
+      </div>
+    );
+  }
+
+  const scoringData = adaptListToScoring(list);
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--paper)' }}>
-      <ScoringFlow list={mockScoringList} />
+      <ScoringFlow list={scoringData} />
     </div>
   );
 }

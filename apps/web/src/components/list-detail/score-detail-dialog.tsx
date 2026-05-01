@@ -99,7 +99,7 @@ export function ScoreDetailDialog({ item, open, onClose }: ScoreDetailDialogProp
                 >
                   {item.name}
                 </h2>
-                <button
+                <button type="button"
                   onClick={onClose}
                   className="text-[var(--ink-300)] hover:text-[var(--ink-900)] transition-colors text-lg leading-none p-1"
                 >

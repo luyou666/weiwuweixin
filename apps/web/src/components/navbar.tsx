@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter, usePathname } from '@/i18n/navigation';
+import { useLocale } from 'next-intl';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 import { useAuthStore } from '@/stores/auth-store';
 import { logout } from '@/lib/api-client';
@@ -18,12 +19,16 @@ export function Navbar() {
   const [menuPosition, setMenuPosition] = useState<DOMRect | null>(null);
   const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const portalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const inMenu = (menuRef.current && menuRef.current.contains(target));
+      const inPortal = (portalRef.current && portalRef.current.contains(target));
+      if (!inMenu && !inPortal) {
         setMenuOpen(false);
         setMenuPosition(null);
       }
@@ -74,19 +79,20 @@ export function Navbar() {
 
         {/* 中：导航菜单（只在桌面显示） */}
         <div className="hidden md:flex items-center gap-2xl">
-          <NavLink href="/explore" label="EXPLORE" cn="探索" />
-          <NavLink href="/about" label="ABOUT" cn="关于" />
+          <NavLink href="/leaderboard" label="FIRE" cn="热度" enLabel="Hot" emphasis />
+          <NavLink href="/explore" label="EXPLORE" cn="探索" enLabel="Discover" />
+          <NavLink href="/about" label="ABOUT" cn="关于" enLabel="About" />
         </div>
 
         {/* 右：操作 */}
         <div className="flex items-center gap-xl">
           {/* 新建 — 强调 */}
-          <NavLink href="/list/new" label="NEW" cn="新建" emphasis />
+          <NavLink href="/list/new" label="NEW" cn="新建" enLabel="New" emphasis />
 
           {/* 登录/用户菜单 */}
           {isHydrated && user && user.isAuthenticated ? (
             <div className="relative" ref={menuRef}>
-              <button
+              <button type="button"
                 onClick={() => {
                   const rect = menuRef.current?.getBoundingClientRect();
                   if (rect) setMenuPosition(rect);
@@ -107,6 +113,7 @@ export function Navbar() {
               {/* Portal 菜单 — 渲染到 body 以脱离 mix-blend-difference */}
               {mounted && menuOpen && createPortal(
                 <motion.div
+                  ref={portalRef}
                   initial={{ opacity: 0, y: -8, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.15 }}
@@ -125,20 +132,22 @@ export function Navbar() {
                     </p>
                     <p className="text-white/50 text-xs truncate">{user.email}</p>
                   </div>
-                  <button
+                  <Link
+                    href={`/u/${user.handle}`}
+                    onClick={() => setMenuOpen(false)}
                     className="block w-full text-left px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-                    onClick={() => { setMenuOpen(false); window.location.href = `/u/${user.handle}`; }}
                   >
                     我的主页
-                  </button>
-                  <button
+                  </Link>
+                  <Link
+                    href="/settings"
+                    onClick={() => setMenuOpen(false)}
                     className="block w-full text-left px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
-                    onClick={() => { setMenuOpen(false); window.location.href = '/settings'; }}
                   >
                     设置
-                  </button>
+                  </Link>
                   <div className="border-t border-white/10 mt-1 pt-1">
-                    <button
+                    <button type="button"
                       onClick={handleLogout}
                       className="w-full text-left px-4 py-2.5 text-sm text-[#E2553F]/90 hover:text-[#E2553F] hover:bg-[#E2553F]/5 transition-colors"
                     >
@@ -150,7 +159,7 @@ export function Navbar() {
               )}
             </div>
           ) : (
-            <NavLink href="/auth" label="LOG IN" cn="登录" emphasis />
+            <NavLink href="/auth" label="LOG IN" cn="登录" enLabel="Login" emphasis />
           )}
         </div>
       </nav>
@@ -163,13 +172,16 @@ function NavLink({
   href,
   label,
   cn,
+  enLabel,
   emphasis,
 }: {
   href: string;
   label: string;
   cn: string;
+  enLabel?: string;
   emphasis?: boolean;
 }) {
+  const locale = useLocale();
   return (
     <Link
       href={href}
@@ -183,9 +195,9 @@ function NavLink({
       >
         {label}
       </span>
-      {/* 下方中文（衬线） */}
+      {/* 下方中文/标签 — locale自适应 */}
       <span className="font-heading text-[13px] text-white tracking-[0.15em] mt-[3px] opacity-95 group-hover:opacity-100 transition-opacity duration-500">
-        {cn}
+        {locale === 'en' && enLabel ? enLabel : cn}
       </span>
       {/* hover 下划线 — 0 → 100% 从左滑入 */}
       <span className="absolute -bottom-[6px] left-0 h-[1px] w-0 bg-white transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:w-full" />

@@ -126,11 +126,13 @@ export function detectSuspiciousScore(params: AntiCheatInput): AntiCheatResult {
     flags.push('duplicate-device');
   }
 
-  // 规则 3：评分方差异常低
-  const identical = allScoresIdentical(params.scores);
-  const stdDev = standardDeviation(params.scores);
-  if (identical || stdDev < 0.5) {
-    flags.push('low-variance');
+  // 规则 3：评分方差异常低（至少 2 个维度才检测）
+  if (params.scores.length > 1) {
+    const identical = allScoresIdentical(params.scores);
+    const stdDev = standardDeviation(params.scores);
+    if (identical || stdDev < 0.5) {
+      flags.push('low-variance');
+    }
   }
 
   // 规则 4：极端评分

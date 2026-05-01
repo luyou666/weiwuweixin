@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion';
 
 const EASE_CURTAIN = [0.76, 0, 0.24, 1] as const;
-
 export function PageTransition() {
   return (
     <>
@@ -13,6 +12,11 @@ export function PageTransition() {
         initial={{ scaleY: 1 }}
         animate={{ scaleY: 0 }}
         transition={{ duration: 1.0, ease: EASE_CURTAIN, delay: 0.3 }}
+        onAnimationComplete={() => {
+          // 动画结束后设为 pointer-events-none，防止遮挡页面交互
+          // framer-motion scaleY:0 仍占据层叠空间
+        }}
+        style={{ pointerEvents: 'none' }}
       />
       {/* 第二道幕：黑底，后退场 */}
       <motion.div
@@ -20,6 +24,7 @@ export function PageTransition() {
         initial={{ scaleY: 1 }}
         animate={{ scaleY: 0 }}
         transition={{ duration: 1.0, ease: EASE_CURTAIN, delay: 0.4 }}
+        style={{ pointerEvents: 'none' }}
       />
     </>
   );

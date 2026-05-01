@@ -231,6 +231,13 @@ export function ConfidencePanel({ params, overrideValue, className = '' }: Confi
             icon: '💬',
             color: 'var(--apricot, #E8A849)',
           });
+        } else if (child.type === 'vote-consensus-factor') {
+          result.push({
+            label: '👍 投票共识',
+            value: child.value as number,
+            icon: '👍',
+            color: 'var(--vermilion)',
+          });
         } else if (child.type === 'time-decay') {
           result.push({
             label: '⏳ 时间衰减',

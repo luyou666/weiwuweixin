@@ -23,6 +23,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       email: string;
       password: string;
       nickname?: string;
+      displayName?: string;
       handle?: string;
       deviceId?: string;
     };
@@ -41,7 +42,9 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       },
     },
   }, async (req, reply) => {
-    const { email, password, nickname, handle, deviceId } = req.body;
+    const { email, password, nickname: rawNickname, displayName, handle, deviceId } = req.body;
+    // displayName 是 nickname 的别名（兼容不同前端/API 客户端）
+    const nickname = rawNickname || displayName;
 
     // 检查邮箱是否已注册
     const existing = await app.prisma.account.findUnique({

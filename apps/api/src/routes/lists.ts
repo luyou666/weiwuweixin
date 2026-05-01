@@ -5,6 +5,8 @@
 import { FastifyPluginAsync } from 'fastify';
 import { Visibility } from '@prisma/client';
 import { cache, CacheKeys, CACHE_TTL } from '../services/cache';
+import { computeListConfidence } from '../services/confidence';
+import type { ConfidenceParams } from '@weiwuweixin/scoring';
 
 export const listRoutes: FastifyPluginAsync = async (app) => {
   // ── GET /lists — 榜单列表（支持 category, sort, search）──────────
@@ -19,6 +21,7 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
           authorId: { type: 'string' },
           sort: { type: 'string', enum: ['latest', 'popular', 'confidence'] },
           search: { type: 'string' },
+          categories: { type: 'array', items: { type: 'string' } },
         },
       },
       response: {
@@ -41,6 +44,7 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
       authorId?: string;
       sort?: string;
       search?: string;
+      categories?: string[];
     };
 
     const {
@@ -50,18 +54,54 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
       authorId,
       sort = 'latest',
       search,
+      categories,
     } = query;
 
     const where: Record<string, unknown> = {};
     if (visibility) where.visibility = visibility;
     if (authorId) where.authorId = authorId;
 
-    // 搜索
+    // 搜索 — 支持多关键词 OR 匹配
     if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { subtitle: { contains: search, mode: 'insensitive' } },
-      ];
+      const keywords = search.split(/\s+/).filter(k => k.length > 0);
+      if (keywords.length === 1) {
+        where.OR = [
+          { title: { contains: keywords[0], mode: 'insensitive' } },
+          { subtitle: { contains: keywords[0], mode: 'insensitive' } },
+        ];
+      } else if (keywords.length > 1) {
+        // 多关键词 OR: 每个关键词在 title 或 subtitle 中匹配
+        where.OR = keywords.flatMap(kw => [
+          { title: { contains: kw, mode: 'insensitive' } },
+          { subtitle: { contains: kw, mode: 'insensitive' } },
+        ]);
+      }
+    }
+
+    // 分类筛选: 英文ID→中文关键词映射(与前端 explore 的 categoryKeywordMap 对齐)
+    if (categories && categories.length > 0) {
+      const CATEGORY_KW: Record<string, string[]> = {
+        movie: ['影视', '电影', '动画', '日剧', '纪录片'],
+        music: ['音乐', '华语', '古典', '专辑'],
+        food: ['美食', '冰饮', '咖啡', '纪录片'],
+        travel: ['旅行', '京都', '散步', '红叶'],
+        tech: ['科技', '前端', 'AI', '深度学习', '技术', '框架'],
+        book: ['读书', '推理', '宋词', '诗词', '书籍', '文学'],
+        sports: ['运动', '跑步', '健身', '居家'],
+      };
+      const flatKeywords = categories.flatMap(c => CATEGORY_KW[c] ?? [c]);
+      if (flatKeywords.length > 0) {
+        const catOr = flatKeywords.map(kw => [
+          { title: { contains: kw, mode: 'insensitive' } },
+          { subtitle: { contains: kw, mode: 'insensitive' } },
+        ]).flat();
+        // 如果已有搜索条件，合并; 否则直接赋值
+        if (where.OR) {
+          where.OR = [...(where.OR as any[]), ...catOr];
+        } else {
+          where.OR = catOr;
+        }
+      }
     }
 
     // 排序
@@ -71,13 +111,16 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
         orderBy = { voteCount: 'desc' };
         break;
       case 'confidence':
-        orderBy = { voteCount: 'desc' };
+        // confidence 是计算值(0-1)，无对应字段；用评分参与人数近似排序
+        orderBy = { viewCount: 'desc' };
         break;
       default:
         orderBy = { createdAt: 'desc' };
     }
 
-    const cacheKey = `lists:${JSON.stringify(query)}:${page}:${pageSize}`;
+    // 为探索/瀑布流统一计算置信度（与 enrichList 公式一致）
+    // 使用更短的 TTL，确保缓存不会让旧数据污染置信度
+    const cacheKey = `lists:v2:${JSON.stringify(query)}:${page}:${pageSize}`;
 
     const result = await cache.withCache(
       cacheKey,
@@ -88,7 +131,21 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
             skip: (page - 1) * pageSize,
             take: pageSize,
             orderBy,
-            include: {
+            select: {
+              id: true,
+              title: true,
+              subtitle: true,
+              algorithmId: true,
+              voteCount: true,
+              viewCount: true,
+              upvoteCount: true,
+              downvoteCount: true,
+              createdAt: true,
+              updatedAt: true,
+              coverUrl: true,
+              note: true,
+              scale: true,
+              visibility: true,
               author: { select: { id: true, nickname: true, handle: true, avatarUrl: true } },
               _count: { select: { items: true, comments: true, communityScores: true } },
               dimensions: { select: { id: true, name: true, weight: true } },
@@ -96,7 +153,22 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
           }),
           app.prisma.list.count({ where }),
         ]);
-        return { data, total, page, pageSize };
+
+        // 后端统一计算置信度（与 explore calcConfidence / enrichList 完全一致）
+        const enriched = data.map(item => {
+          const scoreCount = item._count.communityScores ?? 0;
+          const upvotes = item.upvoteCount ?? 0;
+          const downvotes = item.downvoteCount ?? 0;
+          const totalVotes = upvotes + downvotes;
+          const voteRatio = totalVotes > 0 ? upvotes / totalVotes : 0;
+          const base = scoreCount > 0 ? 0.2 : 0.05;
+          const participationBoost = Math.min(0.4, (scoreCount / 30) * 0.2);
+          const consensusBoost = totalVotes > 0 ? Math.min(0.3, voteRatio * 0.3) : 0;
+          const confidence = Math.min(0.99, Math.max(0.05, base + participationBoost + consensusBoost));
+          return { ...item, confidence };
+        });
+
+        return { data: enriched, total, page, pageSize };
       },
       CACHE_TTL.LIST,
     );
@@ -166,8 +238,38 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
         : 0,
     };
 
+    // 榜单级投票共识度: upvoteRatio = upvotes / (upvotes + downvotes)
+    const totalListVotes = list.upvoteCount + list.downvoteCount;
+    const voteConsensus = totalListVotes > 0 ? list.upvoteCount / totalListVotes : 0;
+
+    // 探索页一致置信度（0-1，与 calcConfidence/enrichList 同公式）
+    const scoreCount = list.communityScores.length;
+    const exploreBase = scoreCount > 0 ? 0.2 : 0.05;
+    const exploreParticipationBoost = Math.min(0.4, (scoreCount / 30) * 0.2);
+    const exploreConsensusBoost = totalListVotes > 0 ? Math.min(0.3, voteConsensus * 0.3) : 0;
+    const exploreConfidence = Math.min(0.99, Math.max(0.05,
+      exploreBase + exploreParticipationBoost + exploreConsensusBoost
+    ));
+
+    // 引擎置信度（0-100，由 scoring 引擎计算，保留用于 confidence-panel 因子展示）
+    let engineConfidence: number | null = null;
+    let engineParams: ConfidenceParams | null = null;
+    try {
+      const result = await computeListConfidence(app.prisma, id, true);
+      engineConfidence = result.confidence;
+      engineParams = result.params;
+    } catch {
+      // confidence 计算失败不影响列表返回
+    }
+
     return {
       ...list,
+      // 探索页一致置信度（0-1，与话题聚合/瀑布流同公式）
+      confidence: exploreConfidence,
+      // 引擎置信度（0-100，scoring 引擎 sigmoid 公式，保留用于详情分析）
+      engineConfidence,
+      confidenceParams: engineParams ?? null,
+      voteConsensus,
       stats: {
         community: communityStats,
         author: authorStats,
@@ -250,7 +352,13 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
     const { id } = req.params as { id: string };
     const body = req.body as Record<string, unknown>;
 
-    // TODO: 检查是否是作者
+    // 检查是否是作者
+    const existing = await app.prisma.list.findUnique({ where: { id }, select: { authorId: true } });
+    if (!existing) return _reply.code(404).send({ error: 'List not found' });
+    const userId = (req as any).user?.id ?? (req as any).authUser?.id;
+    if (!userId || userId !== existing.authorId) {
+      return _reply.code(403).send({ error: '只有作者可以编辑此榜单' });
+    }
 
     try {
       const list = await app.prisma.list.update({
@@ -275,7 +383,13 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
   app.delete('/:id', async (req, _reply) => {
     const { id } = req.params as { id: string };
 
-    // TODO: 验证是作者 (request.user.id === list.authorId)
+    // 验证是作者
+    const existing = await app.prisma.list.findUnique({ where: { id }, select: { authorId: true } });
+    if (!existing) return _reply.code(404).send({ error: 'List not found' });
+    const userId = (req as any).user?.id ?? (req as any).authUser?.id;
+    if (!userId || userId !== existing.authorId) {
+      return _reply.code(403).send({ error: '只有作者可以删除此榜单' });
+    }
 
     try {
       await app.prisma.list.delete({ where: { id } });

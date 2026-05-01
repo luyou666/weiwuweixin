@@ -15,7 +15,7 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { ConfidenceSeal, EmptyState, LoadingState, ErrorState } from '@weiwuweixin/ui';
 import { fetchFeedLists } from '@/lib/api';
-import type { FeedList } from '@/lib/mock-data';
+import type { FeedList } from '@/lib/api';
 import { Marquee } from '@/components/marquee';
 import { HeroMeta } from '@/components/hero-meta';
 import { WordCycler } from '@/components/word-cycler';
@@ -525,7 +525,7 @@ function HeroSection() {
             {t('heroLine3Bold')}{t('heroLine3')} / {t('heroLine4')}
           </motion.p>
           {/* §2.7 可点击滚动指示器 */}
-          <button
+          <button type="button"
             onClick={() => {
               document.querySelector('#feed')?.scrollIntoView({ behavior: 'smooth' });
             }}
