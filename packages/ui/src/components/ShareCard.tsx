@@ -577,7 +577,7 @@ function DataMatrixLayout({
         borderBottom: `1px solid ${t.divider}`,
       }}>
         <div style={{
-          width: isPortrait ? 60 : 44,
+          width: (isPortrait ? 60 : 44) * s,
           fontSize: (isPortrait ? 8 : 6) * s,
           color: t.textMuted,
           letterSpacing: 3,
@@ -624,7 +624,7 @@ function DataMatrixLayout({
           </div>
         ))}
         <div style={{
-          width: isPortrait ? 70 : 52,
+          width: (isPortrait ? 70 : 52) * s,
           textAlign: 'right',
           fontSize: (isPortrait ? 8 : 6) * s,
           color: t.textMuted,
@@ -668,7 +668,7 @@ function DataMatrixLayout({
 
               {/* Rank序号 */}
               <div style={{
-                width: isPortrait ? 60 : 44,
+                width: (isPortrait ? 60 : 44) * s,
                 display: 'flex', position: 'relative', zIndex: 1,
               }}>
                 <div style={{
@@ -737,7 +737,7 @@ function DataMatrixLayout({
 
               {/* Total */}
               <div style={{
-                width: isPortrait ? 70 : 52, textAlign: 'right',
+                width: (isPortrait ? 70 : 52) * s, textAlign: 'right',
                 position: 'relative', zIndex: 1,
               }}>
                 <span style={{
@@ -988,7 +988,7 @@ function HyperMatrixLayout({
       >
         <div
           style={{
-            width: isPortrait ? 48 : 28,
+            width: (isPortrait ? 48 : 28) * s,
             fontSize: (isPortrait ? 7 : 5) * s,
             color: textMuted,
             letterSpacing: 2,
@@ -1042,7 +1042,7 @@ function HyperMatrixLayout({
         ))}
         <div
           style={{
-            width: isPortrait ? 64 : 40,
+            width: (isPortrait ? 64 : 40) * s,
             textAlign: 'right',
             fontSize: (isPortrait ? 7 : 5) * s,
             color: textMuted,
@@ -1074,7 +1074,7 @@ function HyperMatrixLayout({
               {/* —— 排名徽章 —— */}
               <div
                 style={{
-                  width: isPortrait ? 48 : 28,
+                  width: (isPortrait ? 48 : 28) * s,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1176,7 +1176,7 @@ function HyperMatrixLayout({
               {/* —— 综合得分 —— */}
               <div
                 style={{
-                  width: isPortrait ? 64 : 40,
+                  width: (isPortrait ? 64 : 40) * s,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'flex-end',
