@@ -19,7 +19,7 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
           pageSize: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
           visibility: { type: 'string', enum: ['PUBLIC', 'LINK_ONLY', 'PRIVATE'] },
           authorId: { type: 'string' },
-          sort: { type: 'string', enum: ['latest', 'popular', 'confidence'] },
+          sort: { type: 'string', enum: ['latest', 'popular', 'confidence', 'diverse'] },
           search: { type: 'string' },
           categories: { type: 'array', items: { type: 'string' } },
         },
@@ -292,6 +292,7 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
           note: { type: 'string', maxLength: 140 },
           dimensions: { type: 'array' },
           items: { type: 'array' },
+          authorScores: { type: 'array', items: { type: 'array', items: { type: 'number' } } },
         },
       },
     },
@@ -305,6 +306,7 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
       note?: string;
       dimensions?: { name: string; weight?: number; scale?: number }[];
       items?: { name: string; note?: string; url?: string; rank?: number }[];
+      authorScores?: number[][];
     };
 
     // 由 device-auth 中间件注入
@@ -326,11 +328,42 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
           ? { create: body.items.map((item, idx) => ({ name: item.name, note: item.note, url: item.url, rank: item.rank ?? idx + 1 })) }
           : undefined,
       },
-      include: { author: { select: { id: true, nickname: true, handle: true, avatarUrl: true } }, dimensions: true, items: true },
+      include: { author: { select: { id: true, nickname: true, handle: true, avatarUrl: true } }, dimensions: true, items: { include: { authorScores: true } } },
     });
+
+    // 创建作者的评分记录（如果有）
+    if (body.authorScores && list.items.length > 0 && list.dimensions.length > 0) {
+      const authorScoreData = [];
+      for (let itemIdx = 0; itemIdx < list.items.length; itemIdx++) {
+        for (let dimIdx = 0; dimIdx < list.dimensions.length; dimIdx++) {
+          const value = body.authorScores[itemIdx]?.[dimIdx];
+          if (value != null && value > 0) {
+            authorScoreData.push({
+              value,
+              userId: authorId,
+              listId: list.id,
+              dimensionId: list.dimensions[dimIdx].id,
+              itemId: list.items[itemIdx].id,
+            });
+          }
+        }
+      }
+      if (authorScoreData.length > 0) {
+        await app.prisma.authorScore.createMany({ data: authorScoreData });
+      }
+    }
 
     // Invalidate list caches
     await cache.delPattern('lists:*');
+
+    // 如果有评分记录，重新查询以包含它们
+    if (body.authorScores) {
+      const listWithScores = await app.prisma.list.findUnique({
+        where: { id: list.id },
+        include: { author: { select: { id: true, nickname: true, handle: true, avatarUrl: true } }, dimensions: true, items: { include: { authorScores: true } } },
+      });
+      return _reply.code(201).send(listWithScores);
+    }
 
     return _reply.code(201).send(list);
   });

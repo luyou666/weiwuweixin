@@ -168,7 +168,7 @@ function TopicChip({
         borderBottom: active ? '2px solid #000' : '2px solid transparent',
       }}
     >
-      {agg.topicName}
+      {agg.topicName}{' '}
       <span className="ml-1.5 text-[10px]" style={{ color: active ? '#000' : 'rgba(0,0,0,0.2)' }}>
         {agg.mergedCount}
       </span>

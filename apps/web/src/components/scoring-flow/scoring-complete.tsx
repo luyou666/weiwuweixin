@@ -25,6 +25,8 @@ interface ScoringCompleteProps {
   onLikeWeightChange: (w: number) => void;
   listId: string;
   listTitle: string;
+  /** 评分提交错误信息（null 表示成功） */
+  submissionError?: string | null;
 }
 
 /** 共识度等级 */
@@ -52,6 +54,7 @@ export function ScoringComplete({
   onLikeWeightChange,
   listId,
   listTitle,
+  submissionError,
 }: ScoringCompleteProps) {
   const t = useTranslations('scoring.complete');
   const [showStamp, setShowStamp] = useState(false);
@@ -260,6 +263,26 @@ export function ScoringComplete({
             transition={{ delay: 1.2 }}
           >
             {t('penaltyWarning')}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── 提交错误提示 ── */}
+      <AnimatePresence>
+        {submissionError && (
+          <motion.div
+            className="px-4 py-2 rounded-lg text-[var(--text-sm)]"
+            style={{
+              color: 'var(--vermilion)',
+              background: 'rgba(226,85,63,0.08)',
+              border: '1px solid rgba(226,85,63,0.25)',
+            }}
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ delay: 1.2 }}
+          >
+            ⚠️ {t('submissionError', { fallback: '评分提交失败，请稍后重试' })}
           </motion.div>
         )}
       </AnimatePresence>

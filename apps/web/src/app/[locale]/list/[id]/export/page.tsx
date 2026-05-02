@@ -155,6 +155,7 @@ export default function ExportPage() {
   const [entryCount, setEntryCount] = useState(5);
   const [accentHue, setAccentHue] = useState(0);
   const [fontScale, setFontScale] = useState(1); // 字号缩放 0.5~2.0
+  const [activePreset, setActivePreset] = useState<string | null>(null); // 当前激活的预设按钮
   const [coverUrl, setCoverUrl] = useState('');
   const [coverPreview, setCoverPreview] = useState('');
   const [isExporting, setIsExporting] = useState(false);
@@ -612,55 +613,38 @@ export default function ExportPage() {
             <CollapsibleSection title="🔤 字体大小 FONT SIZE" defaultOpen={true}>
               <div className="mt-2 space-y-3">
                 {/* 一键预设 */}
-                <div className="flex gap-1.5">
+                <div className="flex gap-0.5">
                   {([
-                    { label: 'S', scale: 0.75, zh: '小' },
-                    { label: 'M', scale: 1.0, zh: '标准' },
-                    { label: 'L', scale: 1.3, zh: '大' },
-                    { label: 'XL', scale: 1.6, zh: '特大' },
-                  ] as const).map(p => (
-                    <button
-                      key={p.label}
-                      type="button"
-                      onClick={() => setFontScale(p.scale)}
-                      className={`flex-1 py-1.5 rounded-md text-[10px] font-semibold transition-all duration-200 border ${
-                        Math.abs(fontScale - p.scale) < 0.03
-                          ? 'bg-purple-500/12 border-purple-400/30 text-purple-300'
-                          : 'bg-white/[0.02] border-white/[0.05] text-white/30 hover:text-white/55 hover:border-white/[0.1]'
-                      }`}
-                      style={{ fontFamily: "'JetBrains Mono', 'SF Mono', monospace" }}
-                    >
-                      <span>{p.label}</span>
-                      <span className="text-[8px] ml-1 opacity-50">{p.zh}</span>
-                    </button>
-                  ))}
-                </div>
-
-                {/* 滑块 + ± 微调 */}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setFontScale(prev => Math.max(0.5, +(prev - 0.02).toFixed(2)))}
-                    className="w-5 h-5 flex items-center justify-center rounded text-white/25 hover:text-white/60 text-[11px] leading-none select-none transition-colors"
-                  >−</button>
-                  <div className="flex-1 relative">
-                    <input
-                      type="range"
-                      min={0.5} max={2.0} step={0.02}
-                      value={fontScale}
-                      onChange={(e) => setFontScale(Number(e.target.value))}
-                      className="w-full h-1.5 appearance-none rounded-full bg-white/[0.08] cursor-pointer"
-                      style={{ accentColor: fontScale === 1 ? '#A78BFA' : fontScale > 1 ? '#C084FC' : '#7C3AED' }}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setFontScale(prev => Math.min(2.0, +(prev + 0.02).toFixed(2)))}
-                    className="w-5 h-5 flex items-center justify-center rounded text-white/25 hover:text-white/60 text-[11px] leading-none select-none transition-colors"
-                  >+</button>
-                  <span className="text-[10px] text-white/30 w-10 text-right font-mono tracking-tight tabular-nums">
-                    {fontScale.toFixed(2)}×
-                  </span>
+                    { id: 'S', scale: 0.75 },
+                    { id: 'M', scale: 1.0 },
+                    { id: 'L', scale: 1.3 },
+                    { id: 'XL', scale: 1.6 },
+                  ] as const).map(p => {
+                    const isActive = activePreset === p.id;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          if (isActive) {
+                            setFontScale(1.0);
+                            setActivePreset(null);
+                          } else {
+                            setFontScale(p.scale);
+                            setActivePreset(p.id);
+                          }
+                        }}
+                        className={`flex-1 py-1 rounded text-[7px] font-bold transition-all duration-200 border ${
+                          isActive
+                            ? 'bg-purple-500/12 border-purple-400/30 text-purple-300'
+                            : 'bg-white/[0.02] border-white/[0.05] text-white/20 hover:text-white/45 hover:border-white/[0.1]'
+                        }`}
+                        style={{ fontFamily: "'JetBrains Mono', 'SF Mono', monospace", letterSpacing: '0.05em' }}
+                      >
+                        {isActive ? '✓' : p.id}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* 刻度尺 */}
@@ -672,13 +656,40 @@ export default function ExportPage() {
                       <button
                         key={label}
                         type="button"
-                        onClick={() => setFontScale(markScale)}
+                        onClick={() => { setFontScale(markScale); setActivePreset(null); }}
                         className={`text-[8px] transition-colors ${
                           isNear ? 'text-purple-300/80 font-semibold' : 'text-white/12 hover:text-white/25'
                         }`}
                       >{label}</button>
                     );
                   })}
+                </div>
+
+                {/* 滑块 + ± 微调 */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setFontScale(prev => Math.max(0.5, +(prev - 0.02).toFixed(2))); setActivePreset(null); }}
+                    className="w-5 h-5 flex items-center justify-center rounded text-white/25 hover:text-white/60 text-[11px] leading-none select-none transition-colors"
+                  >−</button>
+                  <div className="flex-1 relative">
+                    <input
+                      type="range"
+                      min={0.5} max={2.0} step={0.02}
+                      value={fontScale}
+                      onChange={(e) => { setFontScale(Number(e.target.value)); setActivePreset(null); }}
+                      className="w-full h-1.5 appearance-none rounded-full bg-white/[0.08] cursor-pointer"
+                      style={{ accentColor: activePreset ? '#A78BFA' : fontScale === 1 ? '#A78BFA' : fontScale > 1 ? '#C084FC' : '#7C3AED' }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setFontScale(prev => Math.min(2.0, +(prev + 0.02).toFixed(2))); setActivePreset(null); }}
+                    className="w-5 h-5 flex items-center justify-center rounded text-white/25 hover:text-white/60 text-[11px] leading-none select-none transition-colors"
+                  >+</button>
+                  <span className="text-[10px] text-white/30 w-10 text-right font-mono tracking-tight tabular-nums">
+                    {fontScale.toFixed(2)}×
+                  </span>
                 </div>
               </div>
             </CollapsibleSection>

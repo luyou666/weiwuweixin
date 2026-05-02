@@ -303,30 +303,7 @@ export default function NewListPage() {
             >
               {t('nextStep')}
             </motion.button>
-          ) : (
-            <motion.button type="button"
-              whileTap={{ scale: 0.96 }}
-              disabled={store.isSubmitting}
-              onClick={() => handleSubmit(store, router)}
-              className="px-9 py-3.5 rounded-full text-sm font-semibold text-white
-                bg-gradient-to-r from-[#D94A35] to-[#E56550]
-                hover:from-[#E56550] hover:to-[#D94A35]
-                shadow-[0_0_60px_rgba(217,74,53,0.2),0_0_20px_rgba(217,74,53,0.1)]
-                disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-500"
-            >
-              {store.isSubmitting ? (
-                <span className="flex items-center gap-2.5">
-                  <motion.span animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
-                    ⟳
-                  </motion.span>
-                  {t('creating')}
-                </span>
-              ) : (
-                t('createList')
-              )}
-            </motion.button>
-          )}
+          ) : <div />}
         </motion.div>
       </main>
     </div>
@@ -1039,8 +1016,41 @@ function StepFive() {
   const router = useRouter();
   const t = useTranslations('newList.stepFive');
 
-  const handlePublish = useCallback(() => {
-    handleSubmit(useListStore.getState(), router);
+  const handlePublish = useCallback(async () => {
+    const state = useListStore.getState();
+    state.setIsSubmitting(true);
+    try {
+      const scale = state.dimensions.length > 0 && state.dimensions[0].scale
+        ? (state.dimensions[0].scale === 100 ? '0-100'
+          : state.dimensions[0].scale === 10 ? '1-10'
+          : '1-5')
+        : '1-5';
+
+      const result = await createList({
+        title: state.title,
+        subtitle: state.subtitle,
+        algorithmId: state.algorithmId,
+        scale,
+        visibility: state.visibility,
+        dimensions: state.dimensions.map(d => ({
+          name: d.name || `维度${d.id}`,
+          weight: d.weight,
+          scale: d.scale,
+        })),
+        items: state.items.map((item, idx) => ({
+          name: item.name || `条目${idx + 1}`,
+          note: item.note || undefined,
+          rank: idx + 1,
+        })),
+        authorScores: state.scores.length > 0 ? state.scores : undefined,
+      });
+
+      state.reset();
+      router.push(`/list/${result.id}`);
+    } catch (err) {
+      state.setIsSubmitting(false);
+      console.error('创建榜单失败:', err);
+    }
   }, [router]);
 
   const scaleLabel = (dim: FormDimension) => {

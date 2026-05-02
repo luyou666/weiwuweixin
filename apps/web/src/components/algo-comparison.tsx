@@ -102,82 +102,51 @@ export function AlgoComparison({
             onClick={onClose}
           />
 
-          {/* 面板 */}
+          {/* 面板 — 上扬模态框，第一眼区域 */}
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-50 max-h-[85vh] overflow-y-auto bg-paper rounded-t-2xl shadow-2xl"
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
-            <div className="max-w-3xl mx-auto px-lg pt-lg pb-xl">
-              {/* 拖拽指示条 */}
-              <div className="flex justify-center mb-lg">
-                <div className="w-10 h-1 rounded-full bg-ink-100" />
-              </div>
+            <motion.div
+              className="relative w-full max-w-3xl max-h-[85vh] overflow-y-auto bg-[#0A0A14] rounded-2xl shadow-2xl border border-white/10"
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            >
+            <div className="px-lg pt-lg pb-xl">
 
               {/* 标题 */}
               <div className="flex items-center justify-between mb-lg">
                 <div>
-                  <h3 className="font-heading text-xl text-ink-900">
+                  <h3 className="font-heading text-xl text-white">
                     算法选择参考
                   </h3>
-                  <p className="text-sm text-ink-500 mt-xs">
+                  <p className="text-sm text-white/60 mt-xs">
                     根据你的场景，选择最合适的聚合方式
                   </p>
                 </div>
                 <button type="button"
                   onClick={onClose}
-                  className="text-ink-300 hover:text-ink-900 transition-colors text-xl leading-none p-xs"
+                  className="text-white/40 hover:text-white transition-colors text-xl leading-none p-xs"
                 >
                   ✕
                 </button>
               </div>
 
               {/* 重要提示 */}
-              <div className="mb-lg px-md py-sm rounded-md bg-rice border border-ink-100">
-                <p className="text-sm text-ink-700 leading-relaxed">
-                  💡 雷达图展示的是各算法的<span className="font-medium text-ink-900">特征倾向</span>，而非优劣。没有「最好」的算法，只有最适合你的。
+              <div className="mb-lg px-md py-sm rounded-md bg-white/5 border border-white/10">
+                <p className="text-sm text-white/70 leading-relaxed">
+                  💡 雷达图展示的是各算法的<span className="font-medium text-white">特征倾向</span>，而非优劣。没有「最好」的算法，只有最适合你的。
                 </p>
               </div>
 
-              {/* 算法对比简表 */}
+              {/* 场景选择（优先展示，确保首屏可见） */}
               <div className="mb-lg">
-                <h4 className="font-heading text-sm text-ink-700 mb-sm">
-                  算法一览
-                </h4>
-                <div className="space-y-sm">
-                  {ALGORITHM_METAS.map((algo) => (
-                    <div
-                      key={algo.id}
-                      className="flex items-start gap-md px-md py-sm rounded-md border border-ink-100 bg-paper hover:bg-rice transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-sm mb-xs">
-                          <span className="font-heading text-sm text-ink-900">
-                            {algo.name}
-                          </span>
-                        </div>
-                        <p className="text-xs text-ink-500 mb-xs">
-                          {algo.description}
-                        </p>
-                        <div className="flex flex-wrap gap-xs">
-                          <span className="text-xs px-xs py-3xs rounded bg-celadon/10 text-celadon-dark">
-                            适合：{(algo.recommendation ?? '').slice(0, 15)}…
-                          </span>
-                          <span className="text-xs px-xs py-3xs rounded bg-apricot/10 text-apricot-dark">
-                            短板：{(algo.cons ?? [])[0] ?? '—'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* 场景选择 */}
-              <div className="mb-lg">
-                <h4 className="font-heading text-sm text-ink-700 mb-sm">
+                <h4 className="font-heading text-sm text-white/70 mb-sm">
                   你的场景是什么？
                 </h4>
                 <div className="grid grid-cols-2 gap-sm">
@@ -188,21 +157,51 @@ export function AlgoComparison({
                       className={`
                         text-left px-md py-sm rounded-md border transition-all
                         ${selectedScene === scene.id
-                          ? 'border-vermilion bg-vermilion/5 shadow-sm'
-                          : 'border-ink-100 bg-paper hover:bg-rice'
+                          ? 'border-vermilion bg-vermilion/10 shadow-sm shadow-vermilion/20'
+                          : 'border-white/10 bg-white/5 hover:bg-white/10'
                         }
                       `}
                     >
                       <span className="text-lg mr-xs">{scene.emoji}</span>
-                      <span className="text-sm font-medium text-ink-900">
+                      <span className="text-sm font-medium text-white">
                         {scene.label}
                       </span>
                       {scene.id === 'unsure' && (
-                        <span className="ml-xs text-xs text-ink-300">
+                        <span className="ml-xs text-xs text-white/30">
                           推荐
                         </span>
                       )}
                     </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 算法对比简表（紧凑横向卡片） */}
+              <div className="mb-lg">
+                <h4 className="font-heading text-sm text-white/70 mb-sm">
+                  算法一览
+                </h4>
+                <div className="grid grid-cols-5 gap-xs">
+                  {ALGORITHM_METAS.map((algo) => (
+                    <div
+                      key={algo.id}
+                      className="flex flex-col px-xs py-sm rounded-md border border-white/10 bg-white/5 hover:bg-white/10 transition-colors cursor-default"
+                    >
+                      <span className="font-heading text-xs text-white mb-xs leading-tight">
+                        {algo.name}
+                      </span>
+                      <p className="text-[0.65rem] text-white/50 mb-xs leading-relaxed flex-1">
+                        {algo.description}
+                      </p>
+                      <div className="mt-auto space-y-3xs">
+                        <span className="block text-[0.65rem] px-xs py-3xs rounded bg-celadon/15 text-celadon-light">
+                          ✓ {(algo.recommendation ?? '').slice(0, 12)}
+                        </span>
+                        <span className="block text-[0.65rem] px-xs py-3xs rounded bg-apricot/15 text-apricot-light">
+                          ✗ {(algo.cons ?? [])[0] ?? '—'}
+                        </span>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -216,18 +215,18 @@ export function AlgoComparison({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                    className="px-md py-md rounded-md border-2 border-vermilion bg-vermilion/5"
+                    className="px-md py-md rounded-md border-2 border-vermilion bg-vermilion/10"
                   >
                     <div className="flex items-center gap-sm mb-xs">
                       <span className="text-vermilion text-lg">✦</span>
-                      <span className="font-heading text-lg text-ink-900">
+                      <span className="font-heading text-lg text-white">
                         推荐：{recommendedAlgo.name}
                       </span>
                     </div>
-                    <p className="text-sm text-ink-700 mb-sm">
+                    <p className="text-sm text-white/70 mb-sm">
                       {selectedSceneData.reason}
                     </p>
-                    <p className="text-xs text-ink-300 italic">
+                    <p className="text-xs text-white/40 italic">
                       这只是参考建议——你比算法更了解你的榜单。
                     </p>
                     <div className="mt-sm flex gap-sm">
@@ -236,13 +235,13 @@ export function AlgoComparison({
                           onSelectAlgo?.(selectedSceneData.recommendedAlgoId);
                           onClose?.();
                         }}
-                        className="px-md py-xs rounded-md bg-vermilion text-paper text-sm font-medium hover:bg-vermilion-dark transition-colors"
+                        className="px-md py-xs rounded-md bg-vermilion text-white text-sm font-medium hover:bg-vermilion-dark transition-colors"
                       >
                         采用此算法
                       </button>
                       <button type="button"
                         onClick={onClose}
-                        className="px-md py-xs rounded-md border border-ink-100 text-ink-500 text-sm hover:bg-rice transition-colors"
+                        className="px-md py-xs rounded-md border border-white/10 text-white/50 text-sm hover:bg-white/5 transition-colors"
                       >
                         我再想想
                       </button>
@@ -251,6 +250,7 @@ export function AlgoComparison({
                 )}
               </AnimatePresence>
             </div>
+          </motion.div>
           </motion.div>
         </>
       )}

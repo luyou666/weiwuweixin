@@ -485,8 +485,8 @@ function DataMatrixLayout({
       {data.coverUrl && (
         <div style={{
           width: '100%',
-          height: isPortrait ? 260 : 120,
-          marginBottom: isPortrait ? 24 : 14,
+            height: (isPortrait ? 260 : 120) * s,
+          marginBottom: (isPortrait ? 24 : 14) * s,
           overflow: 'hidden',
           position: 'relative',
           borderRadius: 0,
@@ -514,15 +514,15 @@ function DataMatrixLayout({
       {/* 技术标签行 */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: isPortrait ? 20 : 10,
+        marginBottom: (isPortrait ? 20 : 10) * s,
       }}>
         <div style={{
-          display: 'flex', alignItems: 'center', gap: isPortrait ? 12 : 8,
+          display: 'flex', alignItems: 'center', gap: (isPortrait ? 12 : 8) * s,
         }}>
           {/* 彩色竖线 */}
           <div style={{
-            width: isPortrait ? 3 : 2,
-            height: isPortrait ? 44 : 24,
+            width: (isPortrait ? 3 : 2) * s,
+            height: (isPortrait ? 44 : 24) * s,
             background: `linear-gradient(180deg, ${t.accent}, ${t.accentLight})`,
           }} />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -543,7 +543,7 @@ function DataMatrixLayout({
                 color: t.textMuted,
                 margin: 0,
                 marginTop: 4,
-                letterSpacing: 1,
+                letterSpacing: (1) * s,
                 fontFamily: t.fontFamily,
               }}>
                 {data.subtitle}
@@ -555,12 +555,12 @@ function DataMatrixLayout({
         {/* 右上角技术标签 */}
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
-          gap: 4,
+          gap: (4) * s,
         }}>
           <span style={{
             fontSize: (isPortrait ? 9 : 6) * s,
             color: t.textMuted,
-            letterSpacing: 3,
+            letterSpacing: (3) * s,
             textTransform: 'uppercase',
             fontFamily: "'JetBrains Mono', 'SF Mono', monospace",
           }}>
@@ -572,15 +572,15 @@ function DataMatrixLayout({
       {/* 表格表头 */}
       <div style={{
         display: 'flex', alignItems: 'center',
-        paddingBottom: isPortrait ? 8 : 5,
-        marginBottom: isPortrait ? 4 : 2,
+        paddingBottom: (isPortrait ? 8 : 5) * s,
+        marginBottom: (isPortrait ? 4 : 2) * s,
         borderBottom: `1px solid ${t.divider}`,
       }}>
         <div style={{
           width: (isPortrait ? 60 : 44) * s,
           fontSize: (isPortrait ? 8 : 6) * s,
           color: t.textMuted,
-          letterSpacing: 3,
+          letterSpacing: (3) * s,
           textTransform: 'uppercase',
           fontWeight: 700,
           fontFamily: "'JetBrains Mono', monospace",
@@ -591,7 +591,7 @@ function DataMatrixLayout({
           flex: isPortrait ? 2.5 : 3,
           fontSize: (isPortrait ? 8 : 6) * s,
           color: t.textMuted,
-          letterSpacing: 3,
+          letterSpacing: (3) * s,
           textTransform: 'uppercase',
           fontWeight: 700,
           fontFamily: "'JetBrains Mono', monospace",
@@ -602,12 +602,12 @@ function DataMatrixLayout({
           <div key={di} style={{
             flex: 1,
             display: 'flex', flexDirection: 'column',
-            alignItems: 'center', gap: 2,
+            alignItems: 'center', gap: (2) * s,
           }}>
             <span style={{
               fontSize: (isPortrait ? 7 : 5) * s,
               color: t.textMuted,
-              letterSpacing: 2,
+              letterSpacing: (2) * s,
               textTransform: 'uppercase',
               fontFamily: "'JetBrains Mono', monospace",
             }}>
@@ -628,7 +628,7 @@ function DataMatrixLayout({
           textAlign: 'right',
           fontSize: (isPortrait ? 8 : 6) * s,
           color: t.textMuted,
-          letterSpacing: 3,
+          letterSpacing: (3) * s,
           textTransform: 'uppercase',
           fontWeight: 700,
           fontFamily: "'JetBrains Mono', monospace",
@@ -660,7 +660,7 @@ function DataMatrixLayout({
                 fontFamily: t.titleFont,
                 pointerEvents: 'none',
                 lineHeight: 1,
-                letterSpacing: -4,
+                letterSpacing: (-4) * s,
                 opacity: isHigh ? 1 : 0.5,
               }}>
                 {String(entry.rank).padStart(2, '0')}
@@ -709,11 +709,11 @@ function DataMatrixLayout({
                   <div key={di} style={{
                     flex: 1, display: 'flex', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center',
-                    gap: isPortrait ? 3 : 2,
+                    gap: (isPortrait ? 3 : 2) * s,
                     padding: isPortrait ? '0 6px' : '0 4px',
                   }}>
                     <div style={{
-                      width: '100%', height: isPortrait ? 4 : 2,
+                      width: '100%', height: (isPortrait ? 4 : 2) * s,
                       background: t.divider, position: 'relative',
                     }}>
                       <div style={{
@@ -757,14 +757,14 @@ function DataMatrixLayout({
       {/* 底部信息 */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        paddingTop: isPortrait ? 14 : 8,
-        marginTop: isPortrait ? 8 : 4,
+        paddingTop: (isPortrait ? 14 : 8) * s,
+        marginTop: (isPortrait ? 8 : 4) * s,
         borderTop: `1px solid ${t.divider}`,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: isPortrait ? 10 : 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: (isPortrait ? 10 : 6) * s }}>
           <div style={{
-            width: isPortrait ? 32 : 20,
-            height: isPortrait ? 32 : 20,
+            width: (isPortrait ? 32 : 20) * s,
+            height: (isPortrait ? 32 : 20) * s,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: (isPortrait ? 12 : 8) * s,
             color: t.accent, fontWeight: 700,
@@ -775,7 +775,7 @@ function DataMatrixLayout({
           </div>
           <span style={{
             fontSize: (isPortrait ? 12 : 8) * s,
-            color: t.textSecondary, letterSpacing: 1,
+            color: t.textSecondary, letterSpacing: (1) * s,
             fontFamily: t.titleFont,
           }}>
             {data.author.nickname}
@@ -783,7 +783,7 @@ function DataMatrixLayout({
         </div>
         <div style={{
           fontSize: (isPortrait ? 7 : 5) * s,
-          color: t.textMuted, letterSpacing: 2,
+          color: t.textMuted, letterSpacing: (2) * s,
           fontFamily: "'JetBrains Mono', monospace",
         }}>
           {data.watermark}
@@ -864,7 +864,7 @@ function HyperMatrixLayout({
           top: 0,
           left: 0,
           right: 0,
-          height: isPortrait ? 2 : 1,
+          height: (isPortrait ? 2 : 1) * s,
           background: `linear-gradient(90deg, transparent 0%, ${accent} 20%, ${accentLight} 50%, ${accent} 80%, transparent 100%)`,
           opacity: 0.8,
         }}
@@ -892,8 +892,8 @@ function HyperMatrixLayout({
         <div
           style={{
             width: '100%',
-            height: isPortrait ? 180 : 80,
-            marginBottom: isPortrait ? 16 : 8,
+            height: (isPortrait ? 180 : 80) * s,
+            marginBottom: (isPortrait ? 16 : 8) * s,
             overflow: 'hidden',
             position: 'relative',
           }}
@@ -927,7 +927,7 @@ function HyperMatrixLayout({
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: 'space-between',
-          marginBottom: isPortrait ? 16 : 8,
+          marginBottom: (isPortrait ? 16 : 8) * s,
         }}
       >
         <div style={{ flex: 1 }}>
@@ -952,7 +952,7 @@ function HyperMatrixLayout({
                 color: textMuted,
                 margin: 0,
                 marginTop: 4,
-                letterSpacing: 1,
+                letterSpacing: (1) * s,
               }}
             >
               {data.subtitle}
@@ -965,7 +965,7 @@ function HyperMatrixLayout({
           style={{
             fontSize: (isPortrait ? 9 : 6) * s,
             color: accent,
-            letterSpacing: 2,
+            letterSpacing: (2) * s,
             fontWeight: 700,
             border: `1px solid ${accent}40`,
             padding: isPortrait ? '4px 10px' : '2px 6px',
@@ -981,8 +981,8 @@ function HyperMatrixLayout({
         style={{
           display: 'flex',
           alignItems: 'center',
-          paddingBottom: isPortrait ? 6 : 3,
-          marginBottom: isPortrait ? 2 : 1,
+          paddingBottom: (isPortrait ? 6 : 3) * s,
+          marginBottom: (isPortrait ? 2 : 1) * s,
           borderBottom: `1px solid ${divider}`,
         }}
       >
@@ -991,7 +991,7 @@ function HyperMatrixLayout({
             width: (isPortrait ? 48 : 28) * s,
             fontSize: (isPortrait ? 7 : 5) * s,
             color: textMuted,
-            letterSpacing: 2,
+            letterSpacing: (2) * s,
             fontWeight: 700,
           }}
         >
@@ -1002,7 +1002,7 @@ function HyperMatrixLayout({
             flex: 2,
             fontSize: (isPortrait ? 7 : 5) * s,
             color: textMuted,
-            letterSpacing: 2,
+            letterSpacing: (2) * s,
             fontWeight: 700,
           }}
         >
@@ -1016,7 +1016,7 @@ function HyperMatrixLayout({
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: 1,
+              gap: (1) * s,
             }}
           >
             <span
@@ -1024,7 +1024,7 @@ function HyperMatrixLayout({
                 fontSize: (isPortrait ? 8 : 5) * s,
                 color: text,
                 fontWeight: 600,
-                letterSpacing: 1,
+                letterSpacing: (1) * s,
               }}
             >
               [{dim.name}]
@@ -1046,7 +1046,7 @@ function HyperMatrixLayout({
             textAlign: 'right',
             fontSize: (isPortrait ? 7 : 5) * s,
             color: textMuted,
-            letterSpacing: 2,
+            letterSpacing: (2) * s,
             fontWeight: 700,
           }}
         >
@@ -1156,7 +1156,7 @@ function HyperMatrixLayout({
                       background: cellBg,
                       boxShadow: glow,
                       margin: isPortrait ? '4px 2px' : '2px 1px',
-                      borderRadius: isPortrait ? 2 : 1,
+                      borderRadius: (isPortrait ? 2 : 1) * s,
                     }}
                   >
                     <span
@@ -1180,7 +1180,7 @@ function HyperMatrixLayout({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'flex-end',
-                  paddingRight: isPortrait ? 0 : 2,
+                  paddingRight: (isPortrait ? 0 : 2) * s,
                 }}
               >
                 <span
@@ -1204,8 +1204,8 @@ function HyperMatrixLayout({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          paddingTop: isPortrait ? 10 : 5,
-          marginTop: isPortrait ? 6 : 3,
+          paddingTop: (isPortrait ? 10 : 5) * s,
+          marginTop: (isPortrait ? 6 : 3) * s,
           borderTop: `1px solid ${divider}`,
         }}
       >
@@ -1214,13 +1214,13 @@ function HyperMatrixLayout({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: isPortrait ? 8 : 4,
+            gap: (isPortrait ? 8 : 4) * s,
           }}
         >
           <div
             style={{
-              width: isPortrait ? 28 : 16,
-              height: isPortrait ? 28 : 16,
+              width: (isPortrait ? 28 : 16) * s,
+              height: (isPortrait ? 28 : 16) * s,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1236,7 +1236,7 @@ function HyperMatrixLayout({
             style={{
               fontSize: (isPortrait ? 11 : 7) * s,
               color: textSecondary,
-              letterSpacing: 1,
+              letterSpacing: (1) * s,
               fontFamily:
                 '"Inter", "Helvetica Neue", "PingFang SC", sans-serif',
             }}
@@ -1250,7 +1250,7 @@ function HyperMatrixLayout({
           style={{
             fontSize: (isPortrait ? 7 : 5) * s,
             color: 'rgba(255,59,48,0.06)',
-            letterSpacing: 2,
+            letterSpacing: (2) * s,
           }}
         >
           {data.watermark}

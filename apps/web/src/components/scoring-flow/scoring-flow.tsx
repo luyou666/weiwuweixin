@@ -9,6 +9,7 @@ import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import type { Dimension } from '@weiwuweixin/scoring';
+import { post } from '@/lib/api-client';
 import { DimensionChoice } from './dimension-choice';
 import { SingleItemScoring } from './single-item-scoring';
 import { ScoringProgress } from './scoring-progress';
@@ -68,6 +69,9 @@ export function ScoringFlow({ list }: { list: ScoringListData }) {
   /* ── 同好权重 ── */
   const [likeWeight, setLikeWeight] = useState<number | null>(null);
 
+  /* ── 提交错误 ── */
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+
   /* ── 进度 ── */
   const progress = useMemo(() => {
     if (phase === 'dimension-choice') return 0;
@@ -123,8 +127,34 @@ export function ScoringFlow({ list }: { list: ScoringListData }) {
       setPenalized(true);
     }
 
-    setPhase('complete');
-  }, []);
+    // 收集所有评分数据
+    const scoreEntries: { itemId: string; dimensionId: string; value: number }[] = [];
+    for (const [itemId, dimScores] of Object.entries(scores)) {
+      for (const [dimensionId, value] of Object.entries(dimScores)) {
+        scoreEntries.push({ itemId, dimensionId, value });
+      }
+    }
+
+    // 获取 deviceId
+    const deviceId = typeof window !== 'undefined'
+      ? localStorage.getItem('wwx-device-id') ?? undefined
+      : undefined;
+
+    // 提交到后端（失败不阻断流程）
+    post(`/api/lists/${list.id}/author-scores`, {
+      scores: scoreEntries,
+      durationMs: elapsed,
+      deviceId,
+    })
+      .then(() => {
+        setSubmissionError(null);
+        setPhase('complete');
+      })
+      .catch((err) => {
+        setSubmissionError(err instanceof Error ? err.message : '提交失败');
+        setPhase('complete');
+      });
+  }, [scores, list.id]);
 
   /* ── 计算共识度 ── */
   const consensus = useMemo(() => {
@@ -254,6 +284,7 @@ export function ScoringFlow({ list }: { list: ScoringListData }) {
                 onLikeWeightChange={setLikeWeight}
                 listId={list.id}
                 listTitle={list.title}
+                submissionError={submissionError}
               />
             </motion.div>
           )}

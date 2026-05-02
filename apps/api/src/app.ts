@@ -19,6 +19,7 @@ import { exploreRoutes } from './routes/explore';
 import { authRoutes } from './routes/auth';
 import { voteRoutes } from './routes/votes';
 import { leaderboardRoutes } from './routes/leaderboard';
+import { authorScoreRoutes } from './routes/author-scores';
 import { jwtAuthMiddleware } from './middleware/jwt-auth';
 
 export async function buildApp(opts: FastifyServerOptions = {}) {
@@ -101,6 +102,7 @@ export async function buildApp(opts: FastifyServerOptions = {}) {
   await app.register(exploreRoutes, { prefix: '/api/explore' });
   await app.register(voteRoutes, { prefix: '/api/lists' });
   await app.register(leaderboardRoutes, { prefix: '/api/leaderboard' });
+  await app.register(authorScoreRoutes, { prefix: '/api/lists' });
 
   // ── 全局错误处理：P2002 唯一约束冲突 → 409 ──────────
   app.setErrorHandler((error, _request, reply) => {

@@ -516,21 +516,24 @@ export default function ListDetailPage() {
         <div className="max-w-[1440px] mx-auto px-10 md:px-20 h-14 flex items-center justify-between">
           {/* Left actions */}
           <div className="flex items-center gap-4">
-            {/* Export */}
+            {/* Export — 突出显示，这是最重要的操作之一 */}
             <Link href={`/list/${listId}/export`}>
-              <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] text-black/30 hover:text-black transition-colors duration-300 cursor-pointer">
+              <motion.span
+                whileTap={{ scale: 0.95 }}
+                className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.15em] font-medium text-black/60 hover:text-black transition-colors duration-300 cursor-pointer px-2.5 py-1 -mx-2.5 -my-1 rounded-sm hover:bg-black/[0.04]"
+              >
                 <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 12 12"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="1.2"
                 >
-                  <path d="M6 1v7M3 5l3 3 3-3M1 9v1.5A.5.5 0 001.5 11h9a.5.5 0 00.5-.5V9" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M7 1v8M3 6l4 4 4-4M1 10v2a1 1 0 001 1h10a1 1 0 001-1v-2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 {t('exportShareCard') ?? '导出'}
-              </span>
+              </motion.span>
             </Link>
 
             {/* Ally button */}

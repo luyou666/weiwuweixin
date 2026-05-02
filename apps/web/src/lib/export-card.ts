@@ -9,10 +9,25 @@ import type { CardTemplateId, CardOrientation, ShareCardData } from '@weiwuweixi
 
 /* ---------- 常量 ---------- */
 
-export const CARD_SIZES: Record<CardOrientation, { w: number; h: number }> = {
+export const CARD_SIZES: Record<CardOrientation | 'square', { w: number; h: number }> = {
   portrait: { w: 1080, h: 1920 },
   landscape: { w: 1200, h: 675 },
+  square: { w: 1080, h: 1080 },
 };
+
+/** 根据条目数量自适应推荐尺寸 */
+export function getAutoSize(entryCount: number, orientation: CardOrientation): { w: number; h: number } {
+  if (orientation === 'landscape') {
+    if (entryCount <= 3) return { w: 1200, h: 675 };
+    // 横版自适应宽图
+    return { w: 1200, h: Math.min(2000, 300 + entryCount * 110) };
+  }
+  // portrait
+  if (entryCount <= 3) return { w: 1080, h: 1080 }; // 1:1 square
+  if (entryCount <= 7) return { w: 1080, h: 1920 }; // 9:16
+  // 竖版自适应长图
+  return { w: 1080, h: Math.min(4000, 400 + entryCount * 120) };
+}
 
 /* ---------- 类型 ---------- */
 
@@ -24,6 +39,8 @@ export interface ExportCardOptions {
   data: ShareCardData;
   scale?: number;
   format?: 'png' | 'svg';
+  /** 自定义尺寸覆盖（优先级高于 orientation） */
+  customSize?: { w: number; h: number };
 }
 
 export interface ExportCardResult {
@@ -51,7 +68,7 @@ export async function exportCard(options: ExportCardOptions): Promise<ExportCard
     format = 'png',
   } = options;
 
-  const size = CARD_SIZES[orientation];
+  const size = options.customSize || CARD_SIZES[orientation];
   const w = Math.round(size.w * scale);
   const h = Math.round(size.h * scale);
 
@@ -64,6 +81,7 @@ export async function exportCard(options: ExportCardOptions): Promise<ExportCard
       width: size.w,
       height: size.h,
       cacheBust: true,
+      skipFonts: true,
     });
 
     return {
