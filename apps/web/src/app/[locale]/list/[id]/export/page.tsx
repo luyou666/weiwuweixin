@@ -1,490 +1,714 @@
 /* ============================================================
-   围物为心 — PNG 分享卡导出页面
+   围物为心 — 导出分享卡 · Dark Glass Studio v3
    /list/[id]/export
+   13 数据矩阵模板 · 头图上传 · 比例选择器 · 条目数量 · 色调引擎
    ============================================================ */
 
 'use client';
 
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
-import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button, Card, ShareCard } from '@weiwuweixin/ui';
-import type { CardTemplateId, CardOrientation } from '@weiwuweixin/ui';
-import { getTemplateList } from '@weiwuweixin/ui';
+import { ShareCard, getTemplateList } from '@weiwuweixin/ui';
+import type { CardTemplateId, CardOrientation, ShareCardData, ShareCardEntry } from '@weiwuweixin/ui';
 import { StampAnimation } from '@/components/stamp-animation';
 import { fetchListById } from '@/lib/api';
 import type { ListDetail } from '@/lib/api';
+/* ---------- 常量 ---------- */
 
-/* ---------- 模板预览缩略图颜色 ---------- */
+const ALGORITHM_LABELS: Record<string, string> = {
+  'weighted-mean': 'W. MEAN',
+  'geometric-mean': 'GEO MEAN',
+  'borda-count': 'BORDA',
+  'topsis': 'TOPSIS',
+  'bayesian-shrinkage': 'BAYESIAN',
+};
+function formatAlgorithm(id?: string): string {
+  if (!id) return 'W. MEAN';
+  return ALGORITHM_LABELS[id] || id.toUpperCase().replace(/-/g, ' ');
+}
 
-const TEMPLATE_PREVIEW_COLORS: Record<CardTemplateId, { bg: string; accent: string; label: string }> = {
-  'rice-ink': { bg: '#FBF7F0', accent: '#E2553F', label: '宣纸' },
-  morandi: { bg: '#E8E0D4', accent: '#A68B7A', label: '莫兰迪' },
-  'cyber-neon': { bg: '#0D0D1A', accent: '#00FFC8', label: '霓虹' },
-  'retro-magazine': { bg: '#F5F0E6', accent: '#C04030', label: '杂志' },
-  'minimal-white': { bg: '#FFFFFF', accent: '#E2553F', label: '极简' },
-  'sticker-journal': { bg: '#FFF9EE', accent: '#E88B30', label: '手账' },
+const EASE_OUT = [0.22, 1, 0.36, 1] as const;
+
+const ASPECT_RATIOS: Record<string, { w: number; h: number; label: string }> = {
+  '9:16': { w: 1080, h: 1920, label: '📱 竖版 9:16' },
+  '16:9': { w: 1200, h: 675, label: '🖥 横版 16:9' },
+  '1:1': { w: 1080, h: 1080, label: '⬛ 方图 1:1' },
+  auto: { w: 0, h: 0, label: '🔄 自动适配' },
+  custom: { w: 0, h: 0, label: '⚙ 自定义' },
 };
 
-/* ---------- 主页面 ---------- */
+const TEMPLATE_META: Record<string, { label: string; labelEn: string }> = {
+  'rice-ink': { label: '宣纸水墨', labelEn: 'RICE INK' },
+  morandi: { label: '莫兰迪', labelEn: 'MORANDI' },
+  'cyber-neon': { label: '赛博霓虹', labelEn: 'CYBER NEON' },
+  'retro-magazine': { label: '复古杂志', labelEn: 'RETRO MAG' },
+  'minimal-white': { label: '极简留白', labelEn: 'MINIMAL' },
+  'sticker-journal': { label: '手账贴纸', labelEn: 'STICKER' },
+  'glass-morphism': { label: '毛玻璃', labelEn: 'GLASS' },
+  brutalist: { label: '野兽派', labelEn: 'BRUTALIST' },
+  'paper-fold': { label: '折纸手账', labelEn: 'PAPER FOLD' },
+  'cosmic-dust': { label: '宇宙星尘', labelEn: 'COSMIC' },
+  vaporwave: { label: '蒸汽波', labelEn: 'VAPORWAVE' },
+  'grid-poster': { label: '网格海报', labelEn: 'GRID POSTER' },
+  'data-tableau': { label: '数据矩阵', labelEn: 'DATA TABLEAU' },
+};
+
+const PREVIEW = {
+  '9:16': { containerW: 280, cardW: 1080, cardH: 1920 },
+  '16:9': { containerW: 520, cardW: 1200, cardH: 675 },
+  '1:1': { containerW: 320, cardW: 1080, cardH: 1080 },
+  auto: { containerW: 280, cardW: 1080, cardH: 1920 },
+  custom: { containerW: 400, cardW: 1080, cardH: 1920 },
+} as const;
+
+/* ---------- 动画变体 ---------- */
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 16, filter: 'blur(3px)' },
+  visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.5, ease: EASE_OUT } },
+};
+
+const stagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.06, delayChildren: 0.1 } },
+};
+
+/* ============================================================
+   子组件
+   ============================================================ */
+
+function ThinRule() {
+  return <div className="w-full h-px bg-white/[0.06]" />;
+}
+
+function MicroLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-[10px] tracking-[0.25em] uppercase text-white/40 font-medium"
+      style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>
+      {children}
+    </span>
+  );
+}
+
+function CollapsibleSection({ title, defaultOpen = true, children }: {
+  title: string; defaultOpen?: boolean; children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div>
+      <button type="button" onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between py-2 text-left group">
+        <MicroLabel>{title}</MicroLabel>
+        <span className="text-white/25 text-xs transition-transform duration-200"
+          style={{ transform: open ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
+          ▼
+        </span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: EASE_OUT }}
+            className="overflow-hidden">
+            <div className="pb-4">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ============================================================
+   主页面
+   ============================================================ */
 
 export default function ExportPage() {
   const params = useParams();
   const router = useRouter();
-  const t = useTranslations('export');
   const listId = params.id as string;
 
-  // 从 API 获取榜单详情
-  const [listData, setListData] = React.useState<ListDetail | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    fetchListById(listId)
-      .then(setListData)
-      .catch(console.error)
-      .finally(() => setIsLoading(false));
+  const [listData, setListData] = useState<ListDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    fetchListById(listId).then(setListData).catch(console.error).finally(() => setIsLoading(false));
   }, [listId]);
 
-  // 构造 ShareCardData — 从 API 数据提取
-  const cardData = useMemo(() => {
-    const fallback = { title: '榜单', subtitle: '', entries: [], author: { nickname: '' }, listUrl: `https://weiwuweixin.app/list/${listId}`, watermark: '心' };
-    if (!listData) return fallback;
+  // 多维榜单默认选中 data-tableau 模板
+  useEffect(() => {
+    if (!listData || templateDefaultRef.current) return;
+    if (listData.dimensions.length >= 2) {
+      setTemplate('data-tableau');
+    }
+    templateDefaultRef.current = true;
+  }, [listData]);
 
-    const entries = listData.items.slice(0, 5).map((item, i) => {
-      // 计算每个条目的综合分
+  const templates = useMemo(() => getTemplateList(), []);
+  const [template, setTemplate] = useState<CardTemplateId>('rice-ink');
+  const templateDefaultRef = useRef(false);
+  const [ratioKey, setRatioKey] = useState('9:16');
+  const [customW, setCustomW] = useState(1080);
+  const [customH, setCustomH] = useState(1920);
+  const [entryCount, setEntryCount] = useState(5);
+  const [accentHue, setAccentHue] = useState(0);
+  const [fontScale, setFontScale] = useState(1); // 字号缩放 0.5~2.0
+  const [coverUrl, setCoverUrl] = useState('');
+  const [coverPreview, setCoverPreview] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+  const [showStamp, setShowStamp] = useState(false);
+  const cardExportRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 画布缩放平移 — 内联状态
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const [zoomScale, setZoomScale] = useState(0.3);
+  const [zoomX, setZoomX] = useState(0);
+  const [zoomY, setZoomY] = useState(0);
+  const [isPanning, setIsPanning] = useState(false);
+  const isPanningRef = useRef(false);
+  const lastPosRef = useRef({ x: 0, y: 0 });
+
+  const handleZoomTo = useCallback((targetScale: number) => {
+    setZoomScale(Math.min(5, Math.max(0.05, targetScale)));
+  }, []);
+
+  const handleWheel = useCallback((e: WheelEvent) => {
+    e.preventDefault();
+    const rect = canvasContainerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    if (mx < 0 || my < 0 || mx > rect.width || my > rect.height) return;
+    const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+    setZoomScale(prev => Math.min(5, Math.max(0.05, prev * factor)));
+  }, []);
+
+  useEffect(() => {
+    const el = canvasContainerRef.current;
+    if (!el) return;
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [handleWheel]);
+
+  const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    isPanningRef.current = true;
+    setIsPanning(true);
+    lastPosRef.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!isPanningRef.current) return;
+      setZoomX(prev => prev + e.clientX - lastPosRef.current.x);
+      setZoomY(prev => prev + e.clientY - lastPosRef.current.y);
+      lastPosRef.current = { x: e.clientX, y: e.clientY };
+    };
+    const onUp = () => { isPanningRef.current = false; setIsPanning(false); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, []);
+
+  const orientation: CardOrientation = ratioKey === '16:9' ? 'landscape' : 'portrait';
+
+  const cardSize = useMemo(() => {
+    if (ratioKey === 'custom') return { w: customW, h: customH };
+    if (ratioKey === 'auto') {
+      const n = entryCount;
+      if (n <= 3) return { w: 1080, h: 1080 };
+      if (n <= 7) return { w: 1080, h: 1920 };
+      return { w: 1080, h: Math.min(4000, 400 + n * 120) };
+    }
+    return ASPECT_RATIOS[ratioKey];
+  }, [ratioKey, customW, customH, entryCount]);
+
+  const cardData: ShareCardData = useMemo(() => {
+    if (!listData) {
+      return { title: '—', subtitle: '', entries: [], author: { nickname: '' }, listUrl: '', watermark: '心' };
+    }
+    const items = listData.items.slice(0, entryCount);
+
+    // 解析分制
+    const scaleStr = listData.scale || '1-10';
+    const maxScore = parseInt(scaleStr.split('-')[1] || '10', 10) || 10;
+
+    const entries: ShareCardEntry[] = items.map((item, i) => {
       const weightSum = listData.dimensions.reduce((s, d) => s + d.weight, 0) || 1;
       let total = 0;
-      for (const dim of listData.dimensions) {
-        const score = item.authorScores.find(s => s.dimensionId === dim.id);
-        total += (score?.value ?? 0) * dim.weight;
-      }
-      const overallScore = Math.round((total / weightSum) * 10) / 10;
+
+      // 构建维度得分明细
+      const dimensionScores = listData.dimensions.map((dim) => {
+        const score = item.authorScores.find((s: any) => s.dimensionId === dim.id);
+        const val = score?.value ?? 0;
+        total += val * dim.weight;
+        return {
+          name: dim.name,
+          weight: dim.weight,
+          score: Math.round(val * 10) / 10,
+          maxScore,
+        };
+      });
 
       return {
         rank: item.rank || i + 1,
         name: item.name,
-        score: String(overallScore),
+        score: String(Math.round((total / weightSum) * 10) / 10),
         note: item.note ?? '',
+        dimensionScores,
       };
     });
+
+    // 构建维度定义
+    const dimensions = listData.dimensions.map(d => ({
+      name: d.name,
+      weight: d.weight,
+    }));
 
     return {
       title: listData.title,
       subtitle: listData.subtitle,
       entries,
+      dimensions,
       author: { nickname: listData.author.nickname },
       listUrl: `https://weiwuweixin.app/list/${listId}`,
+      algorithmId: listData.algorithmId,
+      scale: listData.scale,
       watermark: '心',
+      coverUrl: coverPreview || undefined,
     };
-  }, [listData, listId]);
+  }, [listData, listId, entryCount, coverPreview]);
 
-  const templates = useMemo(() => getTemplateList(), []);
+  const previewCfg = PREVIEW[ratioKey as keyof typeof PREVIEW] || PREVIEW['9:16'];
+  const scale = previewCfg.containerW / previewCfg.cardW;
+  const containerH = Math.round(previewCfg.cardH * scale);
 
-  // 状态
-  const [selectedTemplate, setSelectedTemplate] = useState<CardTemplateId>('rice-ink');
-  const [orientation, setOrientation] = useState<CardOrientation>('portrait');
-  const [isExporting, setIsExporting] = useState(false);
-  const [showStamp, setShowStamp] = useState(false);
-  const [previewMode, setPreviewMode] = useState<'portrait' | 'landscape'>('portrait');
-  const previewRef = useRef<HTMLDivElement>(null);
-  const cardExportRef = useRef<HTMLDivElement>(null); // 隐藏的 ShareCard 实际渲染 DOM
-
-  /* ---------- 导出逻辑 ---------- */
-
-  const handleExport = useCallback(async () => {
-    if (!cardExportRef.current) {
-      console.error('[ExportPage] cardExportRef is null');
-      return;
-    }
-    setIsExporting(true);
-    try {
-      const { exportCard: doExport, downloadBlob, generateFilename } = await import('@/lib/export-card');
-      const result = await doExport({
-        element: cardExportRef.current,
-        template: selectedTemplate,
-        orientation,
-        data: cardData,
-        scale: 1,
-        format: 'png',
-      });
-
-      const filename = generateFilename(cardData.title, selectedTemplate, orientation, 'png');
-      downloadBlob(result.data as ArrayBuffer, filename, result.mimeType);
-
-      setShowStamp(true);
-    } catch (err) {
-      console.error('[ExportPage] Export failed:', err);
-      alert(t('exportFailed') ?? '导出失败，请重试。');
-    } finally {
-      setIsExporting(false);
-    }
-  }, [selectedTemplate, orientation, cardData]);
-
-  const handleExportSvg = useCallback(async () => {
-    if (!cardExportRef.current) {
-      console.error('[ExportPage] cardExportRef is null');
-      return;
-    }
-    setIsExporting(true);
-    try {
-      const { exportCard: doExport, downloadBlob, generateFilename } = await import('@/lib/export-card');
-      const result = await doExport({
-        element: cardExportRef.current,
-        template: selectedTemplate,
-        orientation,
-        data: cardData,
-        format: 'svg',
-      });
-
-      const filename = generateFilename(cardData.title, selectedTemplate, orientation, 'svg');
-      downloadBlob(result.data as string, filename, result.mimeType);
-      setShowStamp(true);
-    } catch (err) {
-      console.error('[ExportPage] SVG export failed:', err);
-      alert(t('exportFailed') ?? '导出失败，请重试。');
-    } finally {
-      setIsExporting(false);
-    }
-  }, [selectedTemplate, orientation, cardData]);
-
-  const handleStampFinished = useCallback(() => {
-    setShowStamp(false);
+  const handleCoverUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setCoverPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
   }, []);
 
-  /* ---------- 渲染 ---------- */
+  const handleCoverUrl = useCallback(() => {
+    if (coverUrl.trim()) setCoverPreview(coverUrl.trim());
+  }, [coverUrl]);
+
+  const handleRemoveCover = useCallback(() => {
+    setCoverUrl(''); setCoverPreview('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, []);
+
+  const handleExport = useCallback(async (format: 'png' | 'svg') => {
+    if (!cardExportRef.current) return;
+    setIsExporting(true);
+    try {
+      const mod = await import('@/lib/export-card');
+      const result = await mod.exportCard({
+        element: cardExportRef.current, template, orientation, data: cardData, scale: 1, format,
+        customSize: ratioKey === 'auto' || ratioKey === 'custom' ? cardSize : undefined,
+      });
+      const filename = mod.generateFilename(cardData.title, template, orientation, format);
+      mod.downloadBlob(result.data as ArrayBuffer | string, filename, result.mimeType);
+      setShowStamp(true);
+    } catch (err) {
+      console.error('[Export] Failed:', err);
+      alert('导出失败，请重试。');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [template, orientation, cardData, ratioKey, cardSize]);
 
   return (
-    <div className="min-h-screen bg-paper">
-      {/* ─── 顶部导航 ─── */}
-      <header className="sticky top-0 z-sticky bg-paper/80 backdrop-blur-sm border-b border-ink-100">
-        <div className="max-w-5xl mx-auto px-lg py-sm flex items-center justify-between">
-          <button type="button"
-            onClick={() => router.back()}
-            className="font-heading text-lg text-ink-900 hover:text-vermilion transition-colors"
-          >
-            ← {t('back') ?? '返回'}
-          </button>
-          <h1 className="font-heading text-lg text-ink-700">{t('title') ?? '导出分享卡'}</h1>
-          <div className="w-16" />
-        </div>
+    <div className="min-h-screen flex flex-col"
+      style={{ backgroundColor: '#0A0A0E', fontFamily: "'Inter', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif", color: '#FFFFFF' }}>
+
+      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 border-b border-white/[0.06]"
+        style={{ backgroundColor: 'rgba(10,10,14,0.85)', backdropFilter: 'blur(16px)' }}>
+        <button type="button" onClick={() => router.back()}
+          className="text-[12px] tracking-[0.15em] text-white/45 hover:text-white transition-colors uppercase">
+          ← 返回
+        </button>
+        <MicroLabel>导出分享卡 · EXPORT CARD</MicroLabel>
+        <div className="w-16" />
       </header>
 
-      <main className="max-w-5xl mx-auto px-lg py-xl flex flex-col lg:flex-row gap-xl">
-        {/* ─── 左侧：预览区 ─── */}
-        <div className="flex-1 flex flex-col items-center">
-          {/* 比例切换 */}
-          <div className="flex gap-sm mb-lg">
-            <button type="button"
-              onClick={() => setOrientation('portrait')}
-              className={`
-                px-md py-xs rounded-md text-sm font-medium transition-all border
-                ${orientation === 'portrait'
-                  ? 'border-vermilion bg-vermilion/10 text-ink-900'
-                  : 'border-ink-100 bg-rice text-ink-500 hover:bg-ink-100'
-                }
-              `}
-            >
-              📱 {t('portrait')}
-            </button>
-            <button type="button"
-              onClick={() => setOrientation('landscape')}
-              className={`
-                px-md py-xs rounded-md text-sm font-medium transition-all border
-                ${orientation === 'landscape'
-                  ? 'border-vermilion bg-vermilion/10 text-ink-900'
-                  : 'border-ink-100 bg-rice text-ink-500 hover:bg-ink-100'
-                }
-              `}
-            >
-              🖥 {t('landscape')}
-            </button>
+      <main className="flex-1 flex flex-col lg:flex-row lg:min-h-0">
+        {/* 左侧预览区 — 交互式画布 */}
+        <div className="flex-1 flex flex-col relative min-h-[50vh] lg:min-h-0"
+          style={{ backgroundColor: '#06060A' }}>
+          {/* 装饰背景 */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div style={{ position: 'absolute', top: '20%', left: '30%', width: 400, height: 400, borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 60%)' }} />
           </div>
 
-          {/* 预览卡片占位 */}
-          <div
-            ref={previewRef}
-            className="relative bg-rice rounded-lg shadow-md overflow-hidden border border-ink-100"
-            style={{
-              width: orientation === 'portrait' ? '100%' : '100%',
-              maxWidth: orientation === 'portrait' ? 320 : 480,
-              aspectRatio: orientation === 'portrait' ? '9/16' : '16/9',
-            }}
-          >
-            {/* 模板色彩预览 */}
-            <div
-              className="absolute inset-0 flex items-center justify-center"
+          {/* 画布缩放控件 */}
+          {!isLoading && (
+            <div className="absolute bottom-4 right-4 z-20 flex items-center gap-1.5"
               style={{
-                background: TEMPLATE_PREVIEW_COLORS[selectedTemplate].bg,
-              }}
-            >
+                background: 'rgba(10,10,14,0.9)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '10px',
+                padding: '4px',
+              }}>
+              <button type="button" onClick={() => handleZoomTo(zoomScale / 1.3)}
+                className="w-8 h-8 flex items-center justify-center rounded-md text-white/60 hover:text-white hover:bg-white/[0.08] transition-all text-sm font-mono"
+                title="缩小">−</button>
+              <button type="button" onClick={() => handleZoomTo(0.3)}
+                className="px-2 h-8 flex items-center justify-center rounded-md text-[11px] text-white/45 hover:text-white hover:bg-white/[0.06] transition-all font-mono tracking-wider"
+                title="重置">
+                {Math.round(zoomScale * 100)}%
+              </button>
+              <button type="button" onClick={() => handleZoomTo(zoomScale * 1.3)}
+                className="w-8 h-8 flex items-center justify-center rounded-md text-white/60 hover:text-white hover:bg-white/[0.08] transition-all text-sm font-mono"
+                title="放大">+</button>
+            </div>
+          )}
+
+          {/* 画布容器 — 响应式占满 */}
+          <div ref={canvasContainerRef}
+            className="flex-1 relative"
+            style={{
+              overflow: 'hidden',
+              cursor: isPanning ? 'grabbing' : 'grab',
+              userSelect: 'none',
+            }}
+            onMouseDown={handleCanvasMouseDown}>
+
+            {isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <motion.div animate={{ opacity: [0.2, 0.6, 0.2] }} transition={{ duration: 2, repeat: Infinity }}
+                  className="text-[10px] tracking-[0.3em] uppercase text-white/20">LOADING...</motion.div>
+              </div>
+            )}
+
+            {!isLoading && cardData.entries.length > 0 && (
               <div
-                className="absolute inset-0"
+                key={`${template}-${ratioKey}-${entryCount}`}
+                className="wwx-card-zoom-container"
                 style={{
-                  opacity: 0.03,
-                  backgroundImage: 
-                    selectedTemplate === 'cyber-neon'
-                      ? 'linear-gradient(rgba(0,255,200,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,200,0.05) 1px, transparent 1px)'
-                      : 'none',
-                  backgroundSize: '20px 20px',
-                }}
-              />
-              <div
-                className="absolute inset-0"
-                style={{
-                  backgroundImage: `radial-gradient(circle at 50% 40%, ${TEMPLATE_PREVIEW_COLORS[selectedTemplate].accent}15 0%, transparent 60%)`,
-                }}
-              />
-              
-              {/* 缩略预览内容 */}
-              <div className="relative z-10 p-6 w-full h-full flex flex-col">
-                {/* 竖线装饰 */}
-                <div style={{
-                  width: 2,
-                  height: 20,
-                  backgroundColor: TEMPLATE_PREVIEW_COLORS[selectedTemplate].accent,
-                  borderRadius: 1,
-                  marginBottom: 8,
-                  opacity: 0.8,
-                }} />
-
-                <h3 style={{
-                  fontFamily: '"Songti SC", "Noto Serif SC", serif',
-                  fontSize: orientation === 'portrait' ? 18 : 14,
-                  fontWeight: 700,
-                  color: selectedTemplate === 'cyber-neon' ? '#F0F0FF' : TEMPLATE_PREVIEW_COLORS[selectedTemplate].accent === '#00FFC8' ? '#F0F0FF' : '#1A1A24',
-                  lineHeight: 1.2,
-                  marginBottom: 4,
-                }}>
-                  {cardData.title}
-                </h3>
-
-                <p style={{
-                  fontSize: orientation === 'portrait' ? 10 : 8,
-                  color: selectedTemplate === 'cyber-neon' ? 'rgba(176,176,208,0.8)' : 'rgba(94,94,114,0.8)',
-                  marginBottom: 12,
-                }}>
-                  {cardData.subtitle}
-                </p>
-
-                {/* 简化条目预览 */}
-                {cardData.entries.slice(0, 3).map((entry, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '4px 0',
-                      borderBottom: i < 2 ? `1px solid ${selectedTemplate === 'cyber-neon' ? 'rgba(42,42,80,0.5)' : 'rgba(208,208,220,0.4)'}` : 'none',
-                    }}
-                  >
-                    <div style={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: '50%',
-                      backgroundColor: i < 3 ? TEMPLATE_PREVIEW_COLORS[selectedTemplate].accent : 'transparent',
-                      opacity: 0.7,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 8,
-                      fontWeight: 700,
-                      color: '#FFFFFF',
-                      flexShrink: 0,
-                    }}>
-                      {entry.rank}
-                    </div>
-                    <span style={{
-                      fontSize: orientation === 'portrait' ? 11 : 9,
-                      fontWeight: 500,
-                      color: selectedTemplate === 'cyber-neon' ? '#E0E0F0' : '#3A3A4F',
-                      flex: 1,
-                    }}>
-                      {entry.name}
-                    </span>
-                    <span style={{
-                      fontSize: orientation === 'portrait' ? 10 : 8,
-                      fontWeight: 600,
-                      color: TEMPLATE_PREVIEW_COLORS[selectedTemplate].accent,
-                    }}>
-                      {entry.score}
-                    </span>
-                  </div>
-                ))}
-
-                {/* 底部缩略信息 */}
-                <div style={{
-                  flex: 1,
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
                   display: 'flex',
-                  alignItems: 'flex-end',
-                  justifyContent: 'space-between',
-                  marginTop: 8,
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}>
-                  <span style={{
-                    fontSize: 9,
-                    color: selectedTemplate === 'cyber-neon' ? 'rgba(176,176,208,0.5)' : 'rgba(94,94,114,0.6)',
+                <div
+                  style={{
+                    position: 'relative',
+                    width: `${previewCfg.cardW}px`,
+                    height: `${previewCfg.cardH}px`,
+                    transform: `translate(${zoomX}px, ${zoomY}px) scale(${zoomScale})`,
+                    transformOrigin: 'center center',
+                    boxShadow: '0 0 60px rgba(99,102,241,0.08), 0 0 1px rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    transition: 'transform 0.06s ease-out',
                   }}>
-                    {cardData.author.nickname}
-                  </span>
-                  {/* QR 码占位 */}
-                  <div style={{
-                    width: 28,
-                    height: 28,
-                    backgroundColor: selectedTemplate === 'cyber-neon' ? '#1A1A30' : '#FFFFFF',
-                    borderRadius: 2,
-                    border: `1px solid ${selectedTemplate === 'cyber-neon' ? '#2A2A50' : '#D0D0DC'}`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 6,
-                    color: selectedTemplate === 'cyber-neon' ? '#00FFC8' : '#6E6E88',
-                  }}>
-                    QR
-                  </div>
+                  <ShareCard
+                    template={template}
+                    orientation={orientation}
+                    data={cardData}
+                    accentHue={accentHue}
+                    fontSizeScale={fontScale}
+                    width={previewCfg.cardW}
+                    height={previewCfg.cardH}
+                  />
                 </div>
               </div>
-            </div>
+            )}
+
+            {!isLoading && cardData.entries.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <p className="text-white/20 text-sm">暂无数据</p>
+              </div>
+            )}
           </div>
 
-          {/* 模板名称 */}
-          <div className="mt-md text-center">
-            <span className="text-sm font-medium text-ink-900">
-              {templates.find((t) => t.id === selectedTemplate)?.name ?? ''}
-            </span>
-            <span className="text-xs text-ink-300 ml-sm">
-              {templates.find((t) => t.id === selectedTemplate)?.description ?? ''}
-            </span>
-          </div>
+          {/* 预览信息栏 */}
+          {!isLoading && (
+            <div className="flex-shrink-0 py-3 text-center flex items-center justify-center gap-3 border-t border-white/[0.05]"
+              style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}>
+              <span className="text-[10px] text-white/30 uppercase tracking-[0.15em]">
+                {TEMPLATE_META[template]?.labelEn ?? ''}</span>
+              <span className="text-white/[0.08] text-[10px]">|</span>
+              <span className="text-[10px] text-white/25">{cardSize.w}×{cardSize.h}px</span>
+              {listData && (
+                <>
+                  <span className="text-white/[0.08] text-[10px]">|</span>
+                  <span className="text-[10px] text-white/30 uppercase tracking-[0.1em]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                    {formatAlgorithm(listData.algorithmId)} · {listData.scale}
+                  </span>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* ─── 右侧：配置 + 导出 ─── */}
-        <div className="lg:w-80 flex flex-col gap-lg">
-          {/* 模板选择网格 */}
-          <Card interactive={false} textured size="md">
-            <h2 className="font-heading text-base text-ink-900 mb-md">{t('selectTemplate')}</h2>
-            <div className="grid grid-cols-3 gap-sm">
-              {templates.map((tpl) => {
-                const preview = TEMPLATE_PREVIEW_COLORS[tpl.id];
-                const isSelected = selectedTemplate === tpl.id;
-                return (
-                  <button type="button"
-                    key={tpl.id}
-                    onClick={() => setSelectedTemplate(tpl.id)}
-                    className={`
-                      relative p-sm rounded-md border transition-all aspect-square
-                      flex flex-col items-center justify-center gap-1
-                      ${isSelected
-                        ? 'border-vermilion bg-vermilion/5 shadow-sm scale-105'
-                        : 'border-ink-100 bg-paper hover:bg-rice hover:border-ink-300'
-                      }
-                    `}
-                  >
-                    {/* 模板色彩预览块 */}
-                    <div
-                      className="w-8 h-8 rounded-md border border-ink-100"
+        {/* 右侧控制面板 */}
+        <div className="lg:w-[440px] flex flex-col gap-0 px-6 py-8 lg:py-10 lg:px-8 border-t lg:border-t-0 lg:border-l border-white/[0.05] overflow-y-auto max-h-[45vh] lg:max-h-none"
+          style={{ backgroundColor: 'rgba(255,255,255,0.015)' }}>
+
+          <motion.div variants={stagger} initial="hidden" animate="visible" className="mb-5">
+            <motion.div variants={fadeInUp}><MicroLabel>榜单信息</MicroLabel></motion.div>
+            <motion.h2 variants={fadeInUp} className="text-[19px] font-semibold text-white mt-2 leading-tight tracking-tight">
+              {cardData.title}</motion.h2>
+            {listData && (
+              <motion.div variants={fadeInUp} className="flex items-center gap-3 mt-2">
+                <span className="text-[11px] text-white/30">{listData.author.nickname}</span>
+                <span className="w-px h-3 bg-white/[0.08]" />
+                <span className="text-[11px] text-white/30">{listData.items.length} 条目</span>
+              </motion.div>
+            )}
+          </motion.div>
+
+          <ThinRule />
+
+          {/* 模板画廊 */}
+          <div className="py-4">
+            <CollapsibleSection title="🎨 模板画廊 TEMPLATE">
+              <div className="grid grid-cols-3 gap-1 mt-2">
+                {templates.map((tpl) => {
+                  const isSel = template === tpl.id;
+                  return (
+                    <motion.button key={tpl.id} type="button" whileTap={{ scale: 0.97 }}
+                      onClick={() => setTemplate(tpl.id)}
                       style={{
-                        backgroundColor: preview.bg,
-                        backgroundImage: `radial-gradient(circle at 50% 50%, ${preview.accent}40 0%, transparent 70%)`,
+                        background: isSel ? 'rgba(255,59,48,0.08)' : '#0A0A0E',
+                        border: isSel ? '1px solid rgba(255,59,48,0.5)' : '1px solid rgba(255,255,255,0.06)',
+                        boxShadow: isSel ? '0 0 12px rgba(255,59,48,0.15)' : 'none',
+                        fontFamily: "'JetBrains Mono', 'SF Mono', monospace",
                       }}
-                    />
-                    <span className="text-[10px] font-medium text-ink-700 leading-tight">
-                      {preview.label}
-                    </span>
-                    {isSelected && (
-                      <div
-                        className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px] text-white font-bold"
-                        style={{ backgroundColor: 'var(--vermilion)' }}
-                      >
-                        ✓
+                      className="text-left px-2.5 py-2.5 transition-all duration-200 text-[10px]">
+                      <div style={{
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        letterSpacing: '0.08em',
+                        color: isSel ? '#FF3B30' : 'rgba(255,255,255,0.35)',
+                        textTransform: 'uppercase',
+                      }}>
+                        {TEMPLATE_META[tpl.id]?.labelEn ?? tpl.name}
                       </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </Card>
-
-          {/* 榜单信息 */}
-          <Card interactive={false} textured size="md">
-            <h2 className="font-heading text-base text-ink-900 mb-md">{t('listInfo')}</h2>
-            <div className="space-y-sm text-sm">
-              <div>
-                <span className="text-ink-300">{t('titleLabel')}</span>
-                <p className="text-ink-900 font-medium">{cardData.title}</p>
+                      <div style={{
+                        fontSize: '8px',
+                        color: isSel ? 'rgba(255,59,48,0.65)' : 'rgba(255,255,255,0.15)',
+                        marginTop: 3,
+                        letterSpacing: '0.05em',
+                      }}>
+                        {TEMPLATE_META[tpl.id]?.label ?? ''}
+                      </div>
+                    </motion.button>
+                  );
+                })}
               </div>
-              {cardData.subtitle && (
-                <div>
-                  <span className="text-ink-300">{t('subtitleLabel')}</span>
-                  <p className="text-ink-700">{cardData.subtitle}</p>
-                </div>
-              )}
-              <div>
-                <span className="text-ink-300">{t('authorLabel')}</span>
-                <p className="text-ink-900 font-medium">{cardData.author.nickname}</p>
-              </div>
-              <div>
-                <span className="text-ink-300">{t('entryCountLabel')}</span>
-                <p className="text-ink-900">{cardData.entries.length}</p>
-              </div>
-            </div>
-          </Card>
-
-          {/* 导出按钮 */}
-          <div className="space-y-sm">
-            <Button
-              onClick={handleExport}
-              disabled={isExporting}
-              size="lg"
-              className="w-full"
-              style={{ width: '100%' }}
-            >
-              {isExporting ? t('exporting') : t('exportPng')}
-            </Button>
-            <Button
-              onClick={handleExportSvg}
-              disabled={isExporting}
-              size="md"
-              className="w-full"
-              style={{ width: '100%' }}
-            >
-              {isExporting ? t('exporting') : t('exportSvg')}
-            </Button>
+            </CollapsibleSection>
           </div>
 
-          {/* 尺寸信息 */}
-          <div className="text-xs text-ink-300 text-center">
-            {orientation === 'portrait' ? t('sizeInfoPortrait') : t('sizeInfoLandscape')}
+          <ThinRule />
+
+          {/* 头图上传 */}
+          <div className="py-4">
+            <CollapsibleSection title="🖼 头图上传 COVER" defaultOpen={false}>
+              <div className="mt-2 space-y-2.5">
+                <div className="flex gap-1.5">
+                  <input type="text" value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleCoverUrl(); }}
+                    placeholder="https://..."
+                    className="flex-1 px-2.5 py-1.5 rounded-md text-[11px] bg-white/[0.05] border border-white/[0.08] text-white/70 placeholder:text-white/15 focus:outline-none focus:border-indigo-400/40" />
+                  <button type="button" onClick={handleCoverUrl}
+                    className="px-3 py-1.5 rounded-md text-[10px] bg-white/[0.06] border border-white/[0.08] text-white/50 hover:text-white hover:bg-white/[0.1] transition-all uppercase tracking-wider">加载</button>
+                </div>
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleCoverUpload}
+                  className="w-full text-[10px] text-white/25 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-[10px] file:bg-white/[0.06] file:text-white/50 file:cursor-pointer hover:file:bg-white/[0.1]" />
+                {coverPreview && (
+                  <div className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                    <img src={coverPreview} alt="cover" className="w-10 h-10 object-cover rounded border border-white/[0.06]" />
+                    <div className="flex-1">
+                      <span className="text-[10px] text-white/40 uppercase tracking-wider">HEADER IMAGE</span>
+                      <div className="text-[11px] text-indigo-300/70 mt-0.5">已设置</div>
+                    </div>
+                    <button type="button" onClick={handleRemoveCover}
+                      className="text-[10px] text-red-400/60 hover:text-red-400 px-1.5 py-0.5 transition-colors">✕</button>
+                  </div>
+                )}
+              </div>
+            </CollapsibleSection>
+          </div>
+
+          <ThinRule />
+
+          {/* 比例选择器 */}
+          <div className="py-4">
+            <CollapsibleSection title="📐 比例选择 RATIO">
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {Object.entries(ASPECT_RATIOS).map(([key, val]) => (
+                  <button key={key} type="button" onClick={() => setRatioKey(key)}
+                    className={`px-2.5 py-1.5 rounded-md text-[10px] transition-all duration-200 border ${
+                      ratioKey === key ? 'bg-indigo-500/12 border-indigo-400/25 text-white'
+                        : 'bg-white/[0.02] border-white/[0.04] text-white/30 hover:text-white/55 hover:border-white/[0.1]'
+                    }`}>{val.label}</button>
+                ))}
+              </div>
+              {ratioKey === 'custom' && (
+                <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2 mt-2.5">
+                  <input type="number" value={customW} onChange={(e) => setCustomW(Number(e.target.value))} placeholder="W"
+                    className="w-20 px-2 py-1.5 rounded-md text-[11px] bg-white/[0.05] border border-white/[0.08] text-white/70 focus:outline-none focus:border-indigo-400/40" />
+                  <span className="text-white/20 text-xs">×</span>
+                  <input type="number" value={customH} onChange={(e) => setCustomH(Number(e.target.value))} placeholder="H"
+                    className="w-20 px-2 py-1.5 rounded-md text-[11px] bg-white/[0.05] border border-white/[0.08] text-white/70 focus:outline-none focus:border-indigo-400/40" />
+                  <span className="text-[9px] text-white/20">px</span>
+                </motion.div>
+              )}
+            </CollapsibleSection>
+          </div>
+
+          <ThinRule />
+
+          {/* 条目数量 */}
+          <div className="py-4">
+            <CollapsibleSection title="📊 条目数量 ENTRIES" defaultOpen={false}>
+              <div className="mt-2 flex items-center gap-3">
+                <span className="text-[10px] text-white/25 min-w-[20px]">{entryCount}</span>
+                <input type="range" min={1} max={20} value={entryCount} onChange={(e) => setEntryCount(Number(e.target.value))}
+                  className="flex-1 h-1.5 appearance-none rounded-full bg-white/[0.08] cursor-pointer"
+                  style={{ accentColor: '#6366F1' }} />
+                <span className="text-[10px] text-white/25">20</span>
+              </div>
+            </CollapsibleSection>
+          </div>
+
+          <ThinRule />
+
+          {/* 色调引擎 */}
+          <div className="py-4">
+            <CollapsibleSection title="🎨 色调引擎 CHROMA" defaultOpen={true}>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full border border-white/20"
+                  style={{ backgroundColor: `hsl(${accentHue}, 70%, 55%)` }} />
+                <input type="range" min={0} max={360} value={accentHue} onChange={(e) => setAccentHue(Number(e.target.value))}
+                  className="flex-1 h-1.5 appearance-none rounded-full bg-white/[0.08] cursor-pointer"
+                  style={{ accentColor: `hsl(${accentHue}, 70%, 55%)` }} />
+                <span className="text-[10px] text-white/30 w-8 text-right">{accentHue}°</span>
+              </div>
+            </CollapsibleSection>
+          </div>
+
+          <ThinRule />
+
+          {/* 字号缩放 */}
+          <div className="py-4">
+            <CollapsibleSection title="🔤 字体大小 FONT SIZE" defaultOpen={true}>
+              <div className="mt-2 space-y-3">
+                {/* 一键预设 */}
+                <div className="flex gap-1.5">
+                  {([
+                    { label: 'S', scale: 0.75, zh: '小' },
+                    { label: 'M', scale: 1.0, zh: '标准' },
+                    { label: 'L', scale: 1.3, zh: '大' },
+                    { label: 'XL', scale: 1.6, zh: '特大' },
+                  ] as const).map(p => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => setFontScale(p.scale)}
+                      className={`flex-1 py-1.5 rounded-md text-[10px] font-semibold transition-all duration-200 border ${
+                        Math.abs(fontScale - p.scale) < 0.03
+                          ? 'bg-purple-500/12 border-purple-400/30 text-purple-300'
+                          : 'bg-white/[0.02] border-white/[0.05] text-white/30 hover:text-white/55 hover:border-white/[0.1]'
+                      }`}
+                      style={{ fontFamily: "'JetBrains Mono', 'SF Mono', monospace" }}
+                    >
+                      <span>{p.label}</span>
+                      <span className="text-[8px] ml-1 opacity-50">{p.zh}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* 滑块 + ± 微调 */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFontScale(prev => Math.max(0.5, +(prev - 0.02).toFixed(2)))}
+                    className="w-5 h-5 flex items-center justify-center rounded text-white/25 hover:text-white/60 text-[11px] leading-none select-none transition-colors"
+                  >−</button>
+                  <div className="flex-1 relative">
+                    <input
+                      type="range"
+                      min={0.5} max={2.0} step={0.02}
+                      value={fontScale}
+                      onChange={(e) => setFontScale(Number(e.target.value))}
+                      className="w-full h-1.5 appearance-none rounded-full bg-white/[0.08] cursor-pointer"
+                      style={{ accentColor: fontScale === 1 ? '#A78BFA' : fontScale > 1 ? '#C084FC' : '#7C3AED' }}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFontScale(prev => Math.min(2.0, +(prev + 0.02).toFixed(2)))}
+                    className="w-5 h-5 flex items-center justify-center rounded text-white/25 hover:text-white/60 text-[11px] leading-none select-none transition-colors"
+                  >+</button>
+                  <span className="text-[10px] text-white/30 w-10 text-right font-mono tracking-tight tabular-nums">
+                    {fontScale.toFixed(2)}×
+                  </span>
+                </div>
+
+                {/* 刻度尺 */}
+                <div className="flex justify-between">
+                  {['0.5×', '1.0×', '1.5×', '2.0×'].map((label, i) => {
+                    const markScale = [0.5, 1.0, 1.5, 2.0][i];
+                    const isNear = Math.abs(fontScale - markScale) < 0.03;
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => setFontScale(markScale)}
+                        className={`text-[8px] transition-colors ${
+                          isNear ? 'text-purple-300/80 font-semibold' : 'text-white/12 hover:text-white/25'
+                        }`}
+                      >{label}</button>
+                    );
+                  })}
+                </div>
+              </div>
+            </CollapsibleSection>
+          </div>
+
+          {/* 导出按钮 */}
+          <div className="py-5 flex flex-col gap-2.5">
+            <button type="button" onClick={() => handleExport('png')} disabled={isExporting}
+              className={`w-full py-3.5 rounded-lg text-[12px] font-semibold tracking-[0.12em] uppercase transition-all duration-200 active:scale-[0.98] ${isExporting
+                ? 'bg-white/[0.03] border border-white/[0.04] text-white/15 cursor-not-allowed'
+                : 'bg-indigo-600 border border-indigo-500/30 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-500/15'
+              }`}>{isExporting ? '⏳ 生成中…' : '📷 导出 PNG'}</button>
+            <button type="button" onClick={() => handleExport('svg')} disabled={isExporting}
+              className={`w-full py-3 rounded-lg text-[11px] tracking-[0.1em] uppercase transition-all border ${isExporting
+                ? 'border-white/[0.03] text-white/10 cursor-not-allowed'
+                : 'border-white/[0.07] bg-white/[0.02] text-white/35 hover:text-white/70 hover:border-white/[0.15]'
+              }`}>📐 导出 SVG</button>
           </div>
         </div>
       </main>
 
-      {/* 隐藏的 ShareCard 实际渲染 DOM — 用于 html-to-image 截图导出 */}
-      <div
-        ref={cardExportRef}
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: orientation === 'portrait' ? 1080 : 1200,
-          height: orientation === 'portrait' ? 1920 : 675,
-          zIndex: -9999,
-          pointerEvents: 'none',
-          opacity: 1,
-        }}
-      >
+      {/* 隐藏 DOM 用于导出截图 */}
+      <div ref={cardExportRef} style={{ position: 'fixed', top: 0, left: 0, width: cardSize.w, height: cardSize.h,
+        zIndex: -9999, pointerEvents: 'none' }}>
         {cardData.entries.length > 0 && (
-          <ShareCard
-            template={selectedTemplate}
-            orientation={orientation}
-            data={cardData}
-          />
+          <ShareCard template={template} orientation={orientation} data={cardData} accentHue={accentHue} fontSizeScale={fontScale} width={cardSize.w} height={cardSize.h} />
         )}
       </div>
 
-      {/* 印章盖下动画 */}
-      <StampAnimation isActive={showStamp} onFinished={handleStampFinished} />
+      <StampAnimation isActive={showStamp} onFinished={() => setShowStamp(false)} />
     </div>
   );
 }
