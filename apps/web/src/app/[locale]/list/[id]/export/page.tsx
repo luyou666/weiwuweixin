@@ -326,7 +326,7 @@ export default function ExportPage() {
   }, [template, orientation, cardData, ratioKey, cardSize]);
 
   return (
-    <div className="min-h-screen flex flex-col"
+    <div className="h-dvh flex flex-col overflow-hidden"
       style={{ backgroundColor: '#0A0A0E', fontFamily: "'Inter', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif", color: '#FFFFFF' }}>
 
       <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 border-b border-white/[0.06]"
@@ -341,7 +341,7 @@ export default function ExportPage() {
 
       <main className="flex-1 flex flex-col lg:flex-row lg:min-h-0">
         {/* 左侧预览区 — 交互式画布 */}
-        <div className="flex-1 flex flex-col relative min-h-[50vh] lg:min-h-0"
+        <div className="flex-1 flex flex-col relative min-h-[50vh] lg:min-h-0 min-h-0 overflow-hidden"
           style={{ backgroundColor: '#06060A' }}>
           {/* 装饰背景 */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -458,7 +458,7 @@ export default function ExportPage() {
         </div>
 
         {/* 右侧控制面板 */}
-        <div className="lg:w-[440px] flex flex-col gap-0 px-6 py-8 lg:py-10 lg:px-8 border-t lg:border-t-0 lg:border-l border-white/[0.05] overflow-y-auto max-h-[45vh] lg:max-h-none"
+        <div data-lenis-prevent className="lg:w-[440px] flex flex-col gap-0 px-6 py-8 lg:py-10 lg:px-8 border-t lg:border-t-0 lg:border-l border-white/[0.05] overflow-y-auto max-h-[45vh] lg:max-h-none"
           style={{ backgroundColor: 'rgba(255,255,255,0.015)' }}>
 
           <motion.div variants={stagger} initial="hidden" animate="visible" className="mb-5">
