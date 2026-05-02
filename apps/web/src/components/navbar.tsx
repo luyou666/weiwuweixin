@@ -49,8 +49,8 @@ export function Navbar() {
     router.push('/');
   };
 
-  // 认证页面不显示导航栏
-  if (pathname.includes('/auth')) return null;
+  // 认证页面 & 导出页不显示导航栏（导出页有独立全屏 header）
+  if (pathname.includes('/auth') || pathname.includes('/export')) return null;
 
   return (
     <motion.header

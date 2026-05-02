@@ -137,6 +137,25 @@ export default function ExportPage() {
     fetchListById(listId).then(setListData).catch(console.error).finally(() => setIsLoading(false));
   }, [listId]);
 
+  // 导出页使用自己的 header；Navbar.tsx 已通过 pathname 判断自动隐藏，此处作为兜底
+  useEffect(() => {
+    const nav = document.querySelector('header nav, nav');
+    if (!(nav instanceof HTMLElement)) return;
+    const cleanup: Array<() => void> = [];
+    // 1. 强制隐藏以防 Navbar 条件未命中
+    const origDisplay = nav.style.display;
+    nav.style.display = 'none';
+    cleanup.push(() => { nav.style.display = origDisplay; });
+    // 2. 消除 zero-height 幽灵 header（fixed top-0 空壳）
+    const ghost = nav.closest('header');
+    if (ghost instanceof HTMLElement && ghost.offsetHeight === 0) {
+      const origGhostDisplay = ghost.style.display;
+      ghost.style.display = 'none';
+      cleanup.push(() => { ghost.style.display = origGhostDisplay; });
+    }
+    return () => cleanup.forEach(fn => fn());
+  }, []);
+
   // 多维榜单默认选中 data-tableau 模板
   useEffect(() => {
     if (!listData || templateDefaultRef.current) return;
@@ -171,6 +190,8 @@ export default function ExportPage() {
   const [isPanning, setIsPanning] = useState(false);
   const isPanningRef = useRef(false);
   const lastPosRef = useRef({ x: 0, y: 0 });
+  const zoomScaleRef = useRef(zoomScale);
+  zoomScaleRef.current = zoomScale;
 
   const handleZoomTo = useCallback((targetScale: number) => {
     setZoomScale(Math.min(5, Math.max(0.05, targetScale)));
@@ -193,6 +214,66 @@ export default function ExportPage() {
     el.addEventListener('wheel', handleWheel, { passive: false });
     return () => el.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
+
+  // 移动端触摸手势：pinch zoom + 单指 pan
+  useEffect(() => {
+    const el = canvasContainerRef.current;
+    if (!el) return;
+
+    let initialPinchDist = 0;
+    let initialZoom = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        // 单指 → pan 模式
+        e.preventDefault();
+        isPanningRef.current = true;
+        setIsPanning(true);
+        lastPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } else if (e.touches.length === 2) {
+        // 双指 → pinch zoom 模式
+        e.preventDefault();
+        isPanningRef.current = false;
+        setIsPanning(false);
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        initialPinchDist = Math.hypot(dx, dy);
+        initialZoom = zoomScaleRef.current;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 1 && isPanningRef.current) {
+        e.preventDefault();
+        setZoomX(prev => prev + e.touches[0].clientX - lastPosRef.current.x);
+        setZoomY(prev => prev + e.touches[0].clientY - lastPosRef.current.y);
+        lastPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } else if (e.touches.length === 2) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        if (initialPinchDist > 0) {
+          setZoomScale(Math.min(5, Math.max(0.05, initialZoom * (dist / initialPinchDist))));
+        }
+      }
+    };
+
+    const onTouchEnd = () => {
+      isPanningRef.current = false;
+      setIsPanning(false);
+      initialPinchDist = 0;
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd);
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+    };
+  }, []);
 
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -284,8 +365,26 @@ export default function ExportPage() {
     };
   }, [listData, listId, entryCount, coverPreview]);
 
+  // 移动端响应式：根据屏幕宽度动态调整画布容器宽度
+  const [responsiveContainerW, setResponsiveContainerW] = useState(280);
+  useEffect(() => {
+    const update = () => {
+      const w = window.innerWidth;
+      // 重新计算当前比例下的容器宽度
+      const cfg = PREVIEW[ratioKey as keyof typeof PREVIEW] || PREVIEW['9:16'];
+      const base = cfg.containerW;
+      if (w < 640) setResponsiveContainerW(Math.min(w - 32, 280));
+      else if (w < 1024) setResponsiveContainerW(Math.min(w * 0.42, 360));
+      else setResponsiveContainerW(base);
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [ratioKey]);
+
   const previewCfg = PREVIEW[ratioKey as keyof typeof PREVIEW] || PREVIEW['9:16'];
-  const scale = previewCfg.containerW / previewCfg.cardW;
+  const effectiveContainerW = responsiveContainerW || previewCfg.containerW;
+  const scale = effectiveContainerW / previewCfg.cardW;
   const containerH = Math.round(previewCfg.cardH * scale);
 
   const handleCoverUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -327,10 +426,10 @@ export default function ExportPage() {
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden"
-      style={{ backgroundColor: '#0A0A0E', fontFamily: "'Inter', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif", color: '#FFFFFF' }}>
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)', backgroundColor: '#0A0A0E', fontFamily: "'Inter', 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif", color: '#FFFFFF' }}>
 
-      <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 border-b border-white/[0.06]"
-        style={{ backgroundColor: 'rgba(10,10,14,0.85)', backdropFilter: 'blur(16px)' }}>
+      <header className="sticky top-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/[0.06]"
+        style={{ backgroundColor: 'rgba(10,10,14,0.85)', backdropFilter: 'blur(16px)', paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
         <button type="button" onClick={() => router.back()}
           className="text-[12px] tracking-[0.15em] text-white/45 hover:text-white transition-colors uppercase">
           ← 返回
@@ -351,8 +450,9 @@ export default function ExportPage() {
 
           {/* 画布缩放控件 */}
           {!isLoading && (
-            <div className="absolute bottom-4 right-4 z-20 flex items-center gap-1.5"
+            <div className="absolute right-4 z-20 flex items-center gap-1.5"
               style={{
+                bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
                 background: 'rgba(10,10,14,0.9)',
                 backdropFilter: 'blur(12px)',
                 border: '1px solid rgba(255,255,255,0.08)',
@@ -380,6 +480,7 @@ export default function ExportPage() {
               overflow: 'hidden',
               cursor: isPanning ? 'grabbing' : 'grab',
               userSelect: 'none',
+              touchAction: 'none',
             }}
             onMouseDown={handleCanvasMouseDown}>
 
@@ -458,7 +559,7 @@ export default function ExportPage() {
         </div>
 
         {/* 右侧控制面板 */}
-        <div data-lenis-prevent className="lg:w-[440px] flex flex-col gap-0 px-6 py-8 lg:py-10 lg:px-8 border-t lg:border-t-0 lg:border-l border-white/[0.05] overflow-y-auto max-h-[45vh] lg:max-h-none"
+        <div data-lenis-prevent className="lg:w-[440px] flex flex-col gap-0 px-4 sm:px-6 py-6 sm:py-8 lg:py-10 lg:px-8 border-t lg:border-t-0 lg:border-l border-white/[0.05] overflow-y-auto max-h-[42vh] sm:max-h-[45vh] lg:max-h-none"
           style={{ backgroundColor: 'rgba(255,255,255,0.015)' }}>
 
           <motion.div variants={stagger} initial="hidden" animate="visible" className="mb-5">
