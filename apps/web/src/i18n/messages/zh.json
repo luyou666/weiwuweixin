@@ -75,6 +75,7 @@
     "step2": "添加条目",
     "step3": "配置维度",
     "step4": "选择算法",
+    "step5": "打分评分",
     "prevStep": "← 上一步",
     "nextStep": "下一步 →",
     "creating": "创建中…",
@@ -121,6 +122,18 @@
       "title": "选择算法",
       "needHelp": "需要帮助选择？",
       "radarNote": "雷达图展示的是特征倾向，而非优劣排名"
+    },
+    "stepFive": {
+      "title": "打分评分",
+      "guide": "以心度之，为每一项按每个维度打分",
+      "item": "条目",
+      "dimension": "维度",
+      "unnamed": "未命名",
+      "unnamedItem": "未命名条目",
+      "noData": "请先在前面步骤中添加条目和维度",
+      "back": "返回修改",
+      "publish": "✦ 发布榜单",
+      "submitting": "⏳ 发布中..."
     }
   },
   "listDetail": {

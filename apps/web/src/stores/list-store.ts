@@ -26,7 +26,7 @@ export interface FormDimension {
   scale: number;  // e.g. 5, 10, 100
 }
 
-export type FormStep = 1 | 2 | 3 | 4;
+export type FormStep = 1 | 2 | 3 | 4 | 5;
 
 export interface ListFormState {
   /* Step 1 */
@@ -43,6 +43,9 @@ export interface ListFormState {
 
   /* Step 4 */
   algorithmId: AlgorithmId;
+
+  /* Step 5 — Scoring */
+  scores: number[][];
 
   /* Navigation */
   currentStep: FormStep;
@@ -72,6 +75,9 @@ export interface ListFormActions {
   /* Step 4 */
   setAlgorithmId: (id: AlgorithmId) => void;
 
+  /* Step 5 — Scoring */
+  setScore: (itemIdx: number, dimIdx: number, value: number) => void;
+
   /* Navigation */
   setStep: (step: FormStep) => void;
   nextStep: () => void;
@@ -95,6 +101,7 @@ const initialState: ListFormState = {
     { id: `dim-${++dimCounter}`, name: '', weight: 50, scale: 5 },
   ],
   algorithmId: 'weighted-mean',
+  scores: [],
   currentStep: 1,
   isSubmitting: false,
 };
@@ -166,11 +173,20 @@ export const useListStore = create<ListFormState & ListFormActions>()(
       /* ── Step 4 ── */
       setAlgorithmId: (algorithmId) => set({ algorithmId }),
 
+      /* ── Step 5 — Scoring ── */
+      setScore: (itemIdx, dimIdx, value) =>
+        set((s) => {
+          const scores = s.scores.map(row => [...row]);
+          if (!scores[itemIdx]) scores[itemIdx] = [];
+          scores[itemIdx][dimIdx] = value;
+          return { scores };
+        }),
+
       /* ── Navigation ── */
       setStep: (step) => set({ currentStep: step }),
       nextStep: () =>
         set((s) => ({
-          currentStep: (Math.min(s.currentStep + 1, 4)) as FormStep,
+          currentStep: (Math.min(s.currentStep + 1, 5)) as FormStep,
         })),
       prevStep: () =>
         set((s) => ({

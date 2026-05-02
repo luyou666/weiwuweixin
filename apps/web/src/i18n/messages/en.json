@@ -75,6 +75,7 @@
     "step2": "Add Items",
     "step3": "Configure Dimensions",
     "step4": "Choose Algorithm",
+    "step5": "Score Items",
     "prevStep": "← Back",
     "nextStep": "Next →",
     "creating": "Creating…",
@@ -121,6 +122,18 @@
       "title": "Choose Algorithm",
       "needHelp": "Need help choosing?",
       "radarNote": "Radar shows trait tendencies, not ranking"
+    },
+    "stepFive": {
+      "title": "Score Items",
+      "guide": "Measure with your heart — score each item across every dimension",
+      "item": "Item",
+      "dimension": "Dimension",
+      "unnamed": "Unnamed",
+      "unnamedItem": "Unnamed Item",
+      "noData": "Please add items and dimensions in previous steps first",
+      "back": "Go Back",
+      "publish": "✦ Publish List",
+      "submitting": "⏳ Publishing..."
     }
   },
   "listDetail": {

@@ -5,16 +5,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from '@/i18n/navigation';
 import { Button, EmptyState, Slider } from '@weiwuweixin/ui';
 import { useListStore } from '@/stores/list-store';
-import { ALGORITHM_METAS, CATEGORY_TAGS } from '@/lib/api';
-import type { AlgorithmMeta } from '@/lib/api';
-import type { FormStep } from '@/stores/list-store';
+import { ALGORITHM_METAS, CATEGORY_TAGS, createList } from '@/lib/api';
+import type { AlgorithmMeta, CreateListInput } from '@/lib/api';
+import type { FormStep, FormDimension } from '@/stores/list-store';
 import type { ListVisibility } from '@weiwuweixin/shared';
 import { VISIBILITY_OPTIONS } from '@weiwuweixin/shared';
+import type { Item, Dimension } from '@weiwuweixin/scoring';
 import { Link } from '@/i18n/navigation';
 import katex from 'katex';
 import { useTranslations } from 'next-intl';
 import { AlgoRadar } from '@/components/algo-radar';
 import { AlgoComparison } from '@/components/algo-comparison';
+import { ScoringMatrix } from '@/components/scoring-matrix';
+import { useScoringStore } from '@/stores/scoring-store';
 
 /* ============================================================
    新建榜单 — Ranker Studio · Dark Glass Studio
@@ -170,6 +173,7 @@ export default function NewListPage() {
     { key: 2, label: t('step2'), num: '02' },
     { key: 3, label: t('step3'), num: '03' },
     { key: 4, label: t('step4'), num: '04' },
+    { key: 5, label: t('step5'), num: '05' },
   ];
 
   return (
@@ -269,6 +273,7 @@ export default function NewListPage() {
           {store.currentStep === 2 && <StepTwo key="step2" />}
           {store.currentStep === 3 && <StepThree key="step3" />}
           {store.currentStep === 4 && <StepFour key="step4" />}
+          {store.currentStep === 5 && <StepFive key="step5" />}
         </AnimatePresence>
 
         {/* ── Bottom Nav ── */}
@@ -288,7 +293,7 @@ export default function NewListPage() {
             </button>
           ) : <div />}
 
-          {store.currentStep < 4 ? (
+          {store.currentStep < 5 ? (
             <motion.button type="button"
               whileTap={{ scale: 0.97 }}
               onClick={() => store.nextStep()}
@@ -893,12 +898,15 @@ function StepFour() {
       <div className="space-y-5">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xs text-white/70 tracking-widest uppercase font-medium">{t('title')}</h2>
-          <button type="button"
+          <motion.button type="button"
             onClick={() => setShowComparison(true)}
-            className="text-[11px] text-white/35 hover:text-white/65 transition-colors duration-300 underline underline-offset-4 decoration-white/[0.1]"
+            className="text-[11px] text-white underline underline-offset-4 decoration-white/[0.1]"
+            animate={{ opacity: [0.35, 0.7, 0.35] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            whileHover={{ opacity: 0.65 }}
           >
             {t('needHelp')}
-          </button>
+          </motion.button>
         </div>
 
         <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="space-y-4">
@@ -1023,6 +1031,120 @@ function AlgoCard({ algo, selected, onSelect }: { algo: AlgorithmMeta; selected:
 }
 
 // ═══════════════════════════════════════════════════════════════
+//  Step 5 — 打分评分
+// ═══════════════════════════════════════════════════════════════
+
+function StepFive() {
+  const { items, dimensions, scores, setScore, isSubmitting } = useListStore();
+  const router = useRouter();
+  const t = useTranslations('newList.stepFive');
+
+  const handlePublish = useCallback(() => {
+    handleSubmit(useListStore.getState(), router);
+  }, [router]);
+
+  const scaleLabel = (dim: FormDimension) => {
+    if (dim.scale === 100) return '0-100';
+    if (dim.scale === 10) return '1-10';
+    return `1-${dim.scale}`;
+  };
+
+  return (
+    <motion.div
+      key="step5"
+      initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
+      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+      exit={{ opacity: 0, y: -20, filter: 'blur(4px)' }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+    >
+      <div className="rounded-2xl border border-white/[0.05] bg-white/[0.015] backdrop-blur-xl p-8 md:p-10">
+        <h2 className="text-xs text-white/70 tracking-widest uppercase font-medium mb-2">
+          {t('title')}
+        </h2>
+        <p className="text-white/30 text-sm mb-8">{t('guide')}</p>
+
+        {items.length === 0 || dimensions.length === 0 ? (
+          <p className="text-white/25 text-sm py-8">{t('noData')}</p>
+        ) : (
+          <div className="space-y-6">
+            <div className="hidden md:grid gap-4 items-end pb-2 border-b border-white/[0.04]"
+              style={{ gridTemplateColumns: `minmax(140px,1fr) repeat(${dimensions.length}, 1fr)` }}>
+              <span className="text-[10px] text-white/30 uppercase tracking-widest">{t('item')}</span>
+              {dimensions.map((dim) => (
+                <span key={dim.id} className="text-[10px] text-white/30 text-center uppercase">
+                  {dim.name || t('unnamed')} ({scaleLabel(dim)})
+                </span>
+              ))}
+            </div>
+
+            {items.map((item, itemIdx) => (
+              <motion.div key={item.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: itemIdx * 0.05 }}
+                className="md:grid gap-4 items-center py-3 border-b border-white/[0.02] last:border-0"
+                style={{ gridTemplateColumns: `minmax(140px,1fr) repeat(${dimensions.length}, 1fr)` }}>
+                <div className="mb-2 md:mb-0">
+                  <p className="text-sm text-white/80 font-medium truncate">
+                    {item.name || t('unnamedItem')}
+                  </p>
+                  {item.note && (
+                    <p className="text-[11px] text-white/30 truncate mt-0.5">{item.note}</p>
+                  )}
+                </div>
+
+                {dimensions.map((dim, dimIdx) => (
+                  <div key={dim.id} className="flex items-center gap-3 mb-1 md:mb-0">
+                    <span className="md:hidden text-[10px] text-white/25 w-16 flex-shrink-0 truncate">
+                      {dim.name || t('unnamed')}
+                    </span>
+                    <Slider
+                      value={scores[itemIdx]?.[dimIdx] ?? 1}
+                      min={1}
+                      max={dim.scale || 5}
+                      step={1}
+                      className="flex-1"
+                      onChange={(val) => setScore(itemIdx, dimIdx, val)}
+                    />
+                    <span className="text-xs font-mono text-white/50 w-7 text-right tabular-nums">
+                      {scores[itemIdx]?.[dimIdx] ?? 1}
+                    </span>
+                  </div>
+                ))}
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {/* ── 操作按钮 ── */}
+        <div className="flex justify-center gap-4 pt-10">
+          <motion.button type="button"
+            whileTap={{ scale: 0.97 }}
+            onClick={() => useListStore.getState().prevStep()}
+            className="px-6 py-3 rounded-full text-sm text-white/50 bg-white/[0.02] border border-white/[0.05]
+              hover:bg-white/[0.05] hover:text-white/75 transition-all duration-300"
+          >
+            ← {t('back')}
+          </motion.button>
+          <motion.button type="button"
+            whileTap={{ scale: 0.96 }}
+            onClick={handlePublish}
+            disabled={isSubmitting}
+            className="px-8 py-3.5 rounded-full text-sm font-semibold text-white
+              bg-gradient-to-r from-[#D94A35] to-[#E56550]
+              hover:from-[#E56550] hover:to-[#D94A35]
+              shadow-[0_0_50px_rgba(217,74,53,0.15)]
+              disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-500"
+          >
+            {isSubmitting ? t('submitting') : t('publish')}
+          </motion.button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  Submit Handler
 // ═══════════════════════════════════════════════════════════════
 
@@ -1031,8 +1153,36 @@ async function handleSubmit(
   router: ReturnType<typeof useRouter>,
 ) {
   store.setIsSubmitting(true);
-  setTimeout(() => {
+  try {
+    const scale = store.dimensions.length > 0 && store.dimensions[0].scale
+      ? (store.dimensions[0].scale === 100 ? '0-100'
+        : store.dimensions[0].scale === 10 ? '1-10'
+        : '1-5')
+      : '1-5';
+
+    const result = await createList({
+      title: store.title,
+      subtitle: store.subtitle,
+      algorithmId: store.algorithmId,
+      scale,
+      visibility: store.visibility,
+      dimensions: store.dimensions.map(d => ({
+        name: d.name || `维度${d.id}`,
+        weight: d.weight,
+        scale: d.scale,
+      })),
+      items: store.items.map((item, idx) => ({
+        name: item.name || `条目${idx + 1}`,
+        note: item.note || undefined,
+        rank: idx + 1,
+      })),
+      authorScores: store.scores.length > 0 ? store.scores : undefined,
+    });
+
+    store.reset();
+    router.push(`/list/${result.id}`);
+  } catch (err) {
     store.setIsSubmitting(false);
-    router.push('/');
-  }, 1500);
+    console.error('Failed to create list:', err);
+  }
 }

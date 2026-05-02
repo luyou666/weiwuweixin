@@ -270,7 +270,7 @@ export async function fetchExploreLists(params?: {
   page?: number;
   pageSize?: number;
 }): Promise<{ lists: FeedList[]; hasMore: boolean }> {
-  const { sort = 'diversity', query = '', page = 1, pageSize = 8 } = params ?? {};
+  const { sort = 'diversity', query = '', page = 1, pageSize = 8, categories = [] } = params ?? {};
 
   const sortMap: Record<string, string> = {
     diversity: 'popular',
@@ -279,12 +279,12 @@ export async function fetchExploreLists(params?: {
   };
 
   const apiSort = sortMap[sort] ?? 'latest';
-  const qs = query
-    ? `&search=${encodeURIComponent(query)}`
-    : '';
+  const qsParts: string[] = [];
+  if (query) qsParts.push(`search=${encodeURIComponent(query)}`);
+  if (categories.length > 0) qsParts.push(`categories=${categories.join(',')}`);
 
   const res = await get(
-    `/api/lists?sort=${apiSort}&page=${page}&pageSize=${pageSize}${qs}`
+    `/api/lists?sort=${apiSort}&page=${page}&pageSize=${pageSize}${qsParts.length > 0 ? '&' + qsParts.join('&') : ''}`
   );
   const data = await res.json();
 
@@ -415,6 +415,32 @@ export interface LeaderboardResponse {
 /** 获取热度排行榜 */
 export async function fetchLeaderboard(): Promise<LeaderboardResponse> {
   const res = await get('/api/leaderboard');
+  return res.json();
+}
+
+/* ============================================================
+   创建榜单
+   ============================================================ */
+
+/** 创建榜单的请求体 */
+export interface CreateListInput {
+  title: string;
+  subtitle?: string;
+  algorithmId?: string;
+  scale?: string;
+  visibility?: 'PUBLIC' | 'LINK_ONLY' | 'PRIVATE';
+  note?: string;
+  /** 维度列表 */
+  dimensions: { name: string; weight?: number; scale?: number }[];
+  /** 物品列表 */
+  items: { name: string; note?: string; url?: string; rank?: number }[];
+  /** 作者评分矩阵: [itemIdx][dimIdx] */
+  authorScores?: number[][];
+}
+
+/** 创建新榜单 */
+export async function createList(input: CreateListInput): Promise<{ id: string }> {
+  const res = await post('/api/lists', input);
   return res.json();
 }
 
