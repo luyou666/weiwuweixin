@@ -1,5 +1,8 @@
 # 围物为心 (WeiWuWeiXin)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![pnpm](https://img.shields.io/badge/pnpm-9.0.6-blue)](https://pnpm.io)
+
 > 把心中的排序具象化、算法化，被社区以"置信度"形式温柔共识化的主观评分社区产品。
 
 ## 核心精神

@@ -140,7 +140,24 @@ export const scoreRoutes: FastifyPluginAsync = async (app) => {
   app.get<{
     Params: { id: string };
     Querystring: { page?: number; pageSize?: number };
-  }>('/:id/scores', async (req, _reply) => {
+  }>('/:id/scores', {
+    schema: {
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+        },
+        required: ['id'],
+      },
+      querystring: {
+        type: 'object',
+        properties: {
+          page: { type: 'integer', minimum: 1, default: 1 },
+          pageSize: { type: 'integer', minimum: 1, maximum: 100, default: 50 },
+        },
+      },
+    },
+  }, async (req, _reply) => {
     const { id: listId } = req.params;
     const { page = 1, pageSize = 50 } = req.query;
 

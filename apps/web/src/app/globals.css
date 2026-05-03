@@ -305,23 +305,25 @@
     color: var(--paper);
   }
 
-  /* 滚动条隐藏 — Monopo风格无滚动条 */
+  /* ── a11y: 细窄可见滚动条 ── */
   ::-webkit-scrollbar {
-    width: 0;
-    height: 0;
+    width: 4px;
+    height: 4px;
   }
   ::-webkit-scrollbar-track {
-    display: none;
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    display: none;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    display: none;
+    background: rgba(255, 255, 255, 0.25);
   }
-  /* Firefox 隐藏滚动条 */
+  /* Firefox */
   * {
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
   }
 
   :focus-visible {

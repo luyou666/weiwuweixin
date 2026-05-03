@@ -170,7 +170,23 @@ export const voteRoutes: FastifyPluginAsync = async (app) => {
   app.get<{
     Params: { id: string };
     Querystring: { deviceId?: string };
-  }>('/:id/votes', async (req, _reply) => {
+  }>('/:id/votes', {
+    schema: {
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+        },
+        required: ['id'],
+      },
+      querystring: {
+        type: 'object',
+        properties: {
+          deviceId: { type: 'string' },
+        },
+      },
+    },
+  }, async (req, _reply) => {
     const { id: listId } = req.params;
     const { deviceId } = req.query;
     // POST /vote 经过 auth middleware，匿名用户的 voterFingerprint 是 user.id（device-auth upsert 生成）

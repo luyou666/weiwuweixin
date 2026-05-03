@@ -504,71 +504,7 @@ export default function AboutPage() {
             </div>
           </ScrollParallaxSection>
 
-          {/* Right: Contact — Layer 6 spring links */}
-          <motion.div
-            className="col-span-12 md:col-span-4 md:col-start-9 md:mt-[4vh]"
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.7, ease: monopoEase, delay: 0.2 }}
-          >
-            <p
-              className="font-mono text-[10px] tracking-[0.35em] uppercase mb-6"
-              style={{ color: 'rgba(245,240,232,0.3)' }}
-            >
-              {t('contactLabel')}
-            </p>
 
-            <div className="space-y-6">
-              {/* Email — underline expand on hover (monopo pattern) */}
-              <motion.a
-                href="mailto:zwk1319206608@163.com"
-                className="block relative font-body text-base md:text-lg py-2 group overflow-hidden"
-                style={{ color: 'rgba(245,240,232,0.6)', fontFamily: 'var(--font-body)' }}
-                whileHover={{ color: '#F5F0E8' }}
-                transition={{ duration: 0.5, ease: monopoEase }}
-              >
-                <span className="relative inline-block">
-                  {t('contactEmail')}
-                  <motion.span
-                    className="absolute bottom-0 left-0 h-[1px]"
-                    style={{ backgroundColor: '#E2553F' }}
-                    initial={{ width: 0 }}
-                    whileHover={{ width: '100%' }}
-                    transition={{ duration: 0.5, ease: monopoEase }}
-                  />
-                </span>
-              </motion.a>
-
-              {/* Press Kit — arrow slide on hover */}
-              <motion.a
-                href="#"
-                className="block font-body text-base md:text-lg py-2 group"
-                style={{ color: 'rgba(245,240,232,0.6)', fontFamily: 'var(--font-body)' }}
-                onClick={(e) => e.preventDefault()}
-                whileHover={{ color: '#F5F0E8' }}
-                transition={{ duration: 0.5, ease: monopoEase }}
-              >
-                <motion.span
-                  className="inline-block"
-                  whileHover={{ x: 6 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                >
-                  {t('downloadPressKit')}
-                </motion.span>
-              </motion.a>
-
-              {/* Decorative vermilion line */}
-              <motion.div
-                className="h-[1px] mt-6"
-                style={{ backgroundColor: 'rgba(226,85,63,0.2)' }}
-                initial={{ scaleX: 0, originX: 0 }}
-                whileInView={{ scaleX: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 1.2, ease: monopoEase, delay: 0.6 }}
-              />
-            </div>
-          </motion.div>
         </div>
       </section>
 

@@ -65,7 +65,7 @@ export const useAuthStore = create<AuthState>()(
           return false;
         }
         try {
-          const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+          const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
           const res = await fetch(`${API_BASE}/api/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -90,7 +90,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'wwx-auth',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => sessionStorage),  // 🔒 P2: 关闭标签即清除
       onRehydrateStorage: () => (state) => {
         if (state) state.setIsHydrated(true);
       },

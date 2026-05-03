@@ -2,6 +2,7 @@
   "name": "@weiwuweixin/scoring",
   "version": "0.0.1",
   "description": "围物为心 - 评分计算库",
+  "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

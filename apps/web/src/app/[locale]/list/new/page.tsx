@@ -143,19 +143,18 @@ function StudioInput({ value, onChange, placeholder, maxLength, className = '' }
 
 function PillTag({ children, active, onClick }: { children: React.ReactNode; active: boolean; onClick: () => void }) {
   return (
-    <motion.button
+    <button
       type="button"
-      whileTap={{ scale: 0.95 }}
       onClick={onClick}
       className={`
-        px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border
+        px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border active:scale-95
         ${active
           ? 'bg-white/12 border-white/15 text-white shadow-[0_0_16px_rgba(226,85,63,0.12)]'
           : 'bg-white/[0.02] border-white/[0.05] text-white/45 hover:bg-white/[0.05] hover:border-white/[0.1] hover:text-white/70'}
       `}
     >
       {children}
-    </motion.button>
+    </button>
   );
 }
 
@@ -236,13 +235,11 @@ export default function NewListPage() {
                     transition={{ duration: 0.5 }}
                   />
                 )}
-                <motion.button
+                <button
                   type="button"
-                  variants={springUp}
-                  whileTap={{ scale: 0.94 }}
                   onClick={() => store.setStep(step.key)}
                   className={`
-                    flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-400
+                    flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-400 active:scale-[0.94]
                     ${isActive
                       ? 'bg-white/[0.07] text-white shadow-[0_0_24px_rgba(226,85,63,0.1)]'
                       : isCompleted
@@ -257,7 +254,7 @@ export default function NewListPage() {
                   {isActive && (
                     <motion.span layoutId="step-dot" className="w-1.5 h-1.5 rounded-full bg-[#E2553F]" />
                   )}
-                </motion.button>
+                </button>
               </React.Fragment>
             );
           })}
@@ -294,15 +291,14 @@ export default function NewListPage() {
           ) : <div />}
 
           {store.currentStep < 5 ? (
-            <motion.button type="button"
-              whileTap={{ scale: 0.97 }}
+            <button type="button"
               onClick={() => store.nextStep()}
               className="px-7 py-3 rounded-full text-sm font-medium text-white bg-white/[0.07] border border-white/[0.08]
                 hover:bg-white/[0.12] hover:border-white/[0.15] transition-all duration-300
-                shadow-[0_0_32px_rgba(226,85,63,0.06)]"
+                shadow-[0_0_32px_rgba(226,85,63,0.06)] active:scale-[0.97]"
             >
               {t('nextStep')}
-            </motion.button>
+            </button>
           ) : <div />}
         </motion.div>
       </main>
@@ -420,17 +416,16 @@ function StepOne() {
                         focus:outline-none focus:border-white/30 focus:text-white/85
                         transition-all duration-300"
                     />
-                    <motion.button
+                    <button
                       type="submit"
-                      whileTap={{ scale: 0.9 }}
                       className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center
-                        text-[10px] transition-all duration-300
+                        text-[10px] transition-all duration-300 active:scale-90
                         ${customInput.trim()
                           ? 'bg-[#E2553F]/20 text-[#E2553F] hover:bg-[#E2553F]/30'
                           : 'bg-white/[0.04] text-white/20 cursor-default'}`}
                     >
                       ✓
-                    </motion.button>
+                    </button>
                     <button
                       type="button"
                       onClick={() => { setShowCustomInput(false); setCustomInput(''); }}
@@ -441,22 +436,18 @@ function StepOne() {
                     </button>
                   </motion.form>
                 ) : (
-                  <motion.button
+                  <button
                     key="btn"
                     type="button"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    whileTap={{ scale: 0.92 }}
                     onClick={() => setShowCustomInput(true)}
                     className="w-7 h-7 rounded-full flex items-center justify-center
                       text-xs text-white/35 bg-white/[0.03] border border-white/[0.06]
                       hover:bg-white/[0.06] hover:text-white/65 hover:border-white/[0.12]
-                      transition-all duration-300"
+                      transition-all duration-300 active:scale-[0.92]"
                     title="添加自定义标签"
                   >
                     +
-                  </motion.button>
+                  </button>
                 )}
               </AnimatePresence>
             </motion.div>
@@ -486,18 +477,17 @@ function StepOne() {
               };
               const isActive = visibility === opt;
               return (
-                <motion.button type="button" key={opt}
-                  whileTap={{ scale: 0.95 }}
+                <button type="button" key={opt}
                   onClick={() => setVisibility(opt as ListVisibility)}
                   className={`
-                    flex-1 max-w-[180px] px-4 py-3 rounded-xl text-xs font-medium transition-all duration-300 border
+                    flex-1 max-w-[180px] px-4 py-3 rounded-xl text-xs font-medium transition-all duration-300 border active:scale-95
                     ${isActive
                       ? 'bg-white/[0.06] border-white/[0.1] text-white shadow-[0_0_20px_rgba(226,85,63,0.08)]'
                       : 'bg-white/[0.01] border-white/[0.04] text-white/35 hover:bg-white/[0.03] hover:text-white/55'}
                   `}
                 >
                   {labels[opt]}
-                </motion.button>
+                </button>
               );
             })}
           </div>
@@ -610,14 +600,13 @@ function StepTwo() {
         )}
 
         {/* ── Add Button ── */}
-        <motion.button type="button"
-          whileTap={{ scale: 0.96 }}
+        <button type="button"
           onClick={() => addItem()}
           className="px-4 py-2 rounded-full text-xs text-white/55 bg-white/[0.02] border border-white/[0.05]
-            hover:bg-white/[0.06] hover:text-white/80 hover:border-white/[0.1] transition-all duration-300"
+            hover:bg-white/[0.06] hover:text-white/80 hover:border-white/[0.1] transition-all duration-300 active:scale-[0.96]"
         >
           {t('addItem')}
-        </motion.button>
+        </button>
       </div>
 
       {/* ── Bulk Import ── */}

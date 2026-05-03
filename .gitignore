@@ -47,3 +47,26 @@ redis-data/
 # PostgreSQL data
 pg-data/check-users.cjs
 create-test-user.cjs
+
+# Sensitive files (passwords/credentials)
+apps/api/reset_pwd.mjs
+packages/shared/start-pg.cjs
+packages/shared/start-pg.mjs
+scripts/reset_password.py
+start-pg.cjs
+verify-seed.cjs
+
+# Debug / development scripts (not for release)
+apps/web/test_ls.mjs
+apps/web/fix-lens.py
+apps/web/debug-lens.py
+apps/web/clean_cache.py
+apps/web/debug-lens2.py
+step5d_debug.py
+scripts/reset_accounts.sql
+scripts/patch_fontscale_v2.py
+scripts/patch_fontscale.py
+step5cd.py
+step5d.py
+clear_cache.py
+step5d_full.py

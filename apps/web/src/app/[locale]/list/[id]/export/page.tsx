@@ -418,7 +418,7 @@ export default function ExportPage() {
       setShowStamp(true);
     } catch (err) {
       console.error('[Export] Failed:', err);
-      alert('导出失败，请重试。');
+      // 静默失败，不阻断用户
     } finally {
       setIsExporting(false);
     }
@@ -584,7 +584,7 @@ export default function ExportPage() {
                 {templates.map((tpl) => {
                   const isSel = template === tpl.id;
                   return (
-                    <motion.button key={tpl.id} type="button" whileTap={{ scale: 0.97 }}
+                    <button key={tpl.id} type="button"
                       onClick={() => setTemplate(tpl.id)}
                       style={{
                         background: isSel ? 'rgba(255,59,48,0.08)' : '#0A0A0E',
@@ -592,7 +592,7 @@ export default function ExportPage() {
                         boxShadow: isSel ? '0 0 12px rgba(255,59,48,0.15)' : 'none',
                         fontFamily: "'JetBrains Mono', 'SF Mono', monospace",
                       }}
-                      className="text-left px-2.5 py-2.5 transition-all duration-200 text-[10px]">
+                      className="text-left px-2.5 py-2.5 transition-all duration-200 text-[10px] active:scale-[0.97]">
                       <div style={{
                         fontSize: '10px',
                         fontWeight: 700,
@@ -610,7 +610,7 @@ export default function ExportPage() {
                       }}>
                         {TEMPLATE_META[tpl.id]?.label ?? ''}
                       </div>
-                    </motion.button>
+                    </button>
                   );
                 })}
               </div>

@@ -53,7 +53,14 @@ function calcConfidence(item: {
 
 export const exploreRoutes: FastifyPluginAsync = async (app) => {
   // ── GET /explore — 发现页 ────────────────────────────
-  app.get('/', async (req, _reply) => {
+  app.get('/', {
+    schema: {
+      querystring: {
+        type: 'object',
+        properties: {},
+      },
+    },
+  }, async (req, _reply) => {
     const result = await cache.withCache(
       'explore:home',
       async () => {

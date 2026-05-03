@@ -1,8 +1,8 @@
 {
   "name": "@weiwuweixin/web",
   "version": "0.0.1",
-  "private": true,
   "description": "围物为心 - Web前端 (Next.js 14)",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

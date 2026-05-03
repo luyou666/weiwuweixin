@@ -1,8 +1,8 @@
 {
   "name": "weiwuweixin",
   "version": "0.0.1",
-  "private": true,
   "description": "围物为心 - Monorepo",
+  "license": "MIT",
   "scripts": {
     "dev": "pnpm --parallel --filter './apps/*' --filter './packages/*' dev",
     "dev:web": "pnpm --filter @weiwuweixin/web dev",
@@ -45,5 +45,12 @@
     "node": ">=18.17.0",
     "pnpm": ">=8.0.0"
   },
-  "packageManager": "pnpm@9.0.6"
+  "packageManager": "pnpm@9.0.6",
+  "pnpm": {
+    "overrides": {
+      "fast-jwt": "6.2.4",
+      "glob": "10.5.0",
+      "tar": "7.5.11"
+    }
+  }
 }

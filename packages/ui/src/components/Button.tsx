@@ -37,6 +37,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <motion.button
         ref={ref}
         type={htmlType}
+        {...rest}
         disabled={disabled || loading}
         onClick={onClick}
         className={[

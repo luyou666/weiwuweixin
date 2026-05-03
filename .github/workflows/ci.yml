@@ -1,0 +1,206 @@
+name: CI
+
+on:
+  push:
+    branches: [main, feat/*]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── lint & typecheck ──────────────────────────────────────
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Prettier check
+        run: pnpm format:check
+
+      - name: ESLint
+        run: pnpm lint
+
+  # ── unit tests ────────────────────────────────────────────
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: weiwuweixin
+          POSTGRES_PASSWORD: test_ci
+          POSTGRES_DB: weiwuweixin
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        working-directory: apps/api
+        run: npx prisma generate
+
+      - name: Push schema
+        working-directory: apps/api
+        run: npx prisma db push --skip-generate
+        env:
+          DATABASE_URL: postgresql://weiwuweixin:test_ci@localhost:5432/weiwuweixin
+
+      - name: Unit tests
+        run: pnpm test:all
+        env:
+          DATABASE_URL: postgresql://weiwuweixin:test_ci@localhost:5432/weiwuweixin
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: ci-test-secret
+          MINIO_ENDPOINT: localhost
+          MINIO_PORT: "9000"
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin
+
+  # ── build check ───────────────────────────────────────────
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm --filter './packages/*' build
+
+      - name: Build Next.js
+        working-directory: apps/web
+        run: npx next build
+
+  # ── E2E (optional, heavier) ───────────────────────────────
+  e2e:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: weiwuweixin
+          POSTGRES_PASSWORD: test_ci
+          POSTGRES_DB: weiwuweixin
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate Prisma client
+        working-directory: apps/api
+        run: npx prisma generate
+
+      - name: Push schema
+        working-directory: apps/api
+        run: npx prisma db push --skip-generate
+        env:
+          DATABASE_URL: postgresql://weiwuweixin:test_ci@localhost:5432/weiwuweixin
+
+      - name: Start API
+        working-directory: apps/api
+        run: npx tsx src/index.ts &
+        env:
+          DATABASE_URL: postgresql://weiwuweixin:test_ci@localhost:5432/weiwuweixin
+          REDIS_URL: redis://localhost:6379
+          PORT: "3001"
+          HOST: 0.0.0.0
+          JWT_SECRET: ci-test-secret
+
+      - name: Wait for API
+        run: npx wait-on tcp:3001 -t 15000
+
+      - name: Seed demo data
+        run: pnpm seed:demo
+
+      - name: E2E tests
+        working-directory: apps/web
+        run: npx playwright test
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001

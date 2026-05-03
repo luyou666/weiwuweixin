@@ -13,7 +13,14 @@ import { cache } from '../services/cache';
 const LEADERBOARD_TTL = 60;
 
 export const leaderboardRoutes: FastifyPluginAsync = async (app) => {
-  app.get('/', async (_req, _reply) => {
+  app.get('/', {
+    schema: {
+      querystring: {
+        type: 'object',
+        properties: {},
+      },
+    },
+  }, async (_req, _reply) => {
     return cache.withCache(
       'leaderboard:top20',
       async () => {

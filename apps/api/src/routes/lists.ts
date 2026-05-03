@@ -6,6 +6,7 @@ import { FastifyPluginAsync } from 'fastify';
 import { Visibility } from '@prisma/client';
 import { cache, CacheKeys, CACHE_TTL } from '../services/cache';
 import { computeListConfidence } from '../services/confidence';
+import { validateSensitive } from '../services/sensitiveFilter';
 import type { ConfidenceParams } from '@weiwuweixin/scoring';
 
 export const listRoutes: FastifyPluginAsync = async (app) => {
@@ -177,7 +178,17 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // ── GET /lists/:id — 榜单详情 ───────────────────────
-  app.get('/:id', async (req, _reply) => {
+  app.get('/:id', {
+    schema: {
+      params: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+        },
+        required: ['id'],
+      },
+    },
+  }, async (req, _reply) => {
     const { id } = req.params as { id: string };
 
     const list = await app.prisma.list.findUnique({
@@ -209,6 +220,14 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
 
     if (!list) {
       return _reply.code(404).send({ error: 'List not found' });
+    }
+
+    // 🔒 IDOR 防御：检查榜单可见性
+    const currentUserId = (req as any).user?.id;
+    if (list.visibility === 'PRIVATE') {
+      if (currentUserId !== list.authorId || currentUserId === undefined) {
+        return _reply.code(404).send({ error: 'List not found' });
+      }
     }
 
     // 增加浏览量（异步，不阻塞响应）
@@ -308,6 +327,16 @@ export const listRoutes: FastifyPluginAsync = async (app) => {
       items?: { name: string; note?: string; url?: string; rank?: number }[];
       authorScores?: number[][];
     };
+
+    // 🔒 敏感词检测（标题+副标题+备注）
+    const check = validateSensitive({
+      title: body.title,
+      subtitle: body.subtitle ?? '',
+      note: body.note ?? '',
+    });
+    if (!check.valid) {
+      return _reply.code(400).send({ error: check.message });
+    }
 
     // 由 device-auth 中间件注入
     const authorId = req.user!.id;

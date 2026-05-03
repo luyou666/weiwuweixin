@@ -320,10 +320,19 @@ export default function LeaderboardPage() {
   const ranked = useMemo(() => {
     if (!data?.leaderboard) return [];
     const list = [...data.leaderboard];
+    if (filter === 'hot') {
+      return [...list].sort((a, b) => (b.hotness ?? 0) - (a.hotness ?? 0));
+    }
     if (filter === 'rising') {
       return [...list].sort((a, b) =>
         ((b.upvoteCount ?? 0) - (b.downvoteCount ?? 0)) -
         ((a.upvoteCount ?? 0) - (a.downvoteCount ?? 0))
+      );
+    }
+    if (filter === 'classic') {
+      return [...list].sort((a, b) =>
+        ((b.communityScoreCount ?? 0) + (b.commentCount ?? 0)) -
+        ((a.communityScoreCount ?? 0) + (a.commentCount ?? 0))
       );
     }
     return list;

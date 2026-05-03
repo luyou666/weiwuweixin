@@ -35,8 +35,13 @@ model User {
   deviceId  String?  @unique
   /// 正式账号邮箱（注册后填写）
   email     String?  @unique
+  /// 用户角色：USER=普通用户, ADMIN=管理员
+  role      String   @default("USER") @db.VarChar(20)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  /// 🔒 H7: JWT token 版本号 — 密码变更后递增，旧token自动失效
+  tokenVersion Int @default(0)
 
   // relations
   lists            List[]
@@ -57,7 +62,7 @@ model User {
 //  账号认证
 // ============================================================
 
-/// 正式账号 — 邮箱+密码登录
+/// 正式账号 — 邮箱+密码登录 (🔒 安全加固 2026-05-03)
 model Account {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -65,15 +70,21 @@ model Account {
   emailVerified Boolean   @default(false)
   userId        String    @unique
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// 🔒 H3: 连续登录失败次数 (成功登录后清零)
+  failedLoginAttempts Int @default(0)
+  /// 🔒 H3: 账户锁定截止时间 (null=未锁定)
+  lockedUntil DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   refreshTokens RefreshToken[]
 }
 
-/// 刷新令牌 — 长期会话保持
+/// 刷新令牌 — 长期会话保持 (🔒 安全加固 2026-05-03)
+/// token 字段现在存储 SHA-256 哈希值，原始令牌不落库
 model RefreshToken {
   id          String    @id @default(cuid())
+  /// 🔒 H4: 存储 SHA-256(token)，非原始令牌。通过 hashToken() 查找。
   token       String    @unique
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -83,9 +94,14 @@ model RefreshToken {
   expiresAt   DateTime
   createdAt   DateTime  @default(now())
   revokedAt   DateTime?
+  /// 🔒 H4: 会话家族ID — 同一登录会话的所有refresh token共享，用于绝对时限检查
+  familyId    String?
+  /// 🔒 H4: 标记此token是否因重用检测而被撤销（触发全家族撤销）
+  reusedAt    DateTime?
 
   @@index([userId])
   @@index([token])
+  @@index([familyId])
 }
 
 // ============================================================
