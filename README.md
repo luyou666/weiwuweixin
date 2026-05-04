@@ -28,13 +28,54 @@
 
 ## 快速开始
 
-### 前置条件
+### 方式一：一键安装（推荐，无需 Docker）
+
+#### Windows
+
+下载仓库后，双击运行即可：
+
+```batch
+一键安装.bat
+```
+
+脚本将自动完成：
+1. 环境检查（Node.js / pnpm / Git）
+2. 服务协议确认
+3. 环境变量配置（自动生成 JWT_SECRET）
+4. 依赖安装 + 数据库初始化
+5. （可选）演示数据播种
+
+也可以先用 `创建桌面快捷方式.bat` 在桌面放置一个安装入口。
+
+安装完成后，运行 `start.bat` 即可启动。
+
+#### Linux / macOS
+
+```bash
+chmod +x install.sh && ./install.sh
+```
+
+#### 启动
+
+```bash
+./start.sh          # Linux/macOS/Windows(WSL)
+start.bat           # Windows
+```
+
+→ 前端 http://localhost:3000/zh/ (中文) | /en/ (英文)
+→ 后端 http://localhost:4000
+
+---
+
+### 方式二：手动安装（需要 Docker）
+
+#### 前置条件
 
 - Node.js ≥ 18.17
 - pnpm ≥ 8.0
 - Docker & Docker Compose (用于数据库)
 
-### 安装与启动
+#### 安装与启动
 
 ```bash
 # 1. 克隆仓库
