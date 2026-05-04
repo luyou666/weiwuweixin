@@ -4,6 +4,9 @@ node_modules/
 # Build outputs
 dist/
 .next/
+.next.bak/
+.next.old/
+.next_old/
 out/
 build/
 
@@ -18,6 +21,7 @@ build/
 *.log
 npm-debug.log*
 pnpm-debug.log*
+scripts/logs/
 
 # OS files
 .DS_Store
@@ -31,6 +35,7 @@ Thumbs.db
 
 # Testing
 coverage/
+playwright-report/
 
 # TypeScript
 *.tsbuildinfo
@@ -45,6 +50,7 @@ minio-data/
 redis-data/
 
 # PostgreSQL data
+.pg-data/
 pg-data/check-users.cjs
 create-test-user.cjs
 
@@ -70,3 +76,10 @@ step5cd.py
 step5d.py
 clear_cache.py
 step5d_full.py
+# Dev scripts (not for distribution)
+create-test-user.cjs
+setup-db.cjs
+start-pg.cjs
+check-pg.cjs
+check-users.cjs
+cleanup-test.cjs

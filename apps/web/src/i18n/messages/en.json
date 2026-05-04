@@ -310,7 +310,7 @@
     "license": "MIT License · v0.1.0",
     "readMore": "Read more →",
     "downloadPressKit": "Download Press Kit ↓",
-    "contactEmail": "zwk1319206608@163.com →",
+    "contactEmail": "GitHub Issues →",
     "contactLabel": "CONTACT",
     "algoSceneLabel": "Use Case"
   },
@@ -344,7 +344,12 @@
     "guest": "Guest",
     "loginSuccess": "Login successful, welcome back",
     "registerSuccess": "Registration successful, welcome",
-    "operationFailed": "Operation failed, please try again"
+    "operationFailed": "Operation failed, please try again",
+    "loginRequired": "Please log in to continue",
+    "legalNotice": "By using, you agree to our",
+    "termsOfServiceShort": "Terms of Service",
+    "privacyPolicyShort": "Privacy Policy",
+    "and": "and"
   },
   "explore": {
     "title": "Explore",
@@ -477,7 +482,9 @@
   },
   "footer": {
     "copyright": "Weiwuweixin © 2026",
-    "poweredBy": "Powered by Hermes Agent"
+    "poweredBy": "Powered by Hermes Agent",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy"
   },
   "leaderboard": {
     "title": "Hotness Rank",
@@ -495,5 +502,49 @@
     "aboutCn": "About",
     "newCn": "New",
     "loginCn": "Log in"
+  },
+  "legal": {
+    "lastUpdated": "Last updated",
+    "backToHome": "Back to Home",
+    "termsTitle": "Terms of Service",
+    "termsOfServiceLink": "Terms of Service",
+    "privacyPolicyLink": "Privacy Policy",
+    "privacyTitle": "Privacy Policy",
+    "termsSection1Title": "1. Acceptance of Terms",
+    "termsSection1Content": "By registering for or using Weiwuweixin (\"the Platform\"), you agree to be bound by these Terms of Service (\"Terms\"). If you do not agree to any part of these Terms, please discontinue use immediately.",
+    "termsSection2Title": "2. Account Registration & Security",
+    "termsSection2Content": "You must provide a valid email address and set a password to create an account. You are responsible for maintaining the confidentiality of your account credentials and for all activities under your account. You may not transfer your account to others. Please notify us immediately of any unauthorized use of your account.",
+    "termsSection3Title": "3. User Content",
+    "termsSection3Content": "All content you create on the Platform — including lists, scores, and comments (\"User Content\") — belongs to you. You grant the Platform a worldwide, non-exclusive, royalty-free license to use, display, and distribute your User Content solely for operating the Platform. You represent and warrant that your User Content does not infringe any third-party rights and complies with applicable law.",
+    "termsSection4Title": "4. Prohibited Conduct",
+    "termsSection4Content": "You may not: (1) post illegal, infringing, defamatory, obscene, violent, or harmful content; (2) impersonate others or misrepresent your identity; (3) interfere with or disrupt the Platform's servers or networks; (4) use automated means to game scores, votes, or rankings; (5) collect or store personal information of other users.",
+    "termsSection5Title": "5. Intellectual Property",
+    "termsSection5Content": "The Platform's name, logo, interface design, scoring algorithms, and underlying technology are the intellectual property of the Platform. User Content remains the intellectual property of the respective users. Without written permission, you may not copy, modify, or distribute any part of the Platform's proprietary assets.",
+    "termsSection6Title": "6. Disclaimer of Warranties",
+    "termsSection6Content": "The Platform is provided \"as is\" without any warranties, express or implied, regarding continuity, timeliness, security, or accuracy. Rankings and confidence scores are algorithmic outputs and do not represent endorsements by the Platform. In no event shall the Platform be liable for any indirect, incidental, special, or consequential damages arising from use of the Platform.",
+    "termsSection7Title": "7. Termination",
+    "termsSection7Content": "We reserve the right to suspend or terminate your account for violation of these Terms or other reasonable grounds. You may terminate these Terms at any time by deleting your account. Upon termination, we will delete your personal information within a reasonable timeframe, except where retention is required by law.",
+    "termsSection8Title": "8. Changes to Terms",
+    "termsSection8Content": "We may modify these Terms from time to time. Material changes will be communicated via in-platform notice or email. Modified Terms take effect upon posting. Continued use of the Platform after changes constitutes acceptance of the modified Terms.",
+    "termsSection9Title": "9. Contact Us",
+    "termsSection9Content": "For questions about these Terms, contact us at: support@weiwuweixin.com, or use the feedback feature within the Platform.",
+    "privacySection1Title": "1. Information We Collect",
+    "privacySection1Content": "When you register, we collect your email address and the nickname you choose. During use, we automatically collect a device identifier (for anti-cheat detection), IP address, browser type, access logs, and operational data such as list creation, scoring, and commenting. We do not actively track your browsing behavior on other websites.",
+    "privacySection2Title": "2. How We Use Information",
+    "privacySection2Content": "We use your information to: (1) create and manage your account; (2) provide core features like list creation, scoring, and commenting; (3) compute confidence scores and detect cheating (using only anonymous device identifiers); (4) improve the product and fix bugs; (5) send service-related notifications (e.g., Terms changes). We do not use your personal information for automated profiling or decision-making.",
+    "privacySection3Title": "3. Cookies & Local Storage",
+    "privacySection3Content": "The Platform uses browser localStorage to store device identifiers and login credentials (JWT tokens) for a seamless experience. We do not use third-party tracking cookies or cross-site tracking technologies. You may clear local storage via browser settings, but this may require re-authentication.",
+    "privacySection4Title": "4. Information Sharing",
+    "privacySection4Content": "We do not sell your personal information to any third party. We may share information only: (1) with your explicit consent; (2) when required by law or judicial/administrative authorities; (3) to protect the rights and safety of the Platform, its users, or the public. Your publicly posted content (list titles, scores, comments) is visible to all Platform users.",
+    "privacySection5Title": "5. Data Security",
+    "privacySection5Content": "We implement reasonable technical and organizational measures to protect your personal information from unauthorized access, alteration, disclosure, or destruction. Passwords are stored in encrypted form; all communication is encrypted via HTTPS. However, no internet transmission or storage method is 100% secure.",
+    "privacySection6Title": "6. Your Rights",
+    "privacySection6Content": "Under applicable laws including the Personal Information Protection Law, you have the right to: (1) access and obtain a copy of your personal data; (2) correct inaccurate information; (3) delete your account and associated data (account deletion); (4) withdraw consent (may affect functionality); (5) file complaints regarding data processing. To exercise these rights, contact us using the information below.",
+    "privacySection7Title": "7. Children's Privacy",
+    "privacySection7Content": "The Platform is intended for users aged 14 and above. We do not knowingly collect personal information from children under 14. If you are under 14, please use the Platform under parental guidance. If we discover we have inadvertently collected information from a child under 14, we will delete it promptly.",
+    "privacySection8Title": "8. Policy Updates",
+    "privacySection8Content": "We may update this Privacy Policy from time to time. The \"Last updated\" date will be revised accordingly. Material changes will be communicated via in-platform notice or email. We encourage periodic review of this Policy.",
+    "privacySection9Title": "9. Contact Us",
+    "privacySection9Content": "For questions, comments, or complaints about this Privacy Policy, email us at support@weiwuweixin.com. We will respond within 15 business days."
   }
 }

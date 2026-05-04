@@ -311,7 +311,7 @@
     "license": "MIT License · v0.1.0",
     "readMore": "了解更多 →",
     "downloadPressKit": "下载品牌资料 ↓",
-    "contactEmail": "zwk1319206608@163.com →",
+    "contactEmail": "GitHub Issues →",
     "contactLabel": "联系",
     "algoSceneLabel": "适用场景"
   },
@@ -345,7 +345,12 @@
     "guest": "游客",
     "loginSuccess": "登录成功，欢迎回来",
     "registerSuccess": "注册成功，欢迎加入",
-    "operationFailed": "操作失败，请稍后再试"
+    "operationFailed": "操作失败，请稍后再试",
+    "loginRequired": "请登录后继续操作",
+    "legalNotice": "使用即表示同意",
+    "termsOfServiceShort": "用户服务协议",
+    "privacyPolicyShort": "隐私政策",
+    "and": "和"
   },
   "explore": {
     "title": "发现",
@@ -478,7 +483,9 @@
   },
   "footer": {
     "copyright": "围物为心 © 2026",
-    "poweredBy": "由 Hermes Agent 驱动"
+    "poweredBy": "由 Hermes Agent 驱动",
+    "termsOfService": "用户服务协议",
+    "privacyPolicy": "隐私政策"
   },
   "leaderboard": {
     "title": "热度排行榜",
@@ -496,5 +503,49 @@
     "aboutCn": "关于",
     "newCn": "新建",
     "loginCn": "登录"
+  },
+  "legal": {
+    "lastUpdated": "最后更新",
+    "backToHome": "返回首页",
+    "termsTitle": "用户服务协议",
+    "termsOfServiceLink": "用户服务协议",
+    "privacyPolicyLink": "隐私政策",
+    "privacyTitle": "隐私政策",
+    "termsSection1Title": "一、接受条款",
+    "termsSection1Content": "注册或使用「围物为心」（以下简称「本平台」）即表示您同意遵守本用户服务协议（以下简称「本协议」）。如果您不同意本协议的任何内容，请立即停止使用本平台。",
+    "termsSection2Title": "二、账号注册与安全",
+    "termsSection2Content": "您需要提供有效的电子邮箱地址并设置密码来创建账号。您有责任维护账号和密码的机密性，并对账号下的所有活动负责。您不得将账号转让给他人使用。如发现任何未经授权使用您账号的情况，请立即通知我们。",
+    "termsSection3Title": "三、用户内容",
+    "termsSection3Content": "您在本平台创建的榜单、评分、评论等所有内容（以下简称「用户内容」）均归您所有。您授予本平台全球范围内、非排他、免费的使用许可，以便我们运营、展示和推广本平台服务。您声明并保证您的用户内容不侵犯任何第三方权益，且不违反适用法律。",
+    "termsSection4Title": "四、禁止行为",
+    "termsSection4Content": "您不得利用本平台：（1）发布违法、侵权、诽谤、淫秽、暴力或危害国家安全的内容；（2）冒充他人或虚假陈述身份；（3）干扰或破坏本平台的服务器和网络；（4）使用自动化手段进行刷分、刷票或其他作弊行为；（5）收集或存储其他用户的个人信息。",
+    "termsSection5Title": "五、知识产权",
+    "termsSection5Content": "本平台的名称、LOGO、界面设计、算法代码、底层技术架构等知识产权归本平台所有。未经书面许可，您不得复制、修改或分发本平台的任何部分。用户创建的内容的知识产权归用户所有，但本平台保留在合理范围内展示和分发的权利。",
+    "termsSection6Title": "六、免责声明",
+    "termsSection6Content": "本平台按「现状」提供服务，不对服务的连续性、及时性、安全性或准确性做出任何明示或默示的保证。榜单排名和置信度计算为算法输出，不代表本平台对任何事物的立场、推荐或背书。在任何情况下，本平台对因使用本平台服务而产生的任何间接、附带、特殊或衍生损害概不负责。",
+    "termsSection7Title": "七、终止",
+    "termsSection7Content": "我们保留因违反本协议或其他合理原因暂停或终止您账号的权利。您可以随时通过删除账号来终止本协议。终止后，我们将在合理期限内删除您的个人信息，但法律要求保留的内容除外。",
+    "termsSection8Title": "八、协议修改",
+    "termsSection8Content": "我们可能会不时修改本协议。重大变更我们会通过站内通知或电子邮件告知。修改后的协议一经发布立即生效。如您在协议变更后继续使用本平台，即视为接受修改后的协议。",
+    "termsSection9Title": "九、联系我们",
+    "termsSection9Content": "如对本协议有任何疑问或建议，请通过以下方式联系我们：发送电子邮件至 support@weiwuweixin.com，或在平台上通过反馈功能提交。",
+    "privacySection1Title": "一、我们收集的信息",
+    "privacySection1Content": "当您注册账号时，我们会收集您的电子邮箱地址和您主动设置的昵称。使用过程中，我们会自动收集设备标识符（用于反刷分检测）、IP地址、浏览器类型、访问日志，以及您创建榜单、评分、评论等操作数据。我们不会主动追踪您在其他网站的浏览行为。",
+    "privacySection2Title": "二、信息的使用",
+    "privacySection2Content": "我们使用您的信息来：（1）创建和管理您的账号；（2）为您提供榜单创建、评分、评论等核心功能；（3）计算置信度和反刷分检测（仅使用匿名设备标识）；（4）改进产品体验和修复Bug；（5）发送服务相关通知（如协议变更）。我们不会使用您的个人信息进行自动化决策或用户画像分析。",
+    "privacySection3Title": "三、Cookie与本地存储",
+    "privacySection3Content": "本平台使用浏览器的localStorage存储设备标识符和登录凭证（JWT token），以便为您提供持续的服务体验。我们不使用第三方追踪Cookie或跨站追踪技术。您可以通过浏览器设置清除本地存储数据，但可能导致需要重新登录。",
+    "privacySection4Title": "四、信息共享",
+    "privacySection4Content": "我们不会将您的个人信息出售给任何第三方。仅在以下情形下我们可能共享您的信息：（1）经您明确授权；（2）法律要求或行政司法机关强制要求；（3）为保护本平台、用户或公众的合法权益所必需。您的公开发布内容（榜单标题、评分、评论等）将在平台上对全部用户可见。",
+    "privacySection5Title": "五、信息安全",
+    "privacySection5Content": "我们采取合理的技术和管理措施来保护您的个人信息免受未经授权的访问、修改、披露或销毁。密码经过加密存储，通信使用HTTPS加密传输。但请注意，没有任何互联网传输或存储方法是100%安全的。",
+    "privacySection6Title": "六、您的权利",
+    "privacySection6Content": "根据《个人信息保护法》等适用法律，您享有以下权利：（1）访问和复制您的个人数据；（2）更正不准确的个人信息；（3）删除您的账号和个人数据（账号注销功能）；（4）撤回同意（但可能影响部分功能使用）；（5）对个人信息处理提出投诉。如需行使以上权利，请通过下方联系方式联系我们。",
+    "privacySection7Title": "七、未成年人保护",
+    "privacySection7Content": "本平台主要面向年满14周岁的用户。我们不会故意收集14周岁以下未成年人的个人信息。如果您是14周岁以下的用户，请在监护人指导下使用本平台。如发现无意中收集了未成年人的信息，我们将立即删除。",
+    "privacySection8Title": "八、政策更新",
+    "privacySection8Content": "我们可能会不时更新本隐私政策。更新后，我们将在页面上更新「最后更新」日期。对于重大变更，我们将通过站内通知或电子邮件告知。建议您定期查阅本政策以了解最新信息。",
+    "privacySection9Title": "九、联系方式",
+    "privacySection9Content": "如对本隐私政策有任何疑问、意见或投诉，请发送电子邮件至 support@weiwuweixin.com，我们将在15个工作日内回复。"
   }
 }
