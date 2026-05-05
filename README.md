@@ -338,7 +338,7 @@ weiwuweixin/
 ## 运行命令
 
 ```bash
-cd /home/zhuwankai/weiwuweixin
+cd /home/wuyanzu/weiwuweixin
 
 # 运行测试
 pnpm --filter @weiwuweixin/scoring test    # 91 tests
