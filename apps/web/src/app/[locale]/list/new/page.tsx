@@ -7,6 +7,7 @@ import { Button, EmptyState, Slider } from '@weiwuweixin/ui';
 import { useListStore } from '@/stores/list-store';
 import { ALGORITHM_METAS, CATEGORY_TAGS, createList } from '@/lib/api';
 import type { AlgorithmMeta, CreateListInput } from '@/lib/api';
+import { useRequireAuth } from '@/hooks/use-require-auth';
 import type { FormStep, FormDimension } from '@/stores/list-store';
 import type { ListVisibility } from '@weiwuweixin/shared';
 import { VISIBILITY_OPTIONS } from '@weiwuweixin/shared';
@@ -265,7 +266,7 @@ export default function NewListPage() {
 
       {/* ── Step Content ── */}
       <main className="max-w-4xl mx-auto px-6 py-14">
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           {store.currentStep === 1 && <StepOne key="step1" />}
           {store.currentStep === 2 && <StepTwo key="step2" />}
           {store.currentStep === 3 && <StepThree key="step3" />}
@@ -1004,8 +1005,10 @@ function StepFive() {
   const { items, dimensions, scores, setScore, isSubmitting } = useListStore();
   const router = useRouter();
   const t = useTranslations('newList.stepFive');
+  const requireAuth = useRequireAuth();
 
   const handlePublish = useCallback(async () => {
+    if (!requireAuth()) return;
     const state = useListStore.getState();
     state.setIsSubmitting(true);
     try {
@@ -1117,26 +1120,24 @@ function StepFive() {
 
         {/* ── 操作按钮 ── */}
         <div className="flex justify-center gap-4 pt-10">
-          <motion.button type="button"
-            whileTap={{ scale: 0.97 }}
+          <button type="button"
             onClick={() => useListStore.getState().prevStep()}
             className="px-6 py-3 rounded-full text-sm text-white/50 bg-white/[0.02] border border-white/[0.05]
-              hover:bg-white/[0.05] hover:text-white/75 transition-all duration-300"
+              hover:bg-white/[0.05] hover:text-white/75 active:scale-[0.97] transition-all duration-300"
           >
             ← {t('back')}
-          </motion.button>
-          <motion.button type="button"
-            whileTap={{ scale: 0.96 }}
+          </button>
+          <button type="button"
             onClick={handlePublish}
             disabled={isSubmitting}
             className="px-8 py-3.5 rounded-full text-sm font-semibold text-white
               bg-gradient-to-r from-[#D94A35] to-[#E56550]
               hover:from-[#E56550] hover:to-[#D94A35]
               shadow-[0_0_50px_rgba(217,74,53,0.15)]
-              disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-500"
+              disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.96] transition-all duration-500"
           >
             {isSubmitting ? t('submitting') : t('publish')}
-          </motion.button>
+          </button>
         </div>
       </div>
     </motion.div>
