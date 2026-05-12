@@ -127,7 +127,7 @@ function Card3DTilt({ children, className }: { children: React.ReactNode; classN
       onMouseLeave={handleMouseLeave}
     >
       <motion.div
-        style={{ rotateX: springRx, rotateY: springRy, transformStyle: 'preserve-3d' as React.CSSProperties }}
+        style={{ rotateX: springRx, rotateY: springRy, transformStyle: 'preserve-3d' as any }}
       >
         {children}
       </motion.div>

@@ -20,7 +20,7 @@
 | 层级 | 技术 |
 |------|------|
 | 前端 | Next.js 14, TypeScript, Tailwind CSS, Framer Motion, Zustand, TanStack Query, next-intl, KaTeX, satori |
-| 后端 | Fastify, Prisma, PostgreSQL 15, Redis 7, MinIO |
+| 后端 | Fastify, Prisma, PostgreSQL 15 |
 | 算法 | packages/scoring — 5种评分算法 + 置信度引擎 + 反刷分检测 |
 | 导出 | satori + @resvg/resvg-js — 6套模板纯客户端PNG导出 |
 | 国际化 | next-intl — /zh/ /en/ 双语路由 |
@@ -84,7 +84,7 @@ git clone <repo-url> && cd weiwuweixin
 # 2. 安装依赖
 pnpm install
 
-# 3. 启动基础设施（PostgreSQL / Redis / MinIO）
+# 3. 启动基础设施（PostgreSQL）
 docker compose up -d
 
 # 4. 初始化数据库 schema + 演示数据（5 用户 / 20 榜单 / 300 社区评分）
@@ -247,7 +247,7 @@ weiwuweixin/
 │  │  ├─ src/app/[locale]/   # 页面路由（首页/发现/新建/详情/打分/个人/设置/关于）
 │  │  ├─ tests/e2e/          # Playwright E2E 测试
 │  │  └─ playwright.config.ts
-│  └─ api/              # Fastify + Prisma + PostgreSQL + Redis + MinIO
+│  └─ api/              # Fastify + Prisma + PostgreSQL
 │     ├─ prisma/        # Schema & Seed
 │     └─ src/
 ├─ packages/

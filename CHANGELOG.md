@@ -30,7 +30,6 @@
 - pnpm monorepo：apps/api (Fastify) + apps/web (Next.js 14)
 - 数据库：PostgreSQL 15 + Prisma ORM
 - 缓存：Redis 7
-- 对象存储：MinIO
 - 国际化：next-intl 双语 (zh/en)
 - 测试：Vitest 171 tests + Playwright E2E
 - 设计系统：11 基础组件 + Storybook 38+ stories

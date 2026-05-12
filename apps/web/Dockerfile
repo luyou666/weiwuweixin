@@ -7,15 +7,19 @@ COPY pnpm-lock.yaml .
 COPY package.json .
 COPY packages/shared/package.json packages/shared/
 COPY packages/scoring/package.json packages/scoring/
+COPY packages/ui/package.json packages/ui/
 COPY apps/web/package.json apps/web/
 
 FROM base AS builder
 WORKDIR /app
 RUN pnpm install --frozen-lockfile
+COPY tsconfig.base.json .
 COPY packages/shared/ packages/shared/
 COPY packages/scoring/ packages/scoring/
+COPY packages/ui/ packages/ui/
 COPY apps/web/ apps/web/
 WORKDIR /app/apps/web
+ENV NEXT_PUBLIC_API_URL=/api
 RUN pnpm build
 
 # ---- Runner Stage ----

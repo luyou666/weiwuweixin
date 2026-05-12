@@ -46,7 +46,6 @@ if [ -n "$USER_PATH" ]; then
         mkdir -p "$INSTALL_DIR"
         rsync -a --info=progress2 \
             --exclude='node_modules' --exclude='.next' --exclude='.next.bak' --exclude='.next_old' \
-            --exclude='.git' --exclude='.pg-data' --exclude='redis-data' --exclude='minio-data' \
             --exclude='*.pid' --exclude='playwright-report' --exclude='storybook-static' \
             --exclude='test-results' --exclude='coverage' --exclude='dist' --exclude='out' \
             --exclude='build' --exclude='dump.rdb' --exclude='scripts/logs' \

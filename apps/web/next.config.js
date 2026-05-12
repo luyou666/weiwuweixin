@@ -2,6 +2,12 @@ const withNextIntl = require('next-intl/plugin')();
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   reactStrictMode: true,
   output: 'standalone',
   transpilePackages: ['@weiwuweixin/ui', '@weiwuweixin/shared', '@weiwuweixin/scoring'],

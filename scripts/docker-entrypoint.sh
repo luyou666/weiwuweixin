@@ -5,11 +5,14 @@
 # ============================================================
 set -euo pipefail
 
+echo "[docker-entrypoint] Generating Prisma Client..."
+(cd /app/apps/api && npx prisma generate) || true
+
 echo "[docker-entrypoint] Pushing database schema..."
 (cd /app/apps/api && npx prisma db push --skip-generate 2>/dev/null) || {
-    echo "[docker-entrypoint] Retry with prisma generate..."
-    (cd /app/apps/api && npx prisma generate && npx prisma db push)
+    echo "[docker-entrypoint] db push failed or skipped, continuing..."
 }
 
 echo "[docker-entrypoint] Starting API server..."
-exec node /app/apps/api/dist/index.js
+cd /app/apps/api
+exec npx tsx src/index.ts

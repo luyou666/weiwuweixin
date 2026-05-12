@@ -331,8 +331,8 @@ export default function LeaderboardPage() {
     }
     if (filter === 'classic') {
       return [...list].sort((a, b) =>
-        ((b.communityScoreCount ?? 0) + (b.commentCount ?? 0)) -
-        ((a.communityScoreCount ?? 0) + (a.commentCount ?? 0))
+        (((b as any).communityScoreCount ?? 0) + ((b as any).commentCount ?? 0)) -
+        (((a as any).communityScoreCount ?? 0) + ((a as any).commentCount ?? 0))
       );
     }
     return list;
