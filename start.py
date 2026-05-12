@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""WeiWuWeiXin — 可靠启动 v4
-修复: socket bind实测端口 + setsid进程隔离 + 重试机制
+"""WeiWuWeiXin — 可靠启动 v5
+修复: 移除Redis依赖 + socket bind实测端口 + setsid进程隔离 + 重试机制
 """
 import os, subprocess, time, sys, socket, signal, secrets
 
@@ -43,7 +43,7 @@ def wait_http(url, timeout=30):
 # ── Banner ──
 print("""
 \033[1m============================================\033[0m
-\033[1m  WeiWuWeiXin — Starting v4\033[0m
+\033[1m  WeiWuWeiXin — Starting v5\033[0m
 \033[1m============================================\033[0m
 """)
 
@@ -53,7 +53,7 @@ for proc in ['postgres', 'next.*dev', 'tsx', 'tsup', 'esbuild']:
     subprocess.run(['pkill', '-9', '-f', proc], capture_output=True)
 time.sleep(0.5)
 
-for port in [5432, 3002, 3001, 6379]:
+for port in [5432, 3002, 3001]:
     ok = kill_port(port, max_attempts=10)
     print(f"  Port {port}: {'\033[32mFREE\033[0m' if ok else '\033[33mFORCE\033[0m'}")
 
@@ -69,16 +69,15 @@ if not os.path.exists(env_file):
     else:
         env = ""
     env = env.replace('JWT_SECRET=changeme', f'JWT_SECRET={secrets.token_hex(32)}')
-    env = env.replace('PG_PASSWORD=changeme', 'PG_PASSWORD=weiwuweixin_dev')
-    env = env.replace('changeme@localhost', 'weiwuweixin_dev@localhost')
+    # 密码从环境变量读取，不硬编码
     with open(env_file, 'w') as f:
         f.write(env)
     print("  \033[32mOK\033[0m")
 
-os.environ['PG_PASSWORD'] = os.environ.get('PG_PASSWORD', 'weiwuweixin_dev')
+os.environ['PG_PASSWORD'] = os.environ.get('PG_PASSWORD', 'changeme')
 
 # ── 1. PostgreSQL ──
-print("\033[34m[1/4] PostgreSQL\033[0m")
+print("\033[34m[1/3] PostgreSQL\033[0m")
 pg = subprocess.Popen(['node', 'packages/shared/start-pg.cjs'], cwd=PROJ,
                        stdout=open(f'{LOG}/pg.log', 'w'), stderr=subprocess.STDOUT)
 
@@ -96,7 +95,7 @@ else:
     sys.exit(1)
 
 # ── 2. DB Schema ──
-print("\033[34m[2/4] DB Schema\033[0m")
+print("\033[34m[2/3] DB Schema\033[0m")
 r = subprocess.run(['npx', 'prisma', 'db', 'push', '--skip-generate'],
                    cwd=f'{PROJ}/apps/api', capture_output=True)
 if r.returncode == 0:
@@ -106,31 +105,11 @@ else:
     r2 = subprocess.run(['npx', 'prisma', 'db', 'push'], cwd=f'{PROJ}/apps/api', capture_output=True)
     print(f"  {'\033[32mOK\033[0m' if r2.returncode == 0 else '\033[33mSkip\033[0m'}")
 
-# ── 3. Redis ──
-print("\033[34m[3/4] Redis\033[0m")
-redis_bin = None
-for path in ['redis-server', os.path.expanduser('~/.local/bin/redis-server'), '/usr/bin/redis-server']:
-    r = subprocess.run(['which', path], capture_output=True)
-    if r.returncode == 0:
-        redis_bin = path
-        break
+# ═══ 3. 顺序启动 API → Web ═══
+print("\033[34m[3] Starting servers...\033[0m")
 
-if redis_bin:
-    r = subprocess.run(['redis-cli', 'ping'], capture_output=True)
-    if r.returncode == 0:
-        print("  \033[32mAlready running\033[0m")
-    else:
-        kill_port(6379, 5)
-        r = subprocess.run([redis_bin, '--daemonize', 'yes', '--port', '6379'], capture_output=True)
-        print(f"  {'\033[32mOK\033[0m' if r.returncode == 0 else '\033[33mSkip\033[0m'}")
-else:
-    print("  \033[33mSkip (degraded)\033[0m")
-
-# ═══ 4. 顺序启动 API → Web ═══
-print("\033[34m[4] Starting servers...\033[0m")
-
-# ── 4a. API — setsid 隔离进程组 ──
-print("  [4a] API :3001 ... ", end='', flush=True)
+# ── 3a. API — setsid 隔离进程组 ──
+print("  [3a] API :3001 ... ", end='', flush=True)
 kill_port(3001, 10)
 
 # 用 setsid 创建新会话，避免子进程逃逸
@@ -151,8 +130,8 @@ else:
     print("\033[31mFAILED\033[0m")
     sys.exit(1)
 
-# ── 4b. Web — 真端口空闲确认 + 重试 ──
-print("  [4b] Web :3002 ... ", end='', flush=True)
+# ── 3b. Web — 真端口空闲确认 + 重试 ──
+print("  [3b] Web :3002 ... ", end='', flush=True)
 
 # 循环确认端口真正空闲
 for attempt in range(10):
@@ -179,14 +158,13 @@ web_proc = subprocess.Popen(
 # 等待 Web 就绪，如果挂了就重试
 web_ok = False
 for i in range(45):
-    t = wait_http('http://127.0.0.1:3002', 1)  # 每次等1秒
+    t = wait_http('http://127.0.0.1:3002', 1)
     if t:
         web_ok = True
         print(f"\033[32mOK ({i+1}s)\033[0m")
         break
 
     if web_proc.poll() is not None:
-        # 进程挂了——多半端口被抢，重试
         print(f"\n  Web died (EADDRINUSE?), retrying...", end='', flush=True)
         kill_port(3002, 20)
         time.sleep(1)
@@ -241,6 +219,6 @@ finally:
                 proc.kill()
             except:
                 pass
-    for port in [5432, 3002, 3001, 6379]:
+    for port in [5432, 3002, 3001]:
         subprocess.run(['fuser', '-k', f'{port}/tcp'], capture_output=True)
     print("\033[32mBye!\033[0m")

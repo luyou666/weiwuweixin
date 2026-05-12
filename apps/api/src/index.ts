@@ -1,5 +1,5 @@
 /**
- * 围物为心 — Fastify 服务器入口（含连接限制 + keepAlive 防卡死 + 优雅关闭）
+ * 围物为心 — Fastify 服务器入口（文件日志 + 连接限制 + keepAlive 防卡死 + 优雅关闭）
  */
 
 import 'dotenv/config';
@@ -11,6 +11,23 @@ const HOST = process.env.HOST ?? '0.0.0.0';
 async function main() {
   const app = await buildApp({
     pluginTimeout: 10_000,
+  });
+
+  // ── 请求日志钩子（记录每个请求的关键信息用于问题定位）──
+  app.addHook('onResponse', (req, reply) => {
+    const durationMs = reply.elapsedTime;
+    const statusCode = reply.statusCode;
+    const method = req.method;
+    const url = req.url;
+    const ip = req.ip;
+
+    if (statusCode >= 500) {
+      req.log.error({ method, url, statusCode, durationMs: Math.round(durationMs), ip }, '请求异常');
+    } else if (statusCode >= 400) {
+      req.log.warn({ method, url, statusCode, durationMs: Math.round(durationMs), ip }, '请求被拒绝');
+    } else {
+      req.log.info({ method, url, statusCode, durationMs: Math.round(durationMs), ip }, '请求完成');
+    }
   });
 
   // ── 连接限制 + keepAlive 防卡死（在底层 HTTP Server 上设置）──

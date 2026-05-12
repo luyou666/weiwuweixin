@@ -12,7 +12,7 @@ import helmet from 'helmet';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import { prismaPlugin } from './plugins/prisma';
-import { redisPlugin } from './plugins/redis';
+// Redis 已移除 — 缓存迁移至 services/cache.ts (纯内存)
 import { healthRoutes } from './routes/health';
 import { listRoutes } from './routes/lists';
 import { scoreRoutes } from './routes/scores';
@@ -120,7 +120,7 @@ export async function buildApp(opts: FastifyServerOptions = {}) {
 
   // ── Plugins ───────────────────────────────────────────
   await app.register(prismaPlugin);
-  await app.register(redisPlugin);
+  // Redis Plugin 已移除 — 缓存迁移至内存层
 
   // ── 认证装饰器 ────────────────────────────────────────
   app.decorate('authenticate', async (req: any, reply: any) => {
@@ -134,6 +134,10 @@ export async function buildApp(opts: FastifyServerOptions = {}) {
 
     // 认证路由免认证（登录/注册/刷新）
     if (req.url.startsWith('/api/auth/')) return;
+
+    // 投票路由免认证（匿名 deviceId 投票）
+    // POST /api/lists/:id/vote 自带 voterFingerprint 保护，不依赖 JWT
+    if (req.url.includes('/vote')) return;
 
     await jwtAuthMiddleware(req, reply);
 

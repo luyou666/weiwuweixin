@@ -1,12 +1,9 @@
 /**
- * 围物为心 — Redis 缓存层
+ * 围物为心 — 内存缓存层
  *
- * 封装 ioredis，提供 get/set/del/withCache 方法。
- * Redis 不可用时优雅降级至直接查 DB。
+ * 进程内 Map + TTL 缓存，提供 get/set/del/withCache 方法。
+ * 无外部依赖，纯内存实现。
  */
-
-import Redis from 'ioredis';
-import { setTimeout as sleep } from 'timers/promises';
 
 // ── 缓存 TTL 常量 ──────────────────────────────────────
 
@@ -38,96 +35,93 @@ export const CacheKeys = {
 
 // ── CacheService 类 ─────────────────────────────────────
 
+interface CacheEntry {
+  value: unknown;
+  expiresAt: number;
+}
+
+const MAX_KEYS = 10000;
+
+/**
+ * 将 glob 模式转为 RegExp。
+ * 支持 * (匹配任意非:字符) 和 ** (匹配任意字符)。
+ */
+function globToRegex(glob: string): RegExp {
+  // Escape special regex chars except * and ?
+  let pattern = glob.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  // ** matches everything
+  pattern = pattern.replace(/\*\*/g, '<<<DOUBLE_STAR>>>');
+  // * matches anything except :
+  pattern = pattern.replace(/\*/g, '[^:]*');
+  pattern = pattern.replace(/<<<DOUBLE_STAR>>>/g, '.*');
+  return new RegExp(`^${pattern}$`);
+}
+
 export class CacheService {
-  private redis: Redis | null;
-  private healthy = true;
-  private reconnectAttempts = 0;
-  private readonly maxReconnectAttempts = 10;
+  private store: Map<string, CacheEntry> = new Map();
+  private cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(redisUrl?: string) {
-    const url = redisUrl ?? process.env.REDIS_URL ?? 'redis://localhost:6379';
-
-    // REDIS_URL 为空字符串 或 DISABLE_REDIS=1 时跳过 Redis 初始化
-    if (!url || process.env.DISABLE_REDIS === '1') {
-      this.redis = null;
-      this.healthy = false;
-      return;
-    }
-
+  constructor() {
+    // 每 60 秒清理过期条目
+    this.cleanupTimer = setInterval(() => this.evictExpired(), 60_000);
+    // Node.js: 让 timer 不阻止进程退出
     try {
-      this.redis = new Redis(url, {
-        maxRetriesPerRequest: 3,
-        lazyConnect: true,
-        retryStrategy: (times: number) => {
-          if (times > this.maxReconnectAttempts) {
-            this.healthy = false;
-            return null; // stop retrying
-          }
-          this.reconnectAttempts = times;
-          return Math.min(times * 200, 5000);
-        },
-      });
+      (this.cleanupTimer as unknown as { unref(): void }).unref();
+    } catch { /* 非 Node 环境忽略 */ }
+  }
 
-      this.redis.on('error', (err) => {
-        if (this.healthy) {
-          console.warn('[Cache] Redis error, degrading to pass-through:', err.message);
-        }
-        this.healthy = false;
-      });
-
-      this.redis.on('connect', () => {
-        console.log('[Cache] Redis connected');
-        this.healthy = true;
-      });
-
-      // 延迟连接，不阻塞启动
-      this.redis.connect().catch((err) => {
-        if (this.healthy) {
-          console.warn('[Cache] Redis connection failed, using pass-through mode');
-        }
-        this.healthy = false;
-      });
-    } catch {
-      this.redis = null;
-      this.healthy = false;
+  /** 清理过期条目 */
+  private evictExpired(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.store) {
+      if (entry.expiresAt <= now) {
+        this.store.delete(key);
+      }
     }
   }
 
-  // ── 基础操作 ────────────────────────────────────────
-
-  private async ensureConnected(): Promise<boolean> {
-    if (!this.redis || !this.healthy) return false;
-    try {
-      await this.redis.ping().catch(() => {
-        this.healthy = false;
-        return null;
-      });
-      return this.healthy;
-    } catch {
-      return false;
+  /** 淘汰最旧的 20% key */
+  private evictOldest(): void {
+    if (this.store.size <= MAX_KEYS) return;
+    const toRemove = Math.ceil(this.store.size * 0.2);
+    // 按 expiresAt 排序，淘汰最旧的
+    const entries = [...this.store.entries()]
+      .sort((a, b) => a[1].expiresAt - b[1].expiresAt);
+    for (let i = 0; i < toRemove && i < entries.length; i++) {
+      this.store.delete(entries[i][0]);
     }
   }
 
   async get(key: string): Promise<string | null> {
-    if (!await this.ensureConnected()) return null;
-    return this.redis!.get(key);
+    const entry = this.store.get(key);
+    if (!entry) return null;
+    if (entry.expiresAt <= Date.now()) {
+      this.store.delete(key);
+      return null;
+    }
+    return entry.value as string;
   }
 
   async set(key: string, value: string, ttlSeconds: number): Promise<void> {
-    if (!await this.ensureConnected()) return;
-    await this.redis!.setex(key, ttlSeconds, value);
+    if (this.store.size >= MAX_KEYS) {
+      this.evictOldest();
+    }
+    this.store.set(key, {
+      value,
+      expiresAt: Date.now() + ttlSeconds * 1000,
+    });
   }
 
   async del(key: string): Promise<void> {
-    if (!await this.ensureConnected()) return;
-    await this.redis!.del(key);
+    this.store.delete(key);
   }
 
   async delPattern(pattern: string): Promise<void> {
-    if (!await this.ensureConnected()) return;
-    const keys = await this.redis!.keys(pattern);
-    if (keys.length > 0) {
-      await this.redis!.del(...keys);
+    const regex = globToRegex(pattern);
+    for (const key of this.store.keys()) {
+      if (regex.test(key)) {
+        this.store.delete(key);
+      }
     }
   }
 
@@ -158,7 +152,7 @@ export class CacheService {
       return cached;
     }
 
-    // 2. 缓存未命中或 Redis 不可用 — 直接查
+    // 2. 缓存未命中 — 直接查
     const fresh = await fetcher();
 
     // 3. 尝试写入缓存（best-effort）
@@ -170,8 +164,10 @@ export class CacheService {
   // ── 关闭连接 ────────────────────────────────────────
 
   disconnect(): void {
-    if (this.redis) {
-      this.redis.disconnect();
+    this.store.clear();
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
     }
   }
 }

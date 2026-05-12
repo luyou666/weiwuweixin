@@ -46,11 +46,18 @@ prisma/migrations/
 # MinIO data
 minio-data/
 
-# Redis data
+# Redis data (legacy)
 redis-data/
+*.rdb
+dump.rdb
+
+# E2E verification reports (may contain credentials)
+E2E_VERIFICATION_REPORT.md
 
 # PostgreSQL data
 .pg-data/
+data/
+.pg-port
 pg-data/check-users.cjs
 create-test-user.cjs
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-#  围物为心 (WeiWuWeiXin) — 一键停止脚本
+#  围物为心 (WeiWuWeiXin) — 一键停止脚本 v2
 #  用法: ./stop.sh
 # ============================================================
 set -euo pipefail
@@ -27,10 +27,7 @@ for p in 3000 3001; do
     fi
 done
 
-# 3. 停止 Redis
-redis-cli shutdown 2>/dev/null && echo -e "  ${GREEN}✅ Redis 已停止${NC}" || echo -e "  ${YELLOW}⏭️  Redis 未在运行${NC}"
-
-# 4. 停止 PostgreSQL (嵌入式)
+# 3. 停止 PostgreSQL (嵌入式)
 if [ -f "$PROJECT_DIR/.pg-port" ]; then
     pgpid=$(lsof -ti:5432 2>/dev/null | head -1 || true)
     if [ -n "$pgpid" ]; then
@@ -45,7 +42,7 @@ else
     echo -e "  ${YELLOW}⏭️  PostgreSQL 未在运行${NC}"
 fi
 
-# 5. 清理 PID 文件
+# 4. 清理 PID 文件
 rm -f "$PROJECT_DIR/.pg-port" "$PROJECT_DIR/apps/api/.api.pid" "$PROJECT_DIR/apps/api/.watchdog.pid"
 
 echo ""

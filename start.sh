@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# WeiWuWeiXin — 可靠启动 v8
-# 修复: 端口3002 (3000被Windows svchost占用) + cd apps/web解决i18n路径
+# WeiWuWeiXin — 可靠启动 v9
+# 修复: 移除Redis依赖 + 端口调整
 set -uo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 
@@ -43,7 +43,7 @@ cleanup() {
     for sid in "${SIDS[@]:-}"; do
         kill -KILL -- -"$sid" 2>/dev/null || true
     done
-    for p in 5432 3002 3001 6379; do
+    for p in 5432 3002 3001; do
         port_kill_all "$p" 5
     done
     rm -f "$DIR/.pg-port" "$DIR/data/pg/postmaster.pid" 2>/dev/null || true
@@ -60,12 +60,12 @@ run_setsid() {
 }
 
 echo "============================================"
-echo "  WeiWuWeiXin — Starting v8"
+echo "  WeiWuWeiXin — Starting v9"
 echo "============================================"
 
 # ── 0. 清场 (跨WSL边界) ──
 echo "[0] Cleaning old processes..."
-for p in 5432 3002 3001 6379; do
+for p in 5432 3002 3001; do
     port_kill_all "$p" 20
 done
 rm -f "$DIR/.pg-port" "$DIR/data/pg/postmaster.pid" 2>/dev/null || true
@@ -74,7 +74,7 @@ echo "  OK"
 
 # ── 验证清场结果 ──
 echo "  Verifying ports..."
-for p in 3002 3001 5432 6379; do
+for p in 3002 3001 5432; do
     if timeout 1 bash -c "echo >/dev/tcp/127.0.0.1/$p" 2>/dev/null; then
         echo "  ⚠️  Port $p still BUSY (Windows?)"
         port_win_kill "$p"
@@ -85,7 +85,7 @@ for p in 3002 3001 5432 6379; do
 done
 
 # ── 1. PostgreSQL ──
-echo "[1/4] PostgreSQL..."
+echo "[1/3] PostgreSQL..."
 node "$DIR/packages/shared/start-pg.cjs" &
 PG_PID=$!
 for i in $(seq 1 30); do
@@ -95,25 +95,14 @@ for i in $(seq 1 30); do
 done
 
 # ── 2. Schema ──
-echo "[2/4] Database Schema..."
+echo "[2/3] Database Schema..."
 (cd "$DIR/apps/api" && npx prisma db push --skip-generate) 2>/dev/null || {
     (cd "$DIR/apps/api" && npx prisma generate >/dev/null 2>&1 && npx prisma db push)
 }
 echo "  OK"
 
-# ── 3. Redis ──
-echo "[3/4] Redis..."
-if timeout 2 redis-cli -p 6379 ping 2>/dev/null | grep -q PONG; then
-    echo "  OK (already running)"
-else
-    port_kill_all 6379 10
-    redis-server --daemonize yes --port 6379 2>/dev/null || true
-    sleep 0.5
-    timeout 2 redis-cli -p 6379 ping 2>/dev/null | grep -q PONG && echo "  OK" || echo "  Skip (degraded)"
-fi
-
-# ── 4a. API ──
-echo "[4a] API :3001..."
+# ── 3a. API ──
+echo "[3a] API :3001..."
 API_OK=false
 for api_try in 1 2; do
     port_kill_all 3001 15
@@ -131,8 +120,8 @@ for api_try in 1 2; do
 done
 [ "$API_OK" = true ] || { echo "  FAILED"; exit 1; }
 
-# ── 4b. Web — 先清Windows端口, 再直接启动 ──
-echo "[4b] Web :3002..."
+# ── 3b. Web — 先清Windows端口, 再直接启动 ──
+echo "[3b] Web :3002..."
 
 WEB_OK=false
 for web_try in $(seq 1 5); do

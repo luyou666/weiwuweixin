@@ -2,14 +2,14 @@ version: "3.8"
 
 services:
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: weiwuweixin-postgres
     restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-weiwuweixin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-weiwuweixin_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: ${POSTGRES_DB:-weiwuweixin}
     volumes:
       - pg-data:/var/lib/postgresql/data
@@ -19,19 +19,37 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    container_name: weiwuweixin-redis
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: weiwuweixin-api
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-weiwuweixin}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-weiwuweixin}
+      JWT_SECRET: ${JWT_SECRET}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FILE: ${LOG_FILE:-/app/logs/api.log}
     volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - api-logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: weiwuweixin-web
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://api:3001}
+    depends_on:
+      - api
 
   minio:
     image: minio/minio:latest
@@ -42,7 +60,7 @@ services:
       - "9001:9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin_dev}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-changeme}
     volumes:
       - minio-data:/data
     command: server /data --console-address ":9001"
@@ -54,5 +72,5 @@ services:
 
 volumes:
   pg-data:
-  redis-data:
   minio-data:
+  api-logs:

@@ -15,11 +15,10 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
     };
   });
 
-  /** 深度就绪检测 — DB + Redis 真实连通性 */
+  /** 深度就绪检测 — DB 真实连通性 + 内存状态 */
   app.get('/ready', async (req, _reply) => {
-    const checks: { db: string; redis: string; memory: string } = {
+    const checks: { db: string; memory: string } = {
       db: 'unknown',
-      redis: 'unknown',
       memory: 'ok',
     };
 
@@ -30,19 +29,6 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
       checks.db = `connected (${Date.now() - start}ms)`;
     } catch {
       checks.db = 'disconnected';
-    }
-
-    // ── Redis 连通性 ──
-    try {
-      const start = Date.now();
-      if (req.server.redis && req.server.redis.status === 'ready') {
-        await req.server.redis.ping();
-        checks.redis = `connected (${Date.now() - start}ms)`;
-      } else {
-        checks.redis = 'not_available';
-      }
-    } catch {
-      checks.redis = 'disconnected';
     }
 
     // ── 内存压力 ──
@@ -67,7 +53,6 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
   /** 数据库连接池统计 */
   app.get('/db-stats', async (req, _reply) => {
     try {
-      // Prisma 不直接暴露连接池指标，通过 pg_stat_activity 查询
       const connections: any[] = await req.server.prisma.$queryRaw`
         SELECT state, count(*)::int AS count
         FROM pg_stat_activity
